@@ -40,6 +40,8 @@ class SbmlViewerModel(QObject):
 
     def get_current_sbml_model(self):
         """Temporary write SBML to file and turn into petab.models.Model."""
+        if self.sbml_text == "":
+            return None
         with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
             tmp.write(self.sbml_text)
             tmp_path = tmp.name

@@ -89,7 +89,8 @@ class PEtabModel:
         bool
             Whether the data is consistent.
         """
-        return petab.lint.lint_problem(self.problem)
+        # TODO: Create logging messages
+        return petab.lint.lint_problem(self.current_petab_problem)
 
     def save(self, directory: str | Path):
         """Save the PEtab model to a directory.
@@ -100,4 +101,21 @@ class PEtabModel:
             The directory to save the PEtab model to.
         """
         self.problem.to_files(prefix_path=directory)
+
+    @property
+    def current_petab_problem(self) -> petab.Problem:
+        """Get the current PEtab problem.
+
+        Returns
+        -------
+        petab.Problem
+            The current PEtab problem.
+        """
+        return petab.Problem(
+            condition_df=self.condition.get_df(),
+            measurement_df=self.measurement.get_df(),
+            observable_df=self.observable.get_df(),
+            parameter_df=self.parameter.get_df(),
+            model=self.sbml.get_current_sbml_model(),
+        )
 

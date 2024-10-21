@@ -238,6 +238,11 @@ class MainController:
         self.view.closing_signal.connect(
             self.maybe_close
         )
+        # Lint Problem
+        for view in self.logger.views:
+            view.lint_model_button.clicked.connect(
+                self.model.test_consistency
+            )
 
     def save_model(self):
         options = QFileDialog.Options()
