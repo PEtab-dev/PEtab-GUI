@@ -112,7 +112,10 @@ class TableController(QObject):
             )
             return
         try:
-            new_df = pd.read_csv(file_path, sep=separator)
+            if self.model.table_type == "measurement":
+                new_df = pd.read_csv(file_path, sep=separator)
+            else:
+                new_df = pd.read_csv(file_path, sep=separator, index_col=0)
         except Exception as e:
             self.view.log_message(
                 f"Failed to read file: {str(e)}",
