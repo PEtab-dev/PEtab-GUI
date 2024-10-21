@@ -22,7 +22,7 @@ def main():
     petab_problem = petab.Problem.from_yaml(
         find_example(Path(__file__).parent) / "problem.yaml"
     )
-    model = PEtabModel(petab_problem)
+    model = PEtabModel()
     view = MainWindow()
     MainController(view, model)
 

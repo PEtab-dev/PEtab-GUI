@@ -34,7 +34,7 @@ class PEtabModel:
 
     def __init__(
         self,
-        petab_problem: petab.Problem,
+        petab_problem: petab.Problem | None = None,
     ):
         """Initialize the PEtab model.
 
@@ -43,6 +43,8 @@ class PEtabModel:
         petab_problem: petab.Problem
             The PEtab problem.
         """
+        if petab_problem is None:
+            petab_problem = petab.Problem()
         self.problem = petab_problem
         self.measurement = MeasurementModel(
             data_frame=self.problem.measurement_df,

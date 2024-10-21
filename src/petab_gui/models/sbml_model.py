@@ -21,11 +21,14 @@ class SbmlViewerModel(QObject):
     def __init__(self, sbml_model: petab.models.Model, parent=None):
         super().__init__(parent)
         self._sbml_model_original = sbml_model
-
-        self.sbml_text = libsbml.writeSBMLToString(
-            self._sbml_model_original.sbml_model.getSBMLDocument()
-        )
-        self.antimony_text = te.sbmlToAntimony(self.sbml_text)
+        if sbml_model:
+            self.sbml_text = libsbml.writeSBMLToString(
+                self._sbml_model_original.sbml_model.getSBMLDocument()
+            )
+            self.antimony_text = te.sbmlToAntimony(self.sbml_text)
+        else:
+            self.sbml_text = ""
+            self.antimony_text = ""
 
     def convert_sbml_to_antimony(self):
         self.antimony_text = te.sbmlToAntimony(self.sbml_text)

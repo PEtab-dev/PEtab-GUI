@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal
 from PySide6.QtGui import QColor
 
 from ..C import MEASUREMENT_COLUMNS, OBSERVABLE_COLUMNS, PARAMETER_COLUMNS
-from ..utils import validate_value
+from ..utils import validate_value, create_empty_dataframe
 
 
 class PandasTableModel(QAbstractTableModel):
@@ -16,11 +16,13 @@ class PandasTableModel(QAbstractTableModel):
 
     def __init__(self, data_frame, allowed_columns, table_type, parent=None):
         super().__init__(parent)
-        self._data_frame = data_frame
         self._allowed_columns = allowed_columns
         self.table_type = table_type
         self._invalid_cells = set()
         self._has_named_index = False
+        if data_frame is None:
+            data_frame = create_empty_dataframe(allowed_columns, table_type)
+        self._data_frame = data_frame
 
     def rowCount(self, parent=QModelIndex()):
         return self._data_frame.shape[0] + 1  # empty row at the end
@@ -357,10 +359,12 @@ class ConditionModel(IndexedPandasTableModel):
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
-            allowed_columns={},
+            allowed_columns={"conditionId": "STRING"},
             table_type="condition",
             parent=parent
         )
+        self._allowed_columns.pop("conditionId")
+
 
     def fill_row(self, row_position: int, data: dict):
         """Fill a row with data.
