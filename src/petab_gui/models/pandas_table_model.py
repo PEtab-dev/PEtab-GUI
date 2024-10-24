@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal
+from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal, QSortFilterProxyModel
 from PySide6.QtGui import QColor
 
 from ..C import MEASUREMENT_COLUMNS, OBSERVABLE_COLUMNS, PARAMETER_COLUMNS
@@ -382,3 +382,43 @@ class ConditionModel(IndexedPandasTableModel):
         data_to_add.update(data)
         self._data_frame.index[row_position] = data_to_add.pop("conditionId")
         self._data_frame.iloc[row_position] = data_to_add
+
+
+class PandasTableFilterProxy(QSortFilterProxyModel):
+    def __init__(self, model, parent=None):
+        super().__init__(parent)
+        self.source_model = model
+        self.setSourceModel(model)
+        self.column_filters = {}  # Store filters for multiple columns
+
+    def setFilterForColumn(self, column, pattern):
+        """Set filter pattern for a specific column."""
+        if pattern:
+            self.column_filters[column] = pattern  # Add or update filter for the column
+        else:
+            self.column_filters.pop(column, None)  # Remove filter if pattern is empty
+        self.invalidateFilter()  # Trigger the proxy to re-evaluate the filters
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        """Custom filtering logic to apply filters on multiple columns."""
+        source_model = self.sourceModel()
+
+        # Always accept the last row (for "add new row")
+        if source_row == source_model.rowCount() - 1:
+            return True
+
+        # Apply all column filters
+        for column, pattern in self.column_filters.items():
+            index = source_model.index(source_row, column, source_parent)
+            value = source_model.data(index, Qt.DisplayRole)
+            if not self.valueMatchesFilter(value, pattern):
+                return False  # Reject the row if any column doesn't match its filter
+
+        return True  # Accept row if it matches all filters
+
+    def valueMatchesFilter(self, value, pattern):
+        """Check if the value matches the filter pattern."""
+        if pattern and pattern not in str(value):
+            return False
+        return True
+
