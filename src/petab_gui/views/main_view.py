@@ -43,6 +43,7 @@ class MainWindow(QMainWindow):
         self.observable_dock = TableViewer("Observable Table")
         self.parameter_dock = TableViewer("Parameter Table")
         self.logger_dock = QDockWidget("Info")
+        self.logger_dock.setObjectName("logger_dock")
         self.logger_dock.setWidget(self.logger_views[1])
         self.plot_dock = MeasuremenPlotter(self)
 
@@ -185,6 +186,10 @@ class MainWindow(QMainWindow):
         # Restore the positions of the dock widgets
         self.restoreState(settings.value("main_window/state"))
 
+        # restore the settings of the data tab
+        self.data_tab.restoreGeometry(settings.value("data_tab/geometry"))
+        self.data_tab.restoreState(settings.value("data_tab/state"))
+
 
     def save_settings(self):
         """Save the settings to the QSettings object."""
@@ -199,4 +204,8 @@ class MainWindow(QMainWindow):
 
         # Save the positions of the dock widgets
         settings.setValue("main_window/state", self.saveState())
+
+        # save the settings of the data tab
+        settings.setValue("data_tab/geometry", self.data_tab.saveGeometry())
+        settings.setValue("data_tab/state", self.data_tab.saveState())
 

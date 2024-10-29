@@ -8,6 +8,8 @@ class MeasuremenPlotter(QDockWidget):
     def __init__(self, parent=None):
         super().__init__("Data Plot", parent)
 
+        self.setObjectName("plot_dock")
+
         # Set up the widget to hold the plot and toolbar
         dock_widget = QWidget(self)
         layout = QVBoxLayout(dock_widget)
