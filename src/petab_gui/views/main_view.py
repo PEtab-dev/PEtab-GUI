@@ -48,19 +48,18 @@ class MainWindow(QMainWindow):
 
         # Add docks to the QMainWindow of the data tab
         self.data_tab.addDockWidget(
-            Qt.RightDockWidgetArea, self.condition_dock
-        )
-        self.data_tab.addDockWidget(
             Qt.TopDockWidgetArea,
             self.measurement_dock
+        )
+        self.data_tab.splitDockWidget(
+            self.measurement_dock, self.parameter_dock, Qt.Orientation.Vertical
         )
         self.data_tab.addDockWidget(
             Qt.TopDockWidgetArea,
             self.observable_dock
         )
-        self.data_tab.addDockWidget(
-            Qt.LeftDockWidgetArea,
-            self.parameter_dock
+        self.data_tab.splitDockWidget(
+            self.observable_dock, self.condition_dock, Qt.Orientation.Vertical
         )
         self.data_tab.addDockWidget(
             Qt.BottomDockWidgetArea,
