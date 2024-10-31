@@ -6,8 +6,7 @@ import petab.v1 as petab
 from PySide6.QtCore import Signal, QObject, QModelIndex, QPoint
 from pathlib import Path
 from ..models.pandas_table_model import PandasTableModel, PandasTableFilterProxy
-from ..views.table_view import TableViewer
-from ..utils import CustomFilterLineEdit
+from ..views.table_view import TableViewer, SingleSuggestionDelegate
 
 
 class TableController(QObject):
@@ -37,73 +36,16 @@ class TableController(QObject):
         super().__init__()
         self.view = view
         self.model = model
-        self.proxy_model = PandasTableFilterProxy(self.model)
         self.logger = logger
         self.mother_controller = mother_controller
-        self.view.table_view.setModel(self.proxy_model)
+        self.view.table_view.setModel(self.model)
         self.setup_connections()
         self.setup_connections_specific()
-        # Connect header clicks to apply filters
-        header = self.view.table_view.horizontalHeader()
-        header.sectionClicked.connect(self.handle_header_click)
 
-        # Store the active filter input widgets
-        self.filter_widgets = {}
+        self.setup_completers()
 
-    def handle_header_click(self, logical_index):
-        """Handle clicking on the header to open a filter QLineEdit."""
-        print(f"Header clicked, column: {logical_index}")
-
-        # Check if there's already a filter widget for this column, if so, return
-        if logical_index in self.filter_widgets:
-            return
-
-        # Get the position and size of the header section
-        header = self.view.table_view.horizontalHeader()
-        section_x = header.sectionPosition(
-            logical_index)  # X position of the section
-        section_width = header.sectionSize(
-            logical_index)  # Width of the section
-        section_height = header.height()  # Height of the header
-
-        # Create a QLineEdit for inputting filter text
-        filter_input = QLineEdit(self.mother_controller.view.data_tab)
-        filter_input.setPlaceholderText(f"Filter column {logical_index}")
-
-
-
-        # Position the QLineEdit just below the header
-        filter_input.setGeometry(
-            header.pos().x() + section_x,
-            # X position aligned with header section
-            header.pos().y() + section_height,
-            # Y position just below the header
-            section_width,
-            # Width of the QLineEdit matching the header section width
-            filter_input.sizeHint().height()  # Default height of the QLineEdit
-        )
-
-        # Connect QLineEdit to apply the filter
-        filter_input.textChanged.connect(
-            lambda text: self.proxy_model.setFilterForColumn(logical_index,
-                                                             text))
-
-        # Store the widget so it can be referenced or closed later
-        self.filter_widgets[logical_index] = filter_input
-
-        # Show the QLineEdit
-        filter_input.show()
-
-        # Hide the filter widget when the user presses Enter or clicks outside
-        filter_input.editingFinished.connect(
-            lambda: self.hide_filter_input(logical_index))
-
-    def hide_filter_input(self, logical_index):
-        """Hide the QLineEdit and remove it from the active filter widgets."""
-        if logical_index in self.filter_widgets:
-            widget = self.filter_widgets[logical_index]
-            widget.deleteLater()
-            del self.filter_widgets[logical_index]
+    def setup_completers(self):
+        pass
 
     def setup_connections_specific(self):
         """Will be implemented in child controllers."""
@@ -431,6 +373,17 @@ class ConditionController(TableController):
             f"table.",
             color="green"
         )
+
+    def setup_completers(self):
+        """Set completers for the condition table."""
+        table_view = self.view.table_view
+        # conditionName
+        conditionName_index = self.model.return_column_index("conditionName")
+        if conditionName_index > -1:
+            table_view.setItemDelegateForColumn(
+                conditionName_index,
+                SingleSuggestionDelegate(self.model, "conditionId")
+            )
 
 
 class ObservableController(TableController):

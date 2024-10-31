@@ -208,6 +208,20 @@ class PandasTableModel(QAbstractTableModel):
             [Qt.BackgroundRole]
         )
 
+    def get_value_from_column(self, column_name, row):
+        """Retrieve the value from a specific column and row."""
+        if column_name in self._data_frame.columns:
+            return self._data_frame.loc[row, column_name]
+        if column_name == self._data_frame.index.name:
+            return self._data_frame.index[row]
+        return ""
+
+    def return_column_index(self, column_name):
+        """Return the index of a column."""
+        if column_name in self._data_frame.columns:
+            return self._data_frame.columns.get_loc(column_name) + 1
+        return -1
+
 
 class IndexedPandasTableModel(PandasTableModel):
     """Table model for tables with named index."""
@@ -308,6 +322,12 @@ class MeasurementModel(PandasTableModel):
         data_to_add.update(data)
         # Maybe add default values for missing columns
         self._data_frame.iloc[row_position] = data_to_add
+
+    def return_column_index(self, column_name):
+        """Return the index of a column."""
+        if column_name in self._data_frame.columns:
+            return self._data_frame.columns.get_loc(column_name)
+        return -1
 
 
 class ObservableModel(IndexedPandasTableModel):

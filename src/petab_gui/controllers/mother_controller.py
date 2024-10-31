@@ -385,6 +385,14 @@ class MainController:
                 "All files uploaded successfully from the YAML configuration.",
                 color="green"
             )
+            # rerun the completers
+            for controller in [
+                self.measurement_controller,
+                self.observable_controller,
+                self.parameter_controller,
+                self.condition_controller
+            ]:
+                controller.setup_completers()
             self.unsaved_changes = False
 
         except Exception as e:
