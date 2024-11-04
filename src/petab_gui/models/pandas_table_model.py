@@ -222,6 +222,14 @@ class PandasTableModel(QAbstractTableModel):
             return self._data_frame.columns.get_loc(column_name) + 1
         return -1
 
+    def unique_values(self, column_name):
+        """Return the unique values in a column."""
+        if column_name in self._data_frame.columns:
+            return list(self._data_frame[column_name].dropna().unique())
+        if column_name == self._data_frame.index.name:
+            return list(self._data_frame.index.dropna().unique())
+        return []
+
 
 class IndexedPandasTableModel(PandasTableModel):
     """Table model for tables with named index."""
@@ -259,6 +267,14 @@ class IndexedPandasTableModel(PandasTableModel):
                 color="red"
             )
             return False
+
+    def return_column_index(self, column_name):
+        """Return the index of a column."""
+        if column_name in self._data_frame.columns:
+            return self._data_frame.columns.get_loc(column_name) + 1
+        if column_name == self._data_frame.index.name:
+            return 0
+        return -1
 
 
 class MeasurementModel(PandasTableModel):
