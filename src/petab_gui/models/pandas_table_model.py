@@ -210,6 +210,9 @@ class PandasTableModel(QAbstractTableModel):
 
     def get_value_from_column(self, column_name, row):
         """Retrieve the value from a specific column and row."""
+        # if row is a new row return ""
+        if row == self._data_frame.shape[0]:
+            return ""
         if column_name in self._data_frame.columns:
             return self._data_frame.loc[row, column_name]
         if column_name == self._data_frame.index.name:

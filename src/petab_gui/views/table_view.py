@@ -104,15 +104,18 @@ class ParameterIdSuggestionDelegate(QStyledItemDelegate):
 
         # Get unique suggestions from the specified column
         curr_model = self.sbml_model.get_current_sbml_model()
-        suggestions = curr_model.get_valid_parameters_for_parameter_table()
-        # substract the current parameter ids except for the current row
-        row = index.row()
-        selected_parameter_id = self.par_model.get_value_from_column(
-            'parameterId', row
-        )
-        current_parameter_ids = self.par_model.get_df().index.tolist()
-        current_parameter_ids.remove(selected_parameter_id)
-        suggestions = list(set(suggestions) - set(current_parameter_ids))
+        suggestions = None
+        if curr_model:  # only if model is valid
+            suggestions = curr_model.get_valid_parameters_for_parameter_table()
+            # substract the current parameter ids except for the current row
+            row = index.row()
+            selected_parameter_id = self.par_model.get_value_from_column(
+                'parameterId', row
+            )
+            current_parameter_ids = self.par_model.get_df().index.tolist()
+            if selected_parameter_id in current_parameter_ids:
+                current_parameter_ids.remove(selected_parameter_id)
+            suggestions = list(set(suggestions) - set(current_parameter_ids))
 
         # Set up the completer with the unique values
         completer = QCompleter(suggestions, parent)
