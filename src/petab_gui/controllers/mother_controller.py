@@ -338,18 +338,36 @@ class MainController:
 
         self.view.plot_dock.update_visualization(plot_data)
 
-    def upload_yaml_and_load_files(self):
+    def open_file(self, file_path=None):
+        """Opens PEtab files (.yaml) or SBML files (.xml .sbml)."""
+        if not file_path:
+            file_path, _ = QFileDialog.getOpenFileName(
+                self.view,
+                "Open File",
+                "",
+                "PEtab Files (*.yaml *.yml);;SBML Files (*.xml *.sbml)"
+            )
+        if not file_path:
+            return
+        if file_path.endswith((".yaml", ".yml")):
+            self.upload_yaml_and_load_files(file_path)
+        elif file_path.endswith((".xml", ".sbml")):
+            self.sbml_controller.upload_and_overwrite_sbml(file_path)
+
+
+    def upload_yaml_and_load_files(self, yaml_path=None):
         """Upload files from a YAML configuration.
 
         Opens a dialog to upload yaml file. Creates a PEtab problem and
         overwrites the current PEtab model with the new problem.
         """
-        yaml_path, _ = QFileDialog.getOpenFileName(
-            self.view,
-            "Open YAML File",
-            "",
-            "YAML Files (*.yaml *.yml)"
-        )
+        if not yaml_path:
+            yaml_path, _ = QFileDialog.getOpenFileName(
+                self.view,
+                "Open YAML File",
+                "",
+                "YAML Files (*.yaml *.yml)"
+            )
         if not yaml_path:
             return
         try:
