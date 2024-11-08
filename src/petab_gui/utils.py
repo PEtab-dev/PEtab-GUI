@@ -5,6 +5,7 @@ from PySide6.QtCore import QObject, Signal
 import re
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+import pandas as pd
 
 
 class ConditionInputDialog(QDialog):
@@ -460,3 +461,21 @@ class SignalForwarder(QObject):
         """Connect a slot to the forwarded signal."""
         self.forwarded_signal.connect(slot)
 
+
+def create_empty_dataframe(column_dict: dict, table_type: str):
+    columns = list(column_dict.keys())
+    dtypes = {
+        col: 'object' if dtype == "STRING"
+        else 'float64' if dtype == "NUMERIC"
+        else 'bool'
+        for col, dtype in column_dict.items()
+    }
+    df = pd.DataFrame(columns=columns).astype(dtypes)
+    # set potential index columns
+    if table_type == "observable":
+        df.set_index("observableId", inplace=True)
+    elif table_type == "parameter":
+        df.set_index("parameterId", inplace=True)
+    elif table_type == "condition":
+        df.set_index("conditionId", inplace=True)
+    return df

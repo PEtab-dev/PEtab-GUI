@@ -238,6 +238,11 @@ class MainController:
         self.view.closing_signal.connect(
             self.maybe_close
         )
+        # Lint Problem
+        for view in self.logger.views:
+            view.lint_model_button.clicked.connect(
+                self.model.test_consistency
+            )
 
     def save_model(self):
         options = QFileDialog.Options()
@@ -380,6 +385,14 @@ class MainController:
                 "All files uploaded successfully from the YAML configuration.",
                 color="green"
             )
+            # rerun the completers
+            for controller in [
+                self.measurement_controller,
+                self.observable_controller,
+                self.parameter_controller,
+                self.condition_controller
+            ]:
+                controller.setup_completers()
             self.unsaved_changes = False
 
         except Exception as e:
