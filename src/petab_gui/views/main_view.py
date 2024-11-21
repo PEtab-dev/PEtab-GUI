@@ -111,7 +111,6 @@ class MainWindow(QMainWindow):
         self.data_tab.setDockOptions(
             QMainWindow.AllowNestedDocks | QMainWindow.AllowTabbedDocks
         )
-        self.task_bar = TaskBar(self)
 
         self.tab_widget.currentChanged.connect(self.set_docks_visible)
 

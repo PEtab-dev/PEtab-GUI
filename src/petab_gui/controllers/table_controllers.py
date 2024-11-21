@@ -95,7 +95,7 @@ class TableController(QObject):
             self.model.discard_invalid_cell(row, column)
         self.model.notify_data_color_change(row, column)
 
-    def upload_and_overwrite_table(self, file_path=None):
+    def open_and_overwrite_table(self, file_path=None):
         if not file_path:
             # Open a file dialog to select the CSV or TSV file
             file_path, _ = QFileDialog.getOpenFileName(

@@ -15,6 +15,7 @@ from .sbml_controller import SbmlController
 from .table_controllers import MeasurementController, ObservableController, \
     ConditionController, ParameterController
 from .logger_controller import LoggerController
+from ..views import TaskBar
 
 
 class MainController:
@@ -36,7 +37,6 @@ class MainController:
         """
         self.view = view
         self.model = model
-        self.task_bar = view.task_bar
         self.logger = LoggerController(view.logger_views)
         # CONTROLLERS
         self.measurement_controller = MeasurementController(
@@ -83,29 +83,19 @@ class MainController:
         self.unsaved_changes = False
         self.filter = QLineEdit()
         self.filter_active = {}  # Saves which tables the filter applies to
-        # SHORTCUTS
-        self.shortcuts = {
-            "find+replace": QShortcut(QKeySequence("Ctrl+R"), self.view),
-            "save": QShortcut(QKeySequence("Ctrl+S"), self.view),
-        }
         self.actions = self.setup_actions()
         self.view.setup_toolbar(self.actions)
 
         self.setup_connections()
-        self.setup_shortcuts()
+        self.setup_task_bar()
         self.setup_edit_menu()
-        self.setup_file_menu()
-        self.setup_view_menu()
 
 
-    def setup_shortcuts(self):
+    def setup_task_bar(self):
         """Create shortcuts for the main window."""
-        self.shortcuts["find+replace"].activated.connect(
-            self.open_find_replace_dialog
-        )
-        self.shortcuts["save"].activated.connect(
-            self.save_model
-        )
+        self.view.task_bar = TaskBar(self.view, self.actions)
+        self.task_bar = self.view.task_bar
+
 
     # CONNECTIONS
     def setup_edit_menu(self):
@@ -131,75 +121,6 @@ class MainController:
         )
         edit_menu.add_c_cond_action.triggered.connect(
             self.condition_controller.add_column
-        )
-        # TODO: rework dialogs?
-        # # Add rows
-        # task_bar.add_r_meas_action.triggered.connect(
-        #     lambda: self.add_row(0)
-        # )
-        # task_bar.add_r_obs_action.triggered.connect(
-        #     lambda: self.add_row(1)
-        # )
-        # task_bar.add_r_para_action.triggered.connect(
-        #     lambda: self.add_row(2)
-        # )
-        # task_bar.add_r_cond_action.triggered.connect(
-        #     lambda: self.add_row(3)
-        # )
-
-    def setup_file_menu(self):
-        """Create connections for the File menu actions in task bar."""
-        file_menu = self.task_bar.file_menu
-        # Upload different tables
-        file_menu.upload_measurement_table_action.triggered.connect(
-            self.measurement_controller.upload_and_overwrite_table
-        )
-        file_menu.upload_observable_table_action.triggered.connect(
-            self.observable_controller.upload_and_overwrite_table
-        )
-        file_menu.upload_parameter_table_action.triggered.connect(
-            self.parameter_controller.upload_and_overwrite_table
-        )
-        file_menu.upload_condition_table_action.triggered.connect(
-            self.condition_controller.upload_and_overwrite_table
-        )
-        file_menu.upload_sbml_action.triggered.connect(
-            self.sbml_controller.upload_and_overwrite_sbml
-        )
-        # upload yaml
-        file_menu.upload_yaml_action.triggered.connect(
-            self.upload_yaml_and_load_files
-        )
-        # Save
-        file_menu.save_action.triggered.connect(
-            self.save_model
-        )
-        # Close
-        file_menu.exit_action.triggered.connect(
-            self.view.close
-        )
-
-    def setup_view_menu(self):
-        """Create connections for the View menu actions in task bar."""
-        view_menu = self.task_bar.view_menu
-        # Add actions to the menu for re-adding tables
-        view_menu.show_measurement.toggled.connect(
-            lambda checked: self.view.measurement_dock.setVisible(checked)
-        )
-        view_menu.show_observable.toggled.connect(
-            lambda checked: self.view.observable_dock.setVisible(checked)
-        )
-        view_menu.show_parameter.toggled.connect(
-            lambda checked: self.view.parameter_dock.setVisible(checked)
-        )
-        view_menu.show_condition.toggled.connect(
-            lambda checked: self.view.condition_dock.setVisible(checked)
-        )
-        view_menu.show_logger.toggled.connect(
-            lambda checked: self.view.logger_dock.setVisible(checked)
-        )
-        view_menu.show_plot.toggled.connect(
-            lambda checked: self.view.plot_dock.setVisible(checked)
         )
 
 
@@ -258,7 +179,7 @@ class MainController:
             qta.icon("mdi6.folder-open"),
             "Open YAML Configuration", self.view
         )
-        actions["open_yaml"].triggered.connect(self.upload_yaml_and_load_files)
+        actions["open_yaml"].triggered.connect(self.open_yaml_and_load_files)
         # Save
         actions["save"] = QAction(
             qta.icon("mdi6.content-save-all"),
@@ -315,6 +236,43 @@ class MainController:
             filter_layout.addWidget(tool_button)
             self.filter_active[table_name] = tool_button
         actions["filter_widget"] = filter_widget
+
+        # show/hide elements
+        for element in ["measurement", "observable", "parameter", "condition"]:
+            actions[f"show_{element}"] = QAction(
+                f"{element.capitalize()} Table", self.view
+            )
+            actions[f"show_{element}"].setCheckable(True)
+            actions[f"show_{element}"].setChecked(True)
+        actions["show_logger"] = QAction(
+            "Info", self.view
+        )
+        actions["show_logger"].setCheckable(True)
+        actions["show_logger"].setChecked(True)
+        actions["show_plot"] = QAction(
+            "Data Plot", self.view
+        )
+        actions["show_plot"].setCheckable(True)
+        actions["show_plot"].setChecked(True)
+        # connect actions
+        actions["show_measurement"].toggled.connect(
+            lambda checked: self.view.measurement_dock.setVisible(checked)
+        )
+        actions["show_observable"].toggled.connect(
+            lambda checked: self.view.observable_dock.setVisible(checked)
+        )
+        actions["show_parameter"].toggled.connect(
+            lambda checked: self.view.parameter_dock.setVisible(checked)
+        )
+        actions["show_condition"].toggled.connect(
+            lambda checked: self.view.condition_dock.setVisible(checked)
+        )
+        actions["show_logger"].toggled.connect(
+            lambda checked: self.view.logger_dock.setVisible(checked)
+        )
+        actions["show_plot"].toggled.connect(
+            lambda checked: self.view.plot_dock.setVisible(checked)
+        )
 
         return actions
 
@@ -417,7 +375,7 @@ class MainController:
 
         self.view.plot_dock.update_visualization(plot_data)
 
-    def upload_yaml_and_load_files(self):
+    def open_yaml_and_load_files(self):
         """Upload files from a YAML configuration.
 
         Opens a dialog to upload yaml file. Creates a PEtab problem and
@@ -442,17 +400,17 @@ class MainController:
             # Upload SBML model
             sbml_file_path = \
                 yaml_dir / yaml_content['problems'][0]['sbml_files'][0]
-            self.sbml_controller.upload_and_overwrite_sbml(sbml_file_path)
-            self.measurement_controller.upload_and_overwrite_table(
+            self.sbml_controller.open_and_overwrite_sbml(sbml_file_path)
+            self.measurement_controller.open_and_overwrite_table(
                 yaml_dir / yaml_content['problems'][0]['measurement_files'][0]
             )
-            self.observable_controller.upload_and_overwrite_table(
+            self.observable_controller.open_and_overwrite_table(
                 yaml_dir / yaml_content['problems'][0]['observable_files'][0]
             )
-            self.parameter_controller.upload_and_overwrite_table(
+            self.parameter_controller.open_and_overwrite_table(
                 yaml_dir / yaml_content['parameter_file']
             )
-            self.condition_controller.upload_and_overwrite_table(
+            self.condition_controller.open_and_overwrite_table(
                 yaml_dir / yaml_content['problems'][0]['condition_files'][0]
             )
             self.logger.log_message(

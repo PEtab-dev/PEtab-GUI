@@ -4,7 +4,7 @@ from PySide6.QtGui import QAction
 
 class BasicMenu:
     """Base class for a TaskBar Menu."""
-    def __init__(self, parent):
+    def __init__(self, parent, actions):
         self.menu = QMenu(self.menu_name(), parent)
         self.parent = parent
 
@@ -41,52 +41,25 @@ class FileMenu(BasicMenu):
     """Class for the file menu."""
     def menu_name(self):
         return "File"
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, actions):
+        super().__init__(parent, actions)
 
         # Open, Save, and Close actions
-        self.upload_yaml_action = self.add_action_or_menu(
-            "Upload YAML Configuration"
-        )
-        self.upload_yaml_action.setIcon(self.parent.style().standardIcon(
-            QStyle.SP_DialogOpenButton
-        ))
-        self.upload_table_menu = self.add_action_or_menu(
-            "Upload Tables or SBML", is_action=False
-        )
-        self.upload_measurement_table_action = self.add_action_or_menu(
-            "Upload Measurement Table", self.upload_table_menu
-        )
-        self.upload_observable_table_action = self.add_action_or_menu(
-            "Upload Observable Table", self.upload_table_menu
-        )
-        self.upload_parameter_table_action = self.add_action_or_menu(
-            "Upload Parameter Table", self.upload_table_menu
-        )
-        self.upload_condition_table_action = self.add_action_or_menu(
-            "Upload Condition Table", self.upload_table_menu
-        )
-        self.upload_sbml_action = self.add_action_or_menu(
-            "Upload SBML", self.upload_table_menu
-        )
-
-
-        # self.open_action = self.add_action("Open")  # Currently no Function?
-        self.save_action = self.add_action_or_menu("Save")
-        self.save_action.setIcon(self.parent.style().standardIcon(
-            QStyle.SP_DialogSaveButton
-        ))
-        self.menu.addSeparator()
-        self.exit_action = self.add_action_or_menu("Close")
+        self.upload_yaml_action = actions["open_yaml"]
+        self.menu.addAction(self.upload_yaml_action)
+        self.save_action = actions["save"]
+        self.menu.addAction(self.save_action)
 
 
 class EditMenu(BasicMenu):
+    # TODO: Add actions to the setup actions (Requires fix of those, will be
+    #  done in the next PR)
     """Edit Menu of the TaskBar."""
     def menu_name(self):
         return "Edit"
 
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, actions):
+        super().__init__(parent, actions)
 
         # Find and Replace
         self.find_replace_action = self.add_action_or_menu("Find/Replace")
@@ -131,29 +104,29 @@ class ViewMenu(BasicMenu):
     def menu_name(self):
         return "View"
 
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, actions):
+        super().__init__(parent, actions)
 
         # Add actions to the menu for re-adding tables
-        self.show_measurement = self.add_checkable_action("Measurement Table")
-        self.show_observable = self.add_checkable_action("Observable Table")
-        self.show_parameter = self.add_checkable_action("Parameter Table")
-        self.show_condition = self.add_checkable_action("Condition Table")
-        self.show_logger = self.add_checkable_action("Info")
-        self.show_plot = self.add_checkable_action("Data Plot")
+        self.menu.addAction(actions["show_measurement"])
+        self.menu.addAction(actions["show_observable"])
+        self.menu.addAction(actions["show_parameter"])
+        self.menu.addAction(actions["show_condition"])
+        self.menu.addAction(actions["show_logger"])
+        self.menu.addAction(actions["show_plot"])
 
 
 class TaskBar:
     """TaskBar of the PEtab Editor."""
-    def add_menu(self, menu_class):
+    def add_menu(self, menu_class, actions):
         """Add a menu to the task bar."""
-        menu = menu_class(self.parent)
+        menu = menu_class(self.parent, actions)
         self.menu.addMenu(menu.menu)
         return menu
 
-    def __init__(self, parent):
+    def __init__(self, parent, actions):
         self.parent = parent
         self.menu = parent.menuBar()
-        self.file_menu = self.add_menu(FileMenu)
-        self.edit_menu = self.add_menu(EditMenu)
-        self.view_menu = self.add_menu(ViewMenu)
+        self.file_menu = self.add_menu(FileMenu, actions)
+        self.edit_menu = self.add_menu(EditMenu, actions)
+        self.view_menu = self.add_menu(ViewMenu, actions)
