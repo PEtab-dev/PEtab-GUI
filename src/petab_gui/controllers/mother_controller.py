@@ -1,4 +1,5 @@
-from PySide6.QtWidgets import QMessageBox, QFileDialog, QStyle
+from PySide6.QtWidgets import QMessageBox, QFileDialog, QLineEdit, QWidget, \
+    QHBoxLayout, QToolButton
 from PySide6.QtGui import QShortcut, QKeySequence, QAction
 import zipfile
 import tempfile
@@ -80,6 +81,8 @@ class MainController:
             "antimony": False
         }
         self.unsaved_changes = False
+        self.filter = QLineEdit()
+        self.filter_active = {}  # Saves which tables the filter applies to
         # SHORTCUTS
         self.shortcuts = {
             "find+replace": QShortcut(QKeySequence("Ctrl+R"), self.view),
@@ -287,6 +290,32 @@ class MainController:
         )
         actions["check_petab"].triggered.connect(self.check_model)
 
+        # Filter widget
+        filter_widget = QWidget()
+        filter_layout = QHBoxLayout()
+        filter_layout.setContentsMargins(0, 0, 0, 0)
+        filter_widget.setLayout(filter_layout)
+        filter_input = QLineEdit()
+        filter_input.setPlaceholderText("Filter not functional yet ...")
+        filter_layout.addWidget(filter_input)
+        for table_n, table_name in zip(
+            ["m", "p", "o", "c", "x"],
+            ["Measurement", "Parameter", "Observable", "Condition", "SBML"]
+        ):
+            tool_button = QToolButton()
+            icon = qta.icon(
+                "mdi6.filter", "mdi6.alpha-{}".format(table_n),
+                options=[
+                    {'off': 'mdi6.filter-off'}, {'offset': (0.3, 0.3)},
+                ],
+            )
+            tool_button.setIcon(icon)
+            tool_button.setCheckable(True)
+            tool_button.setToolTip(f"Filter for {table_name}")
+            filter_layout.addWidget(tool_button)
+            self.filter_active[table_name] = tool_button
+        actions["filter_widget"] = filter_widget
+
         return actions
 
     def save_model(self):
@@ -447,8 +476,8 @@ class MainController:
 
     def check_model(self):
         """Check the consistency of the model. And log the results."""
-        passed = self.model.test_consistency()
-        if passed:
+        failed = self.model.test_consistency()
+        if not failed:
             self.logger.log_message("Model is consistent.", color="green")
         else:
             self.logger.log_message("Model is inconsistent.", color="red")

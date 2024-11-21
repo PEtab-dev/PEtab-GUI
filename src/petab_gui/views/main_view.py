@@ -128,6 +128,7 @@ class MainWindow(QMainWindow):
         tb.addAction(actions["save"])
         tb.addAction(actions["check_petab"])
         tb.addAction(actions["find+replace"])
+        tb.addWidget(actions["filter_widget"])
 
     def add_menu_action(self, dock_widget, name):
         """Helper function to add actions to the menu for showing dock widgets"""

@@ -37,6 +37,7 @@ class TableController(QObject):
         super().__init__()
         self.view = view
         self.model = model
+        self.proxy_model = PandasTableFilterProxy(model)
         self.logger = logger
         self.mother_controller = mother_controller
         self.view.table_view.setModel(self.model)
