@@ -180,9 +180,7 @@ class TableController(QObject):
             f"Replacing '{find_text}' with '{replace_text}' in selected tables",
             color="green"
         )
-        self.model._data_frame.replace(find_text, replace_text, inplace=True)
-        self.model.layoutChanged.emit()
-        self.model.something_changed.emit()
+        self.model.replace_text(find_text, replace_text)
 
     def set_index_on_new_row(self, index: QModelIndex):
         """Set the index of the model when a new row is added."""

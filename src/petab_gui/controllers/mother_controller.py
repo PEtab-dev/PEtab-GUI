@@ -312,17 +312,19 @@ class MainController:
         )
 
     def open_find_replace_dialog(self):
-        current_tab = self.view.tabs.currentIndex()
+        current_tab = self.view.tab_widget.currentIndex()
         if current_tab == 0:
             # TODO: rewrite functionality in FindReplaceDialoge
             dialog = FindReplaceDialog(
                 self.view, mode="petab",
-                checkbox_states=self.petab_checkbox_states
+                checkbox_states=self.petab_checkbox_states,
+                controller=self
             )
         elif current_tab == 1:
             dialog = FindReplaceDialog(
                 self.view, mode="sbml",
-                checkbox_states=self.sbml_checkbox_states
+                checkbox_states=self.sbml_checkbox_states,
+                controller=self
             )
         dialog.exec()
 
