@@ -1,10 +1,11 @@
-from PySide6.QtWidgets import QMessageBox, QFileDialog
-from PySide6.QtGui import QShortcut, QKeySequence
+from PySide6.QtWidgets import QMessageBox, QFileDialog, QStyle
+from PySide6.QtGui import QShortcut, QKeySequence, QAction
 import zipfile
 import tempfile
 import os
 from io import BytesIO
 import yaml
+import qtawesome as qta
 from ..utils import FindReplaceDialog
 from PySide6.QtCore import Qt
 from pathlib import Path
@@ -36,7 +37,7 @@ class MainController:
         self.model = model
         self.task_bar = view.task_bar
         self.logger = LoggerController(view.logger_views)
-        # CONTROLERS
+        # CONTROLLERS
         self.measurement_controller = MeasurementController(
             self.view.measurement_dock,
             self.model.measurement,
@@ -84,6 +85,8 @@ class MainController:
             "find+replace": QShortcut(QKeySequence("Ctrl+R"), self.view),
             "save": QShortcut(QKeySequence("Ctrl+S"), self.view),
         }
+        self.actions = self.setup_actions()
+        self.view.setup_toolbar(self.actions)
 
         self.setup_connections()
         self.setup_shortcuts()
@@ -244,6 +247,48 @@ class MainController:
                 self.model.test_consistency
             )
 
+    def setup_actions(self):
+        """Setup actions for the main controller."""
+        actions = {}
+        # Open YAML
+        actions["open_yaml"] = QAction(
+            qta.icon("mdi6.folder-open"),
+            "Open YAML Configuration", self.view
+        )
+        actions["open_yaml"].triggered.connect(self.upload_yaml_and_load_files)
+        # Save
+        actions["save"] = QAction(
+            qta.icon("mdi6.content-save-all"),
+            "Save", self.view
+        )
+        actions["save"].setShortcut("Ctrl+S")
+        actions["save"].triggered.connect(self.save_model)
+        # Find + Replace
+        actions["find+replace"] = QAction(
+            qta.icon("mdi6.find-replace"),
+            "Find/Replace", self.view
+        )
+        actions["find+replace"].setShortcut("Ctrl+R")
+        actions["find+replace"].triggered.connect(self.open_find_replace_dialog)
+        # add/delete row
+        actions["add_row"] = QAction(
+            qta.icon("mdi6.table-row-plus-after"),
+            "Add Row", self.view
+        )
+        actions["delete_row"] = QAction(
+            qta.icon("mdi6.table-row-remove"),
+            "Delete Row", self.view
+        )
+        # TODO: fix add row and delete row
+        # check petab model
+        actions["check_petab"] = QAction(
+            qta.icon("mdi6.checkbox-multiple-marked-circle-outline"),
+            "Check PEtab", self.view
+        )
+        actions["check_petab"].triggered.connect(self.check_model)
+
+        return actions
+
     def save_model(self):
         options = QFileDialog.Options()
         file_name, _ = QFileDialog.getSaveFileName(
@@ -399,6 +444,14 @@ class MainController:
             self.logger.log_message(
                 f"Failed to upload files from YAML: {str(e)}", color="red"
             )
+
+    def check_model(self):
+        """Check the consistency of the model. And log the results."""
+        passed = self.model.test_consistency()
+        if passed:
+            self.logger.log_message("Model is consistent.", color="green")
+        else:
+            self.logger.log_message("Model is inconsistent.", color="red")
 
     def unsaved_changes_change(self, unsaved_changes: bool):
         self.unsaved_changes = unsaved_changes
