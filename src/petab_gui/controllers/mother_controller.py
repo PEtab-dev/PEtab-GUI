@@ -382,7 +382,7 @@ class MainController:
                 yaml_dir / yaml_content['problems'][0]['condition_files'][0]
             )
             self.logger.log_message(
-                "All files uploaded successfully from the YAML configuration.",
+                "All files loaded successfully from the YAML configuration.",
                 color="green"
             )
             # rerun the completers
@@ -397,7 +397,7 @@ class MainController:
 
         except Exception as e:
             self.logger.log_message(
-                f"Failed to upload files from YAML: {str(e)}", color="red"
+                f"Failed to load files from YAML: {str(e)}", color="red"
             )
 
     def unsaved_changes_change(self, unsaved_changes: bool):

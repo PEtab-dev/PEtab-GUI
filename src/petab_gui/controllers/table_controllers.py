@@ -114,7 +114,7 @@ class TableController(QObject):
             separator = '\t'
         else:
             self.logger.log_message(
-                "Unsupported file format. Please upload a CSV or TSV file.",
+                "Unsupported file format. Please use a CSV or TSV file.",
                 color="red"
             )
             return
@@ -288,7 +288,7 @@ class MeasurementController(TableController):
 
         except Exception as e:
             self.logger.log_message(
-                f"An error occurred while uploading the data matrix: {str(e)}",
+                f"An error occurred while loading the data matrix: {str(e)}",
                 color="red"
             )
 

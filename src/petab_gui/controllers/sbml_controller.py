@@ -124,11 +124,11 @@ class SbmlController(QObject):
             )
             # self.overwritten_model.emit()  # Deactivated for now. Discuss!
             self.logger.log_message(
-                "SBML model successfully uploaded and overwritten.",
+                "SBML model successfully loaded and overwritten.",
                 color="green"
             )
         except Exception as e:
             self.logger.log_message(
-                f"Failed to upload SBML file: {str(e)}",
+                f"Failed to load SBML file: {str(e)}",
                 color="red"
             )

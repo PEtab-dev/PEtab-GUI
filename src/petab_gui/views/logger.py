@@ -11,7 +11,7 @@ class Logger(QWidget):
         super().__init__(parent)
 
         # Create buttons
-        self.upload_data_matrix_button = QPushButton("Upload Data Matrix",
+        self.upload_data_matrix_button = QPushButton("Add Data Matrix",
                                                      parent)
         self.reset_to_original_button = QPushButton("Reset to Original Model",
                                                     parent)

@@ -46,28 +46,28 @@ class FileMenu(BasicMenu):
 
         # Open, Save, and Close actions
         self.upload_yaml_action = self.add_action_or_menu(
-            "Upload YAML Configuration"
+            "Open YAML Configuration"
         )
         self.upload_yaml_action.setIcon(self.parent.style().standardIcon(
             QStyle.SP_DialogOpenButton
         ))
         self.upload_table_menu = self.add_action_or_menu(
-            "Upload Tables or SBML", is_action=False
+            "Open Tables or SBML", is_action=False
         )
         self.upload_measurement_table_action = self.add_action_or_menu(
-            "Upload Measurement Table", self.upload_table_menu
+            "Open Measurement Table", self.upload_table_menu
         )
         self.upload_observable_table_action = self.add_action_or_menu(
-            "Upload Observable Table", self.upload_table_menu
+            "Open Observable Table", self.upload_table_menu
         )
         self.upload_parameter_table_action = self.add_action_or_menu(
-            "Upload Parameter Table", self.upload_table_menu
+            "Open Parameter Table", self.upload_table_menu
         )
         self.upload_condition_table_action = self.add_action_or_menu(
-            "Upload Condition Table", self.upload_table_menu
+            "Open Condition Table", self.upload_table_menu
         )
         self.upload_sbml_action = self.add_action_or_menu(
-            "Upload SBML", self.upload_table_menu
+            "Open SBML", self.upload_table_menu
         )
 
 
