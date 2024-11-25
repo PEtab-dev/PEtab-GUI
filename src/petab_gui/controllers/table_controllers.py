@@ -1,12 +1,13 @@
 """Classes for the controllers of the tables in the GUI."""
-from PySide6.QtWidgets import QInputDialog, QMessageBox, QFileDialog
+from PySide6.QtWidgets import QInputDialog, QMessageBox, QFileDialog, \
+    QCompleter
 import pandas as pd
 import petab.v1 as petab
-from PySide6.QtCore import Signal, QObject, QModelIndex
+from PySide6.QtCore import Signal, QObject, QModelIndex, QPoint
 from pathlib import Path
-from ..models.pandas_table_model import PandasTableModel
-from ..views.table_view import TableViewer
-from ..utils import set_dtypes
+from ..models.pandas_table_model import PandasTableModel, PandasTableFilterProxy
+from ..views.table_view import TableViewer, SingleSuggestionDelegate, \
+    ColumnSuggestionDelegate, ComboBoxDelegate, ParameterIdSuggestionDelegate
 
 
 class TableController(QObject):
@@ -41,6 +42,12 @@ class TableController(QObject):
         self.view.table_view.setModel(self.model)
         self.setup_connections()
         self.setup_connections_specific()
+
+        self.completers = {}
+        self.setup_completers()
+
+    def setup_completers(self):
+        pass
 
     def setup_connections_specific(self):
         """Will be implemented in child controllers."""
@@ -112,7 +119,10 @@ class TableController(QObject):
             )
             return
         try:
-            new_df = pd.read_csv(file_path, sep=separator)
+            if self.model.table_type == "measurement":
+                new_df = pd.read_csv(file_path, sep=separator)
+            else:
+                new_df = pd.read_csv(file_path, sep=separator, index_col=0)
         except Exception as e:
             self.view.log_message(
                 f"Failed to read file: {str(e)}",
@@ -337,6 +347,54 @@ class MeasurementController(TableController):
         )
         self.model.dataChanged.emit(top_left, bottom_right)
 
+    def setup_completers(self):
+        """Set completers for the measurement table."""
+        table_view = self.view.table_view
+        # observableId
+        observableId_index = self.model.return_column_index("observableId")
+        if observableId_index > -1:
+            self.completers["observableId"] = ColumnSuggestionDelegate(
+                self.mother_controller.model.observable, "observableId"
+            )
+            table_view.setItemDelegateForColumn(
+                observableId_index,
+                self.completers["observableId"]
+            )
+        # preequilibrationConditionId
+        preequilibrationConditionId_index = self.model.return_column_index(
+            "preequilibrationConditionId"
+        )
+        if preequilibrationConditionId_index > -1:
+            self.completers["preequilibrationConditionId"] = ColumnSuggestionDelegate(
+                self.mother_controller.model.condition, "conditionId"
+            )
+            table_view.setItemDelegateForColumn(
+                preequilibrationConditionId_index,
+                self.completers["preequilibrationConditionId"]
+            )
+        # simulationConditionId
+        simulationConditionId_index = self.model.return_column_index(
+            "simulationConditionId"
+        )
+        if simulationConditionId_index > -1:
+            self.completers["simulationConditionId"] = ColumnSuggestionDelegate(
+                self.mother_controller.model.condition, "conditionId"
+            )
+            table_view.setItemDelegateForColumn(
+                simulationConditionId_index,
+                self.completers["simulationConditionId"]
+            )
+        # noiseParameters
+        noiseParameters_index = self.model.return_column_index("noiseParameters")
+        if noiseParameters_index > -1:
+            self.completers["noiseParameters"] = SingleSuggestionDelegate(
+                self.model, "observableId", afix="sd_"
+            )
+            table_view.setItemDelegateForColumn(
+                noiseParameters_index,
+                self.completers["noiseParameters"]
+            )
+
 
 class ConditionController(TableController):
     """Controller of the Condition table."""
@@ -366,10 +424,80 @@ class ConditionController(TableController):
             color="green"
         )
 
+    def setup_completers(self):
+        """Set completers for the condition table."""
+        table_view = self.view.table_view
+        # conditionName
+        conditionName_index = self.model.return_column_index("conditionName")
+        if conditionName_index > -1:
+            self.completers["conditionName"] = SingleSuggestionDelegate(self.model, "conditionId")
+            table_view.setItemDelegateForColumn(
+                conditionName_index,
+                self.completers["conditionName"]
+            )
+        for column in self.model.get_df().columns:
+            if column in ["conditionId", "conditionName"]:
+                continue
+            column_index = self.model.return_column_index(column)
+            if column_index > -1:
+                self.completers[column] = ColumnSuggestionDelegate(
+                    self.model, column, QCompleter.PopupCompletion
+                )
+                table_view.setItemDelegateForColumn(
+                    column_index,
+                    self.completers[column]
+                )
+
 
 class ObservableController(TableController):
     """Controller of the Observable table."""
     observable_2be_renamed = Signal(str, str)  # Signal to mother controller
+
+    def setup_completers(self):
+        """Set completers for the observable table."""
+        table_view = self.view.table_view
+        # observableName
+        observableName_index = self.model.return_column_index("observableName")
+        if observableName_index > -1:
+            self.completers["observableName"] = SingleSuggestionDelegate(self.model, "observableId")
+            table_view.setItemDelegateForColumn(
+                observableName_index,
+                self.completers["observableName"]
+            )
+        # observableTransformation
+        observableTransformation_index = self.model.return_column_index(
+            "observableTransformation"
+        )
+        if observableTransformation_index > -1:
+            self.completers["observableTransformation"] = ComboBoxDelegate(
+                ["lin", "log", "log10"]
+            )
+            table_view.setItemDelegateForColumn(
+                observableTransformation_index,
+                self.completers["observableTransformation"]
+            )
+        # noiseFormula
+        noiseFormula_index = self.model.return_column_index("noiseFormula")
+        if noiseFormula_index > -1:
+            self.completers["noiseFormula"] = SingleSuggestionDelegate(
+                self.model, "observableId", afix="noiseParameter1_"
+            )
+            table_view.setItemDelegateForColumn(
+                noiseFormula_index,
+                self.completers["noiseFormula"]
+            )
+        # noiseDistribution
+        noiseDistribution_index = self.model.return_column_index(
+            "noiseDistribution"
+        )
+        if noiseDistribution_index > -1:
+            self.completers["noiseDistribution"] = ComboBoxDelegate(
+                ["normal", "laplace"]
+            )
+            table_view.setItemDelegateForColumn(
+                noiseDistribution_index,
+                self.completers["noiseDistribution"]
+            )
 
     def setup_connections_specific(self):
         """Setup connections specific to the observable controller.
@@ -431,6 +559,70 @@ class ObservableController(TableController):
 
 class ParameterController(TableController):
     """Controller of the Parameter table."""
+    def setup_completers(self):
+        """Set completers for the parameter table."""
+        table_view = self.view.table_view
+        # parameterName
+        parameterName_index = self.model.return_column_index("parameterName")
+        if parameterName_index > -1:
+            self.completers["parameterName"] = SingleSuggestionDelegate(self.model, "parameterId")
+            table_view.setItemDelegateForColumn(
+                parameterName_index,
+                self.completers["parameterName"]
+            )
+        # parameterScale
+        parameterScale_index = self.model.return_column_index("parameterScale")
+        if parameterScale_index > -1:
+            self.completers["parameterScale"] = ComboBoxDelegate(
+                ["lin", "log", "log10"]
+            )
+            table_view.setItemDelegateForColumn(
+                parameterScale_index,
+                self.completers["parameterScale"]
+            )
+        # lowerBound
+        lowerBound_index = self.model.return_column_index("lowerBound")
+        if lowerBound_index > -1:
+            self.completers["lowerBound"] = ColumnSuggestionDelegate(
+                self.model, "lowerBound", QCompleter.PopupCompletion
+            )
+            table_view.setItemDelegateForColumn(
+                lowerBound_index,
+                self.completers["lowerBound"]
+            )
+        # upperBound
+        upperBound_index = self.model.return_column_index("upperBound")
+        if upperBound_index > -1:
+            self.completers["upperBound"] = ColumnSuggestionDelegate(
+                self.model, "upperBound", QCompleter.PopupCompletion
+            )
+            table_view.setItemDelegateForColumn(
+                upperBound_index,
+                self.completers["upperBound"]
+            )
+        # estimate
+        estimate_index = self.model.return_column_index("estimate")
+        if estimate_index > -1:
+            self.completers["estimate"] = ComboBoxDelegate(
+                ["1", "0"]
+            )
+            table_view.setItemDelegateForColumn(
+                estimate_index,
+                self.completers["estimate"]
+            )
+        # parameterId: retrieved from the sbml model
+        parameterId_index = self.model.return_column_index("parameterId")
+        sbml_model = self.mother_controller.model.sbml
+        if parameterId_index > -1:
+            self.completers["parameterId"] = ParameterIdSuggestionDelegate(
+                par_model = self.model,
+                sbml_model = sbml_model
+            )
+            table_view.setItemDelegateForColumn(
+                parameterId_index,
+                self.completers["parameterId"]
+            )
+
     def check_petab_lint(self, row_data):
         """Check a single row of the model with petablint."""
         observable_df = self.mother_controller.model.observable.get_df()

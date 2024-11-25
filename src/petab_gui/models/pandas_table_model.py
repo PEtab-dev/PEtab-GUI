@@ -1,8 +1,8 @@
-from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal
+from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal, QSortFilterProxyModel
 from PySide6.QtGui import QColor
 
 from ..C import MEASUREMENT_COLUMNS, OBSERVABLE_COLUMNS, PARAMETER_COLUMNS
-from ..utils import validate_value
+from ..utils import validate_value, create_empty_dataframe
 
 
 class PandasTableModel(QAbstractTableModel):
@@ -16,11 +16,13 @@ class PandasTableModel(QAbstractTableModel):
 
     def __init__(self, data_frame, allowed_columns, table_type, parent=None):
         super().__init__(parent)
-        self._data_frame = data_frame
         self._allowed_columns = allowed_columns
         self.table_type = table_type
         self._invalid_cells = set()
         self._has_named_index = False
+        if data_frame is None:
+            data_frame = create_empty_dataframe(allowed_columns, table_type)
+        self._data_frame = data_frame
 
     def rowCount(self, parent=QModelIndex()):
         return self._data_frame.shape[0] + 1  # empty row at the end
@@ -206,6 +208,31 @@ class PandasTableModel(QAbstractTableModel):
             [Qt.BackgroundRole]
         )
 
+    def get_value_from_column(self, column_name, row):
+        """Retrieve the value from a specific column and row."""
+        # if row is a new row return ""
+        if row == self._data_frame.shape[0]:
+            return ""
+        if column_name in self._data_frame.columns:
+            return self._data_frame.loc[row, column_name]
+        if column_name == self._data_frame.index.name:
+            return self._data_frame.index[row]
+        return ""
+
+    def return_column_index(self, column_name):
+        """Return the index of a column."""
+        if column_name in self._data_frame.columns:
+            return self._data_frame.columns.get_loc(column_name) + 1
+        return -1
+
+    def unique_values(self, column_name):
+        """Return the unique values in a column."""
+        if column_name in self._data_frame.columns:
+            return list(self._data_frame[column_name].dropna().unique())
+        if column_name == self._data_frame.index.name:
+            return list(self._data_frame.index.dropna().unique())
+        return []
+
 
 class IndexedPandasTableModel(PandasTableModel):
     """Table model for tables with named index."""
@@ -243,6 +270,14 @@ class IndexedPandasTableModel(PandasTableModel):
                 color="red"
             )
             return False
+
+    def return_column_index(self, column_name):
+        """Return the index of a column."""
+        if column_name in self._data_frame.columns:
+            return self._data_frame.columns.get_loc(column_name) + 1
+        if column_name == self._data_frame.index.name:
+            return 0
+        return -1
 
 
 class MeasurementModel(PandasTableModel):
@@ -307,6 +342,12 @@ class MeasurementModel(PandasTableModel):
         # Maybe add default values for missing columns
         self._data_frame.iloc[row_position] = data_to_add
 
+    def return_column_index(self, column_name):
+        """Return the index of a column."""
+        if column_name in self._data_frame.columns:
+            return self._data_frame.columns.get_loc(column_name)
+        return -1
+
 
 class ObservableModel(IndexedPandasTableModel):
     """Table model for the observable data."""
@@ -357,10 +398,12 @@ class ConditionModel(IndexedPandasTableModel):
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
-            allowed_columns={},
+            allowed_columns={"conditionId": "STRING"},
             table_type="condition",
             parent=parent
         )
+        self._allowed_columns.pop("conditionId")
+
 
     def fill_row(self, row_position: int, data: dict):
         """Fill a row with data.
@@ -378,3 +421,43 @@ class ConditionModel(IndexedPandasTableModel):
         data_to_add.update(data)
         self._data_frame.index[row_position] = data_to_add.pop("conditionId")
         self._data_frame.iloc[row_position] = data_to_add
+
+
+class PandasTableFilterProxy(QSortFilterProxyModel):
+    def __init__(self, model, parent=None):
+        super().__init__(parent)
+        self.source_model = model
+        self.setSourceModel(model)
+        self.column_filters = {}  # Store filters for multiple columns
+
+    def setFilterForColumn(self, column, pattern):
+        """Set filter pattern for a specific column."""
+        if pattern:
+            self.column_filters[column] = pattern  # Add or update filter for the column
+        else:
+            self.column_filters.pop(column, None)  # Remove filter if pattern is empty
+        self.invalidateFilter()  # Trigger the proxy to re-evaluate the filters
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        """Custom filtering logic to apply filters on multiple columns."""
+        source_model = self.sourceModel()
+
+        # Always accept the last row (for "add new row")
+        if source_row == source_model.rowCount() - 1:
+            return True
+
+        # Apply all column filters
+        for column, pattern in self.column_filters.items():
+            index = source_model.index(source_row, column, source_parent)
+            value = source_model.data(index, Qt.DisplayRole)
+            if not self.valueMatchesFilter(value, pattern):
+                return False  # Reject the row if any column doesn't match its filter
+
+        return True  # Accept row if it matches all filters
+
+    def valueMatchesFilter(self, value, pattern):
+        """Check if the value matches the filter pattern."""
+        if pattern and pattern not in str(value):
+            return False
+        return True
+

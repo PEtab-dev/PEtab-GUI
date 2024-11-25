@@ -15,7 +15,7 @@ class Logger(QWidget):
                                                      parent)
         self.reset_to_original_button = QPushButton("Reset to Original Model",
                                                     parent)
-        self.finish_button = QPushButton("Finish Editing", parent)
+        self.lint_model_button = QPushButton("Check Model", parent)
 
         # Hide the reset button initially
         self.reset_to_original_button.hide()
@@ -23,7 +23,7 @@ class Logger(QWidget):
         # Ensure buttons have the same size
         button_size = self.reset_to_original_button.sizeHint()
         self.upload_data_matrix_button.setMinimumSize(button_size)
-        self.finish_button.setMinimumSize(button_size)
+        self.lint_model_button.setMinimumSize(button_size)
         self.reset_to_original_button.setMinimumSize(button_size)
 
         # Create the logger (QTextBrowser)
@@ -33,7 +33,7 @@ class Logger(QWidget):
         button_layout = QVBoxLayout()
         button_layout.addWidget(self.upload_data_matrix_button)
         button_layout.addWidget(self.reset_to_original_button)
-        button_layout.addWidget(self.finish_button)
+        button_layout.addWidget(self.lint_model_button)
 
         # Create the main layout for Logger
         main_layout = QHBoxLayout(self)

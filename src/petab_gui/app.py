@@ -26,10 +26,12 @@ class PEtabGuiApp(QApplication):
     def __init__(self):
         super().__init__(sys.argv)
 
-        petab_problem = petab.Problem.from_yaml(
-            find_example(Path(__file__).parent) / "problem.yaml"
-        )
-        self.model = PEtabModel(petab_problem)
+        # no need to instantiate a PEtab problem, as we are not using it
+        # 
+        # petab_problem = petab.Problem.from_yaml(
+        #     find_example(Path(__file__).parent) / "problem.yaml"
+        # )
+        self.model = PEtabModel()
         self.view = MainWindow()
         self.controller = MainController(self.view, self.model)
 
