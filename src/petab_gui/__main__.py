@@ -2,7 +2,7 @@ import sys
 from petab_gui import app
 
 def main():
-    app.run()
+    app.main()
 
 if __name__ == "__main__":
     main()
