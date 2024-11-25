@@ -389,9 +389,9 @@ class MainController:
         if not file_path:
             return
         if file_path.endswith((".yaml", ".yml")):
-            self.upload_yaml_and_load_files(file_path)
+            self.open_yaml_and_load_files(file_path)
         elif file_path.endswith((".xml", ".sbml")):
-            self.sbml_controller.upload_and_overwrite_sbml(file_path)
+            self.sbml_controller.open_and_overwrite_sbml(file_path)
 
 
     def open_yaml_and_load_files(self, yaml_path=None):
