@@ -4,10 +4,11 @@ from PySide6.QtGui import QShortcut, QKeySequence, QAction
 import zipfile
 import tempfile
 import os
-from io import BytesIO
+from io import BytesIO, StringIO
+import logging
 import yaml
 import qtawesome as qta
-from ..utils import FindReplaceDialog
+from ..utils import FindReplaceDialog, CaptureLogHandler
 from PySide6.QtCore import Qt
 from pathlib import Path
 from ..models import PEtabModel
@@ -454,11 +455,34 @@ class MainController:
 
     def check_model(self):
         """Check the consistency of the model. And log the results."""
-        failed = self.model.test_consistency()
-        if not failed:
-            self.logger.log_message("Model is consistent.", color="green")
-        else:
-            self.logger.log_message("Model is inconsistent.", color="red")
+        capture_handler = CaptureLogHandler()
+        logger = logging.getLogger("petab.v1.lint")  # Target the specific
+        # logger
+        logger.addHandler(capture_handler)
+
+        try:
+            # Run the consistency check
+            failed = self.model.test_consistency()
+
+            # Process captured logs
+            if capture_handler.records:
+                captured_output = "<br>&nbsp;&nbsp;&nbsp;&nbsp;".join(
+                    capture_handler.get_formatted_messages()
+                )
+                self.logger.log_message(
+                    f"Captured petab lint logs:<br>"
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;{captured_output}",
+                    color="purple"
+                )
+
+            # Log the consistency check result
+            if not failed:
+                self.logger.log_message("Model is consistent.", color="green")
+            else:
+                self.logger.log_message("Model is inconsistent.", color="red")
+        finally:
+            # Always remove the capture handler
+            logger.removeHandler(capture_handler)
 
     def unsaved_changes_change(self, unsaved_changes: bool):
         self.unsaved_changes = unsaved_changes

@@ -6,6 +6,7 @@ import re
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import pandas as pd
+import logging
 
 
 class ConditionInputDialog(QDialog):
@@ -477,3 +478,19 @@ def create_empty_dataframe(column_dict: dict, table_type: str):
     elif table_type == "condition":
         df.set_index("conditionId", inplace=True)
     return df
+
+
+class CaptureLogHandler(logging.Handler):
+    """A logging handler to capture log messages with levels."""
+    def __init__(self):
+        super().__init__()
+        self.records = []  # Store full log records
+
+    def emit(self, record):
+        self.records.append(record)  # Save the entire LogRecord
+
+    def get_formatted_messages(self):
+        """Return formatted messages with levels."""
+        return [
+            f"{record.levelname}: {self.format(record)}" for record in self.records
+        ]
