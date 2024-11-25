@@ -115,6 +115,26 @@ class MainWindow(QMainWindow):
         self.tab_widget.currentChanged.connect(self.set_docks_visible)
 
         self.load_settings()
+
+        # drag drop
+        self.setAcceptDrops(True)
+
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+            return
+
+        event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            event.setDropAction(Qt.CopyAction)
+            event.accept()
+            self.controller.open_file(url.toLocalFile())
+            return
+
+        event.ignore()
     
     def setup_toolbar(self, actions):
         # add a toolbar with actions from self.task_bar
