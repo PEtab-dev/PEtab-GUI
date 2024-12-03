@@ -100,7 +100,7 @@ class SbmlController(QObject):
         self.view.sbml_text_edit.setPlainText(self.model.sbml_text)
         self.model.something_changed.emit(True)
 
-    def upload_and_overwrite_sbml(self, file_path=None):
+    def open_and_overwrite_sbml(self, file_path=None):
         """Upload a new SBML file and overwrite the existing SBML model."""
         if not file_path:
             # Open a file dialog to select an SBML file

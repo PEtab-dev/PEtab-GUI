@@ -186,6 +186,9 @@ class PandasTableModel(QAbstractTableModel):
     def replace_text(self, old_text: str, new_text: str):
         """Replace text in the table."""
         self._data_frame.replace(old_text, new_text, inplace=True)
+        # also replace in the index
+        if self._has_named_index:
+            self._data_frame.rename(index={old_text: new_text}, inplace=True)
         self.layoutChanged.emit()
 
     def get_df(self):

@@ -1,11 +1,14 @@
-from PySide6.QtWidgets import QMessageBox, QFileDialog
-from PySide6.QtGui import QShortcut, QKeySequence
+from PySide6.QtWidgets import QMessageBox, QFileDialog, QLineEdit, QWidget, \
+    QHBoxLayout, QToolButton
+from PySide6.QtGui import QShortcut, QKeySequence, QAction
 import zipfile
 import tempfile
 import os
-from io import BytesIO
+from io import BytesIO, StringIO
+import logging
 import yaml
-from ..utils import FindReplaceDialog
+import qtawesome as qta
+from ..utils import FindReplaceDialog, CaptureLogHandler
 from PySide6.QtCore import Qt
 from pathlib import Path
 from ..models import PEtabModel
@@ -13,6 +16,7 @@ from .sbml_controller import SbmlController
 from .table_controllers import MeasurementController, ObservableController, \
     ConditionController, ParameterController
 from .logger_controller import LoggerController
+from ..views import TaskBar
 
 
 class MainController:
@@ -34,9 +38,8 @@ class MainController:
         """
         self.view = view
         self.model = model
-        self.task_bar = view.task_bar
         self.logger = LoggerController(view.logger_views)
-        # CONTROLERS
+        # CONTROLLERS
         self.measurement_controller = MeasurementController(
             self.view.measurement_dock,
             self.model.measurement,
@@ -79,27 +82,21 @@ class MainController:
             "antimony": False
         }
         self.unsaved_changes = False
-        # SHORTCUTS
-        self.shortcuts = {
-            "find+replace": QShortcut(QKeySequence("Ctrl+R"), self.view),
-            "save": QShortcut(QKeySequence("Ctrl+S"), self.view),
-        }
+        self.filter = QLineEdit()
+        self.filter_active = {}  # Saves which tables the filter applies to
+        self.actions = self.setup_actions()
+        self.view.setup_toolbar(self.actions)
 
         self.setup_connections()
-        self.setup_shortcuts()
+        self.setup_task_bar()
         self.setup_edit_menu()
-        self.setup_file_menu()
-        self.setup_view_menu()
 
 
-    def setup_shortcuts(self):
+    def setup_task_bar(self):
         """Create shortcuts for the main window."""
-        self.shortcuts["find+replace"].activated.connect(
-            self.open_find_replace_dialog
-        )
-        self.shortcuts["save"].activated.connect(
-            self.save_model
-        )
+        self.view.task_bar = TaskBar(self.view, self.actions)
+        self.task_bar = self.view.task_bar
+
 
     # CONNECTIONS
     def setup_edit_menu(self):
@@ -125,75 +122,6 @@ class MainController:
         )
         edit_menu.add_c_cond_action.triggered.connect(
             self.condition_controller.add_column
-        )
-        # TODO: rework dialogs?
-        # # Add rows
-        # task_bar.add_r_meas_action.triggered.connect(
-        #     lambda: self.add_row(0)
-        # )
-        # task_bar.add_r_obs_action.triggered.connect(
-        #     lambda: self.add_row(1)
-        # )
-        # task_bar.add_r_para_action.triggered.connect(
-        #     lambda: self.add_row(2)
-        # )
-        # task_bar.add_r_cond_action.triggered.connect(
-        #     lambda: self.add_row(3)
-        # )
-
-    def setup_file_menu(self):
-        """Create connections for the File menu actions in task bar."""
-        file_menu = self.task_bar.file_menu
-        # Upload different tables
-        file_menu.upload_measurement_table_action.triggered.connect(
-            self.measurement_controller.upload_and_overwrite_table
-        )
-        file_menu.upload_observable_table_action.triggered.connect(
-            self.observable_controller.upload_and_overwrite_table
-        )
-        file_menu.upload_parameter_table_action.triggered.connect(
-            self.parameter_controller.upload_and_overwrite_table
-        )
-        file_menu.upload_condition_table_action.triggered.connect(
-            self.condition_controller.upload_and_overwrite_table
-        )
-        file_menu.upload_sbml_action.triggered.connect(
-            self.sbml_controller.upload_and_overwrite_sbml
-        )
-        # upload yaml
-        file_menu.upload_yaml_action.triggered.connect(
-            self.upload_yaml_and_load_files
-        )
-        # Save
-        file_menu.save_action.triggered.connect(
-            self.save_model
-        )
-        # Close
-        file_menu.exit_action.triggered.connect(
-            self.view.close
-        )
-
-    def setup_view_menu(self):
-        """Create connections for the View menu actions in task bar."""
-        view_menu = self.task_bar.view_menu
-        # Add actions to the menu for re-adding tables
-        view_menu.show_measurement.toggled.connect(
-            lambda checked: self.view.measurement_dock.setVisible(checked)
-        )
-        view_menu.show_observable.toggled.connect(
-            lambda checked: self.view.observable_dock.setVisible(checked)
-        )
-        view_menu.show_parameter.toggled.connect(
-            lambda checked: self.view.parameter_dock.setVisible(checked)
-        )
-        view_menu.show_condition.toggled.connect(
-            lambda checked: self.view.condition_dock.setVisible(checked)
-        )
-        view_menu.show_logger.toggled.connect(
-            lambda checked: self.view.logger_dock.setVisible(checked)
-        )
-        view_menu.show_plot.toggled.connect(
-            lambda checked: self.view.plot_dock.setVisible(checked)
         )
 
 
@@ -244,6 +172,112 @@ class MainController:
                 self.model.test_consistency
             )
 
+    def setup_actions(self):
+        """Setup actions for the main controller."""
+        actions = {}
+        # Open YAML
+        actions["open_yaml"] = QAction(
+            qta.icon("mdi6.folder-open"),
+            "Open YAML Configuration", self.view
+        )
+        actions["open_yaml"].triggered.connect(self.open_yaml_and_load_files)
+        # Save
+        actions["save"] = QAction(
+            qta.icon("mdi6.content-save-all"),
+            "Save", self.view
+        )
+        actions["save"].setShortcut("Ctrl+S")
+        actions["save"].triggered.connect(self.save_model)
+        # Find + Replace
+        actions["find+replace"] = QAction(
+            qta.icon("mdi6.find-replace"),
+            "Find/Replace", self.view
+        )
+        actions["find+replace"].setShortcut("Ctrl+R")
+        actions["find+replace"].triggered.connect(self.open_find_replace_dialog)
+        # add/delete row
+        actions["add_row"] = QAction(
+            qta.icon("mdi6.table-row-plus-after"),
+            "Add Row", self.view
+        )
+        actions["delete_row"] = QAction(
+            qta.icon("mdi6.table-row-remove"),
+            "Delete Row", self.view
+        )
+        # TODO: fix add row and delete row
+        # check petab model
+        actions["check_petab"] = QAction(
+            qta.icon("mdi6.checkbox-multiple-marked-circle-outline"),
+            "Check PEtab", self.view
+        )
+        actions["check_petab"].triggered.connect(self.check_model)
+
+        # Filter widget
+        filter_widget = QWidget()
+        filter_layout = QHBoxLayout()
+        filter_layout.setContentsMargins(0, 0, 0, 0)
+        filter_widget.setLayout(filter_layout)
+        filter_input = QLineEdit()
+        filter_input.setPlaceholderText("Filter not functional yet ...")
+        filter_layout.addWidget(filter_input)
+        for table_n, table_name in zip(
+            ["m", "p", "o", "c", "x"],
+            ["Measurement", "Parameter", "Observable", "Condition", "SBML"]
+        ):
+            tool_button = QToolButton()
+            icon = qta.icon(
+                "mdi6.alpha-{}".format(table_n), "mdi6.filter",
+                options=[
+                    {'scale_factor': 1.5, 'offset': (-0.2, -0.2)},
+                    {'off': 'mdi6.filter-off', 'offset': (0.3, 0.3)},
+                ],
+            )
+            tool_button.setIcon(icon)
+            tool_button.setCheckable(True)
+            tool_button.setToolTip(f"Filter for {table_name}")
+            filter_layout.addWidget(tool_button)
+            self.filter_active[table_name] = tool_button
+        actions["filter_widget"] = filter_widget
+
+        # show/hide elements
+        for element in ["measurement", "observable", "parameter", "condition"]:
+            actions[f"show_{element}"] = QAction(
+                f"{element.capitalize()} Table", self.view
+            )
+            actions[f"show_{element}"].setCheckable(True)
+            actions[f"show_{element}"].setChecked(True)
+        actions["show_logger"] = QAction(
+            "Info", self.view
+        )
+        actions["show_logger"].setCheckable(True)
+        actions["show_logger"].setChecked(True)
+        actions["show_plot"] = QAction(
+            "Data Plot", self.view
+        )
+        actions["show_plot"].setCheckable(True)
+        actions["show_plot"].setChecked(True)
+        # connect actions
+        actions["show_measurement"].toggled.connect(
+            lambda checked: self.view.measurement_dock.setVisible(checked)
+        )
+        actions["show_observable"].toggled.connect(
+            lambda checked: self.view.observable_dock.setVisible(checked)
+        )
+        actions["show_parameter"].toggled.connect(
+            lambda checked: self.view.parameter_dock.setVisible(checked)
+        )
+        actions["show_condition"].toggled.connect(
+            lambda checked: self.view.condition_dock.setVisible(checked)
+        )
+        actions["show_logger"].toggled.connect(
+            lambda checked: self.view.logger_dock.setVisible(checked)
+        )
+        actions["show_plot"].toggled.connect(
+            lambda checked: self.view.plot_dock.setVisible(checked)
+        )
+
+        return actions
+
     def save_model(self):
         options = QFileDialog.Options()
         file_name, _ = QFileDialog.getSaveFileName(
@@ -280,17 +314,19 @@ class MainController:
         )
 
     def open_find_replace_dialog(self):
-        current_tab = self.view.tabs.currentIndex()
+        current_tab = self.view.tab_widget.currentIndex()
         if current_tab == 0:
             # TODO: rewrite functionality in FindReplaceDialoge
             dialog = FindReplaceDialog(
                 self.view, mode="petab",
-                checkbox_states=self.petab_checkbox_states
+                checkbox_states=self.petab_checkbox_states,
+                controller=self
             )
         elif current_tab == 1:
             dialog = FindReplaceDialog(
                 self.view, mode="sbml",
-                checkbox_states=self.sbml_checkbox_states
+                checkbox_states=self.sbml_checkbox_states,
+                controller=self
             )
         dialog.exec()
 
@@ -355,12 +391,12 @@ class MainController:
         if not file_path:
             return
         if file_path.endswith((".yaml", ".yml")):
-            self.upload_yaml_and_load_files(file_path)
+            self.open_yaml_and_load_files(file_path)
         elif file_path.endswith((".xml", ".sbml")):
-            self.sbml_controller.upload_and_overwrite_sbml(file_path)
+            self.sbml_controller.open_and_overwrite_sbml(file_path)
 
 
-    def upload_yaml_and_load_files(self, yaml_path=None):
+    def open_yaml_and_load_files(self, yaml_path=None):
         """Upload files from a YAML configuration.
 
         Opens a dialog to upload yaml file. Creates a PEtab problem and
@@ -386,17 +422,17 @@ class MainController:
             # Upload SBML model
             sbml_file_path = \
                 yaml_dir / yaml_content['problems'][0]['sbml_files'][0]
-            self.sbml_controller.upload_and_overwrite_sbml(sbml_file_path)
-            self.measurement_controller.upload_and_overwrite_table(
+            self.sbml_controller.open_and_overwrite_sbml(sbml_file_path)
+            self.measurement_controller.open_and_overwrite_table(
                 yaml_dir / yaml_content['problems'][0]['measurement_files'][0]
             )
-            self.observable_controller.upload_and_overwrite_table(
+            self.observable_controller.open_and_overwrite_table(
                 yaml_dir / yaml_content['problems'][0]['observable_files'][0]
             )
-            self.parameter_controller.upload_and_overwrite_table(
+            self.parameter_controller.open_and_overwrite_table(
                 yaml_dir / yaml_content['parameter_file']
             )
-            self.condition_controller.upload_and_overwrite_table(
+            self.condition_controller.open_and_overwrite_table(
                 yaml_dir / yaml_content['problems'][0]['condition_files'][0]
             )
             self.logger.log_message(
@@ -417,6 +453,37 @@ class MainController:
             self.logger.log_message(
                 f"Failed to upload files from YAML: {str(e)}", color="red"
             )
+
+    def check_model(self):
+        """Check the consistency of the model. And log the results."""
+        capture_handler = CaptureLogHandler()
+        logger = logging.getLogger("petab.v1.lint")  # Target the specific
+        # logger
+        logger.addHandler(capture_handler)
+
+        try:
+            # Run the consistency check
+            failed = self.model.test_consistency()
+
+            # Process captured logs
+            if capture_handler.records:
+                captured_output = "<br>&nbsp;&nbsp;&nbsp;&nbsp;".join(
+                    capture_handler.get_formatted_messages()
+                )
+                self.logger.log_message(
+                    f"Captured petab lint logs:<br>"
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;{captured_output}",
+                    color="purple"
+                )
+
+            # Log the consistency check result
+            if not failed:
+                self.logger.log_message("Model is consistent.", color="green")
+            else:
+                self.logger.log_message("Model is inconsistent.", color="red")
+        finally:
+            # Always remove the capture handler
+            logger.removeHandler(capture_handler)
 
     def unsaved_changes_change(self, unsaved_changes: bool):
         self.unsaved_changes = unsaved_changes

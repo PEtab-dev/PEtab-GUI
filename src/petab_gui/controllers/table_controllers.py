@@ -37,6 +37,7 @@ class TableController(QObject):
         super().__init__()
         self.view = view
         self.model = model
+        self.proxy_model = PandasTableFilterProxy(model)
         self.logger = logger
         self.mother_controller = mother_controller
         self.view.table_view.setModel(self.model)
@@ -94,7 +95,7 @@ class TableController(QObject):
             self.model.discard_invalid_cell(row, column)
         self.model.notify_data_color_change(row, column)
 
-    def upload_and_overwrite_table(self, file_path=None):
+    def open_and_overwrite_table(self, file_path=None):
         if not file_path:
             # Open a file dialog to select the CSV or TSV file
             file_path, _ = QFileDialog.getOpenFileName(
@@ -179,9 +180,7 @@ class TableController(QObject):
             f"Replacing '{find_text}' with '{replace_text}' in selected tables",
             color="green"
         )
-        self.model._data_frame.replace(find_text, replace_text, inplace=True)
-        self.model.layoutChanged.emit()
-        self.model.something_changed.emit()
+        self.model.replace_text(find_text, replace_text)
 
     def set_index_on_new_row(self, index: QModelIndex):
         """Set the index of the model when a new row is added."""

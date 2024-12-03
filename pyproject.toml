@@ -11,6 +11,7 @@ dependencies = [
     "python-libsbml",
     "matplotlib",
     "petab"
+    "qtawesome"
 ]
 
 [build-system]

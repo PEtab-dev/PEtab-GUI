@@ -111,11 +111,8 @@ class MainWindow(QMainWindow):
         self.data_tab.setDockOptions(
             QMainWindow.AllowNestedDocks | QMainWindow.AllowTabbedDocks
         )
-        self.task_bar = TaskBar(self)
 
         self.tab_widget.currentChanged.connect(self.set_docks_visible)
-
-        self.setup_toolbar()
 
         self.load_settings()
 
@@ -127,7 +124,7 @@ class MainWindow(QMainWindow):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
             return
-        
+
         event.ignore()
 
     def dropEvent(self, event):
@@ -138,21 +135,19 @@ class MainWindow(QMainWindow):
             return
 
         event.ignore()
-        
-
     
-    def setup_toolbar(self):
+    def setup_toolbar(self, actions):
         # add a toolbar with actions from self.task_bar
         tb = self.addToolBar("MainToolbar")
         tb.setObjectName("MainToolbar")
         self.setUnifiedTitleAndToolBarOnMac(True)
 
         # first the normal open / save operations
-        tb.addAction(self.task_bar.file_menu.upload_yaml_action)
-        tb.addAction(self.task_bar.file_menu.save_action)
-                
-        # then actions like validation / upload matrix
-
+        tb.addAction(actions["open_yaml"])
+        tb.addAction(actions["save"])
+        tb.addAction(actions["check_petab"])
+        tb.addAction(actions["find+replace"])
+        tb.addWidget(actions["filter_widget"])
 
     def add_menu_action(self, dock_widget, name):
         """Helper function to add actions to the menu for showing dock widgets"""

@@ -6,6 +6,7 @@ import re
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import pandas as pd
+import logging
 
 
 class ConditionInputDialog(QDialog):
@@ -301,8 +302,9 @@ def set_dtypes(data_frame, columns, index_columns=None):
 
 
 class FindReplaceDialog(QDialog):
-    def __init__(self, parent=None, mode="petab", checkbox_states=None):
+    def __init__(self, parent=None, mode="petab", checkbox_states=None, controller=None):
         super().__init__(parent)
+        self.controller = controller
         self.setWindowTitle("Find and Replace")
         self.mode = mode
         self.checkbox_states = checkbox_states or {}
@@ -378,27 +380,24 @@ class FindReplaceDialog(QDialog):
         replace_text = self.replace_input.text()
 
         if self.mode == "petab":
-            selected_models = []
             if self.measurement_checkbox.isChecked():
-                selected_models.append(0)
+                self.controller.measurement_controller.replace_text(find_text, replace_text)
             if self.observable_checkbox.isChecked():
-                selected_models.append(1)
+                self.controller.observable_controller.replace_text(find_text, replace_text)
             if self.parameter_checkbox.isChecked():
-                selected_models.append(2)
+                self.controller.parameter_controller.replace_text(find_text, replace_text)
             if self.condition_checkbox.isChecked():
-                selected_models.append(3)
-
-            self.parent().controller.replace_text(find_text, replace_text, selected_models)
+                self.controller.condition_controller.replace_text(find_text, replace_text)
         else:  # SBML mode
             if self.sbml_checkbox.isChecked():
-                sbml_text = self.parent().sbml_text_edit.toPlainText()
+                sbml_text = self.parent().sbml_viewer.sbml_text_edit.toPlainText()
                 sbml_text = sbml_text.replace(find_text, replace_text)
-                self.parent().sbml_text_edit.setPlainText(sbml_text)
+                self.parent().sbml_viewer.sbml_text_edit.setPlainText(sbml_text)
 
             if self.antimony_checkbox.isChecked():
-                antimony_text = self.parent().antimony_text_edit.toPlainText()
+                antimony_text = self.parent().sbml_viewer.antimony_text_edit.toPlainText()
                 antimony_text = antimony_text.replace(find_text, replace_text)
-                self.parent().antimony_text_edit.setPlainText(antimony_text)
+                self.parent().sbml_viewer.antimony_text_edit.setPlainText(antimony_text)
 
 
 
@@ -479,3 +478,19 @@ def create_empty_dataframe(column_dict: dict, table_type: str):
     elif table_type == "condition":
         df.set_index("conditionId", inplace=True)
     return df
+
+
+class CaptureLogHandler(logging.Handler):
+    """A logging handler to capture log messages with levels."""
+    def __init__(self):
+        super().__init__()
+        self.records = []  # Store full log records
+
+    def emit(self, record):
+        self.records.append(record)  # Save the entire LogRecord
+
+    def get_formatted_messages(self):
+        """Return formatted messages with levels."""
+        return [
+            f"{record.levelname}: {self.format(record)}" for record in self.records
+        ]
