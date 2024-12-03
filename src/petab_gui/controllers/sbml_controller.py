@@ -1,12 +1,12 @@
 """Class for handling SBML files in the GUI."""
 from PySide6.QtWidgets import QFileDialog
-import tellurium as te
 import libsbml
 from petab.models.sbml_model import SbmlModel
 from PySide6.QtCore import Signal, QObject
 from pathlib import Path
 from ..models.sbml_model import SbmlViewerModel
 from ..views.sbml_view import SbmlViewer
+from ..utils import sbmlToAntimony
 
 
 class SbmlController(QObject):
@@ -64,7 +64,7 @@ class SbmlController(QObject):
         self.model.sbml_text = libsbml.writeSBMLToString(
             self.model._sbml_model_original.sbml_model.getSBMLDocument()
         )
-        self.model.antimony_text = te.sbmlToAntimony(self.model.sbml_text)
+        self.model.antimony_text = sbmlToAntimony(self.model.sbml_text)
         self.view.sbml_text_edit.setPlainText(self.model.sbml_text)
         self.view.antimony_text_edit.setPlainText(self.model.antimony_text)
 
