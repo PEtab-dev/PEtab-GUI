@@ -10,7 +10,7 @@ dependencies = [
     "tellurium",
     "python-libsbml",
     "matplotlib",
-    "petab"
+    "petab",
     "qtawesome"
 ]
 
