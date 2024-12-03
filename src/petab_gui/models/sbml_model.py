@@ -1,9 +1,9 @@
 from PySide6.QtCore import QObject, Signal
-import tellurium as te
 import libsbml
 import tempfile
 from petab.v1.models.sbml_model import SbmlModel
 import petab.v1 as petab
+from ..utils import sbmlToAntimony, antimonyToSBML
 
 
 class SbmlViewerModel(QObject):
@@ -25,17 +25,17 @@ class SbmlViewerModel(QObject):
             self.sbml_text = libsbml.writeSBMLToString(
                 self._sbml_model_original.sbml_model.getSBMLDocument()
             )
-            self.antimony_text = te.sbmlToAntimony(self.sbml_text)
+            self.antimony_text = sbmlToAntimony(self.sbml_text)
         else:
             self.sbml_text = ""
             self.antimony_text = ""
 
     def convert_sbml_to_antimony(self):
-        self.antimony_text = te.sbmlToAntimony(self.sbml_text)
+        self.antimony_text = sbmlToAntimony(self.sbml_text)
         self.something_changed.emit(True)
 
     def convert_antimony_to_sbml(self):
-        self.sbml_text = te.antimonyToSBML(self.antimony_text)
+        self.sbml_text = antimonyToSBML(self.antimony_text)
         self.something_changed.emit(True)
 
     def get_current_sbml_model(self):
