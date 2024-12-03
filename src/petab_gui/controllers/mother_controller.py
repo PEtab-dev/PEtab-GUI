@@ -226,9 +226,10 @@ class MainController:
         ):
             tool_button = QToolButton()
             icon = qta.icon(
-                "mdi6.filter", "mdi6.alpha-{}".format(table_n),
+                "mdi6.alpha-{}".format(table_n), "mdi6.filter",
                 options=[
-                    {'off': 'mdi6.filter-off'}, {'offset': (0.3, 0.3)},
+                    {'scale_factor': 1.5, 'offset': (-0.2, -0.2)},
+                    {'off': 'mdi6.filter-off', 'offset': (0.3, 0.3)},
                 ],
             )
             tool_button.setIcon(icon)
