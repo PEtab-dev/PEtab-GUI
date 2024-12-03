@@ -63,8 +63,6 @@ class EditMenu(BasicMenu):
 
         # Find and Replace
         self.find_replace_action = self.add_action_or_menu("Find/Replace")
-        # Delete Rows
-        self.delete_action = self.add_action_or_menu("Delete Rows")
         # Add Columns submenu
         self.add_column_menu = self.add_action_or_menu(
             "Add Column to ...", is_action=False
@@ -82,21 +80,8 @@ class EditMenu(BasicMenu):
             "... Condition Table", self.add_column_menu
         )
         # Add Rows submenu
-        self.add_row_menu = self.add_action_or_menu(
-            "Add Row to ...", is_action=False
-        )
-        self.add_r_meas_action = self.add_action_or_menu(
-            "... Measurement Table", self.add_row_menu
-        )
-        self.add_r_obs_action = self.add_action_or_menu(
-            "... Observable Table", self.add_row_menu
-        )
-        self.add_r_para_action = self.add_action_or_menu(
-            "... Parameter Table", self.add_row_menu
-        )
-        self.add_r_cond_action = self.add_action_or_menu(
-            "... Condition Table", self.add_row_menu
-        )
+        self.menu.addAction(actions["add_row"])
+        self.menu.addAction(actions["delete_row"])
 
 
 class ViewMenu(BasicMenu):

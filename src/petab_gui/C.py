@@ -59,3 +59,7 @@ CONFIG = {
         'proceed_optimization': 'Proceed to Optimization'
     }
 }
+
+# String constants
+ROW = 'row'
+COLUMN = 'column'

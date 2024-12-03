@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, \
-    QLineEdit, QPushButton, QCompleter, QCheckBox, QGridLayout
+    QLineEdit, QPushButton, QCompleter, QCheckBox, QGridLayout, QTableView
 from PySide6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor
 from PySide6.QtCore import QObject, Signal
 import re
@@ -7,6 +7,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import pandas as pd
 import logging
+from .C import ROW, COLUMN
 
 
 class ConditionInputDialog(QDialog):
@@ -494,3 +495,29 @@ class CaptureLogHandler(logging.Handler):
         return [
             f"{record.levelname}: {self.format(record)}" for record in self.records
         ]
+
+
+def get_selected(table_view: QTableView, mode: str = ROW) -> list[int]:
+    """
+    Determines which rows are selected in a QTableView.
+
+    Args:
+        table_view (QTableView): The table view to check.
+
+    Returns:
+        list[int]: A list of selected row indices.
+    """
+    if not table_view or not isinstance(table_view, QTableView):
+        return []
+    if mode not in [ROW, COLUMN]:
+        return []
+
+    selection_model = table_view.selectionModel()
+    if not selection_model:
+        return []
+    selected_indexes = selection_model.selectedIndexes()
+    if mode == COLUMN:
+        selected_columns = [index.column() for index in selected_indexes]
+        return selected_columns
+    selected_rows = [index.row() for index in selected_indexes]
+    return selected_rows

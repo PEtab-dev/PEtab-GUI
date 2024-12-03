@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QMessageBox, QFileDialog, QLineEdit, QWidget, \
-    QHBoxLayout, QToolButton
+    QHBoxLayout, QToolButton, QTableView
 from PySide6.QtGui import QShortcut, QKeySequence, QAction
 import zipfile
 import tempfile
@@ -106,10 +106,6 @@ class MainController:
         edit_menu.find_replace_action.triggered.connect(
             self.open_find_replace_dialog
         )
-        # Delete Rows
-        edit_menu.delete_action.triggered.connect(
-            lambda: self.delete_row(table_index=None)
-        )
         # Add columns
         edit_menu.add_c_meas_action.triggered.connect(
             self.measurement_controller.add_column
@@ -200,10 +196,12 @@ class MainController:
             qta.icon("mdi6.table-row-plus-after"),
             "Add Row", self.view
         )
+        actions["add_row"].triggered.connect(self.add_row)
         actions["delete_row"] = QAction(
             qta.icon("mdi6.table-row-remove"),
-            "Delete Row", self.view
+            "Delete Row(s)", self.view
         )
+        actions["delete_row"].triggered.connect(self.delete_rows)
         # TODO: fix add row and delete row
         # check petab model
         actions["check_petab"] = QAction(
@@ -510,3 +508,37 @@ class MainController:
         else:
             self.view.allow_close = False
 
+    def active_widget(self):
+        active_widget = self.view.tab_widget.currentWidget()
+        if active_widget == self.view.data_tab:
+            active_widget = self.view.data_tab.focusWidget()
+        if active_widget and isinstance(active_widget, QTableView):
+            return active_widget
+        return None
+
+    def active_controller(self):
+        active_widget = self.active_widget()
+        if active_widget == self.view.measurement_dock.table_view:
+            return self.measurement_controller
+        if active_widget == self.view.observable_dock.table_view:
+            return self.observable_controller
+        if active_widget == self.view.parameter_dock.table_view:
+            return self.parameter_controller
+        if active_widget == self.view.condition_dock.table_view:
+            return self.condition_controller
+        print("No active controller found")
+        return None
+
+    def delete_rows(self):
+        controller = self.active_controller()
+        if controller:
+            controller.delete_row()
+        else:
+            print("No active controller found")
+
+    def add_row(self):
+        controller = self.active_controller()
+        if controller:
+            controller.add_row()
+        else:
+            print("No active controller found")

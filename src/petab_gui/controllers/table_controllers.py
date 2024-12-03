@@ -8,6 +8,7 @@ from pathlib import Path
 from ..models.pandas_table_model import PandasTableModel, PandasTableFilterProxy
 from ..views.table_view import TableViewer, SingleSuggestionDelegate, \
     ColumnSuggestionDelegate, ComboBoxDelegate, ParameterIdSuggestionDelegate
+from ..utils import get_selected
 
 
 class TableController(QObject):
@@ -147,25 +148,34 @@ class TableController(QObject):
         self.overwritten_df.emit()
 
     def delete_row(self):
-        # TODO: rework get_current_table_index and place in child controllers
-        table_view = self.view.table
-        selection_model = table_view.selectionModel()
+        """Delete the selected row(s) from the table."""
+        table_view = self.view.table_view
 
-        selected_indexes = selection_model.selectedIndexes()
-        selected_rows = [index.row() for index in selected_indexes]
+        selected_rows = get_selected(table_view)
         if not selected_rows:
             return
-
         for row in sorted(selected_rows, reverse=True):
             self.logger.log_message(
                 f"Deleted row {row} from {self.model.table_type} table."
                 f" Data: {self.model.get_df().iloc[row].to_dict()}",
                 color="orange"
             )
-            self.model._data_frame.drop(row, inplace=True)
-        self.model._data_frame.reset_index(drop=True, inplace=True)
-        self.model.layoutChanged.emit()
-        self.model.something_changed.emit()
+            self.model.delete_row(row)
+
+    def add_row(self):
+        """Add a row to the datatable"""
+        row_count = self.model.rowCount() - 1
+        if self.model.insertRows(row_count, 1):
+            new_row_index = self.model.index(row_count, 0)
+
+            selection_model = self.view.table_view.selectionModel()
+            if selection_model:
+                selection_model.select(
+                    new_row_index,
+                    selection_model.SelectionFlag.ClearAndSelect
+                )
+            self.view.table_view.scrollTo(new_row_index)
+            self.view.table_view.setCurrentIndex(new_row_index)
 
     def add_column(self):
         # move to child controllers
@@ -283,7 +293,7 @@ class MeasurementController(TableController):
 
             condition_id = "cond1"  # Does this need adjustment?
             self.populate_tables_from_data_matrix(data_matrix, condition_id)
-            self.model.something_changed.emit()
+            self.model.something_changed.emit(True)
 
         except Exception as e:
             self.logger.log_message(
