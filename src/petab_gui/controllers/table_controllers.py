@@ -155,6 +155,8 @@ class TableController(QObject):
         if not selected_rows:
             return
         for row in sorted(selected_rows, reverse=True):
+            if row >= self.model.rowCount() - 1:
+                continue
             self.logger.log_message(
                 f"Deleted row {row} from {self.model.table_type} table."
                 f" Data: {self.model.get_df().iloc[row].to_dict()}",
