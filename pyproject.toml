@@ -7,10 +7,10 @@ dependencies = [
     "wheel",
     "pyside6",
     "pandas",
-    "tellurium",
+    "antimony",
     "python-libsbml",
     "matplotlib",
-    "petab"
+    "petab",
     "qtawesome"
 ]
 
@@ -20,7 +20,7 @@ requires = [
     "wheel",
     "pyside6",
     "pandas",
-    "tellurium",
+    "antimony",
     "python-libsbml",
     "matplotlib",
     "petab"

@@ -8,6 +8,63 @@ from matplotlib.figure import Figure
 import pandas as pd
 import logging
 from .C import ROW, COLUMN
+import antimony
+import os
+
+
+def _checkAntimonyReturnCode(code):
+    """ Helper for checking the antimony response code.
+    Raises Exception if error in antimony.
+
+    :param code: antimony response
+    :type code: int
+    """
+    if code < 0:
+        raise Exception('Antimony: {}'.format(antimony.getLastError()))
+
+def sbmlToAntimony(sbml):
+    """ Convert SBML to antimony string.
+
+    :param sbml: SBML string or file
+    :type sbml: str | file
+    :return: Antimony
+    :rtype: str
+    """
+    antimony.clearPreviousLoads()
+    antimony.freeAll()
+    isfile = False
+    try:
+        isfile = os.path.isfile(sbml)
+    except:
+        pass
+    if isfile:
+        code = antimony.loadSBMLFile(sbml)
+    else:
+        code = antimony.loadSBMLString(str(sbml))
+    _checkAntimonyReturnCode(code)
+    return antimony.getAntimonyString(None)
+
+def antimonyToSBML(ant):
+    """ Convert Antimony to SBML string.
+
+    :param ant: Antimony string or file
+    :type ant: str | file
+    :return: SBML
+    :rtype: str
+    """
+    antimony.clearPreviousLoads()
+    antimony.freeAll()
+    try:
+        isfile = os.path.isfile(ant)
+    except ValueError:
+        isfile = False
+    if isfile:
+        code = antimony.loadAntimonyFile(ant)
+    else:
+        code = antimony.loadAntimonyString(ant)
+    _checkAntimonyReturnCode(code)
+    mid = antimony.getMainModuleName()
+    return antimony.getSBMLString(mid)
 
 
 class ConditionInputDialog(QDialog):
