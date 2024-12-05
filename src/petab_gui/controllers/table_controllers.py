@@ -162,7 +162,8 @@ class TableController(QObject):
                 f" Data: {self.model.get_df().iloc[row].to_dict()}",
                 color="orange"
             )
-            self.model.delete_row(row)
+            self.model.delete_row(row, emit_signal=False)
+        self.model.something_changed.emit(True)
 
     def add_row(self):
         """Add a row to the datatable"""

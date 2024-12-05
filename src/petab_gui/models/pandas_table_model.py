@@ -236,13 +236,13 @@ class PandasTableModel(QAbstractTableModel):
             return list(self._data_frame.index.dropna().unique())
         return []
 
-    def delete_row(self, row):
+    def delete_row(self, row, emit_signal=True):
         """Delete a row from the table."""
         self.beginRemoveRows(QModelIndex(), row, row)
         self._data_frame.drop(self._data_frame.index[row], inplace=True)
-        self._data_frame.reset_index(drop=True, inplace=True)
         self.endRemoveRows()
-        self.something_changed.emit(True)
+        if emit_signal:
+            self.something_changed.emit(True)
 
 
 class IndexedPandasTableModel(PandasTableModel):
