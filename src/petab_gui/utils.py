@@ -517,7 +517,7 @@ def get_selected(table_view: QTableView, mode: str = ROW) -> list[int]:
         return []
     selected_indexes = selection_model.selectedIndexes()
     if mode == COLUMN:
-        selected_columns = [index.column() for index in selected_indexes]
+        selected_columns = set([index.column() for index in selected_indexes])
         return selected_columns
-    selected_rows = [index.row() for index in selected_indexes]
+    selected_rows = set([index.row() for index in selected_indexes])
     return selected_rows
