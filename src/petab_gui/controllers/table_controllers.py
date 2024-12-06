@@ -147,6 +147,10 @@ class TableController(QObject):
         )
         self.overwritten_df.emit()
 
+    def clear_table(self):
+        """Clear the table."""
+        self.model.clear_table()
+
     def delete_row(self):
         """Delete the selected row(s) from the table."""
         table_view = self.view.table_view

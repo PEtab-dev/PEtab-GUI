@@ -171,6 +171,13 @@ class MainController:
     def setup_actions(self):
         """Setup actions for the main controller."""
         actions = {}
+        # New File
+        actions["new"] = QAction(
+            qta.icon("mdi6.file-document"),
+            "New", self.view
+        )
+        actions["new"].setShortcut("Ctrl+N")
+        actions["new"].triggered.connect(self.new_file)
         # Open YAML
         actions["open_yaml"] = QAction(
             qta.icon("mdi6.folder-open"),
@@ -393,7 +400,6 @@ class MainController:
         elif file_path.endswith((".xml", ".sbml")):
             self.sbml_controller.open_and_overwrite_sbml(file_path)
 
-
     def open_yaml_and_load_files(self, yaml_path=None):
         """Upload files from a YAML configuration.
 
@@ -437,20 +443,39 @@ class MainController:
                 "All files uploaded successfully from the YAML configuration.",
                 color="green"
             )
-            # rerun the completers
-            for controller in [
-                self.measurement_controller,
-                self.observable_controller,
-                self.parameter_controller,
-                self.condition_controller
-            ]:
-                controller.setup_completers()
+            # # rerun the completers
+            # for controller in [
+            #     self.measurement_controller,
+            #     self.observable_controller,
+            #     self.parameter_controller,
+            #     self.condition_controller
+            # ]:
+            #     controller.setup_completers()
             self.unsaved_changes = False
 
         except Exception as e:
             self.logger.log_message(
                 f"Failed to upload files from YAML: {str(e)}", color="red"
             )
+
+    def new_file(self):
+        """Empty all tables. In case of unsaved changes, ask to save."""
+        if self.unsaved_changes:
+            reply = QMessageBox.question(
+                self.view, "Unsaved Changes",
+                "You have unsaved changes. Do you want to save them?",
+                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
+                QMessageBox.Save
+            )
+            if reply == QMessageBox.Save:
+                self.save_model()
+        for controller in [
+            self.measurement_controller,
+            self.observable_controller,
+            self.parameter_controller,
+            self.condition_controller
+        ]:
+            controller.clear_table()
 
     def check_model(self):
         """Check the consistency of the model. And log the results."""

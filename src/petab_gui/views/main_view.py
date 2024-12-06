@@ -143,6 +143,7 @@ class MainWindow(QMainWindow):
         self.setUnifiedTitleAndToolBarOnMac(True)
 
         # first the normal open / save operations
+        tb.addAction(actions["new"])
         tb.addAction(actions["open_yaml"])
         tb.addAction(actions["save"])
         tb.addAction(actions["check_petab"])
