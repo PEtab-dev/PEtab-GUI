@@ -424,6 +424,8 @@ class MainController:
             return
         try:
             for controller in self.controllers:
+                if controller == self.sbml_controller:
+                    continue
                 controller.release_completers()
             # Load the YAML content
             with open(yaml_path, 'r') as file:
@@ -454,6 +456,8 @@ class MainController:
             )
             # rerun the completers
             for controller in self.controllers:
+                if controller == self.sbml_controller:
+                    continue
                 controller.setup_completers()
             self.unsaved_changes = False
 
