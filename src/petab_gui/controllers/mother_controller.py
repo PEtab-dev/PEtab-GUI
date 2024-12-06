@@ -36,6 +36,7 @@ class MainController:
         model: PEtabModel
             The PEtab model.
         """
+        self.task_bar = None
         self.view = view
         self.model = model
         self.logger = LoggerController(view.logger_views)
@@ -70,6 +71,13 @@ class MainController:
             self.logger,
             self
         )
+        self.controllers = [
+            self.measurement_controller,
+            self.observable_controller,
+            self.parameter_controller,
+            self.condition_controller,
+            self.sbml_controller
+        ]
         # Checkbox states for Find + Replace
         self.petab_checkbox_states = {
             "measurement": False,
@@ -89,7 +97,6 @@ class MainController:
 
         self.setup_connections()
         self.setup_task_bar()
-        self.setup_edit_menu()
 
 
     def setup_task_bar(self):
@@ -97,30 +104,7 @@ class MainController:
         self.view.task_bar = TaskBar(self.view, self.actions)
         self.task_bar = self.view.task_bar
 
-
     # CONNECTIONS
-    def setup_edit_menu(self):
-        """Create connections for the Edit menu actions in task bar."""
-        edit_menu = self.task_bar.edit_menu
-        # Find and Replace
-        edit_menu.find_replace_action.triggered.connect(
-            self.open_find_replace_dialog
-        )
-        # Add columns
-        edit_menu.add_c_meas_action.triggered.connect(
-            self.measurement_controller.add_column
-        )
-        edit_menu.add_c_obs_action.triggered.connect(
-            self.observable_controller.add_column
-        )
-        edit_menu.add_c_para_action.triggered.connect(
-            self.parameter_controller.add_column
-        )
-        edit_menu.add_c_cond_action.triggered.connect(
-            self.condition_controller.add_column
-        )
-
-
     def setup_connections(self):
         """Setup connections.
 
@@ -171,6 +155,13 @@ class MainController:
     def setup_actions(self):
         """Setup actions for the main controller."""
         actions = {}
+        # New File
+        actions["new"] = QAction(
+            qta.icon("mdi6.file-document"),
+            "New", self.view
+        )
+        actions["new"].setShortcut("Ctrl+N")
+        actions["new"].triggered.connect(self.new_file)
         # Open YAML
         actions["open_yaml"] = QAction(
             qta.icon("mdi6.folder-open"),
@@ -202,7 +193,17 @@ class MainController:
             "Delete Row(s)", self.view
         )
         actions["delete_row"].triggered.connect(self.delete_rows)
-        # TODO: fix add row and delete row
+        # add/delete column
+        actions["add_column"] = QAction(
+            qta.icon("mdi6.table-column-plus-after"),
+            "Add Column", self.view
+        )
+        actions["add_column"].triggered.connect(self.add_column)
+        actions["delete_column"] = QAction(
+            qta.icon("mdi6.table-column-remove"),
+            "Delete Column(s)", self.view
+        )
+        actions["delete_column"].triggered.connect(self.delete_column)
         # check petab model
         actions["check_petab"] = QAction(
             qta.icon("mdi6.checkbox-multiple-marked-circle-outline"),
@@ -393,7 +394,6 @@ class MainController:
         elif file_path.endswith((".xml", ".sbml")):
             self.sbml_controller.open_and_overwrite_sbml(file_path)
 
-
     def open_yaml_and_load_files(self, yaml_path=None):
         """Upload files from a YAML configuration.
 
@@ -410,6 +410,10 @@ class MainController:
         if not yaml_path:
             return
         try:
+            for controller in self.controllers:
+                if controller == self.sbml_controller:
+                    continue
+                controller.release_completers()
             # Load the YAML content
             with open(yaml_path, 'r') as file:
                 yaml_content = yaml.safe_load(file)
@@ -438,12 +442,9 @@ class MainController:
                 color="green"
             )
             # rerun the completers
-            for controller in [
-                self.measurement_controller,
-                self.observable_controller,
-                self.parameter_controller,
-                self.condition_controller
-            ]:
+            for controller in self.controllers:
+                if controller == self.sbml_controller:
+                    continue
                 controller.setup_completers()
             self.unsaved_changes = False
 
@@ -451,6 +452,25 @@ class MainController:
             self.logger.log_message(
                 f"Failed to upload files from YAML: {str(e)}", color="red"
             )
+
+    def new_file(self):
+        """Empty all tables. In case of unsaved changes, ask to save."""
+        if self.unsaved_changes:
+            reply = QMessageBox.question(
+                self.view, "Unsaved Changes",
+                "You have unsaved changes. Do you want to save them?",
+                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
+                QMessageBox.Save
+            )
+            if reply == QMessageBox.Save:
+                self.save_model()
+        for controller in [
+            self.measurement_controller,
+            self.observable_controller,
+            self.parameter_controller,
+            self.condition_controller
+        ]:
+            controller.clear_table()
 
     def check_model(self):
         """Check the consistency of the model. And log the results."""
@@ -533,12 +553,18 @@ class MainController:
         controller = self.active_controller()
         if controller:
             controller.delete_row()
-        else:
-            print("No active controller found")
 
     def add_row(self):
         controller = self.active_controller()
         if controller:
             controller.add_row()
-        else:
-            print("No active controller found")
+
+    def add_column(self):
+        controller = self.active_controller()
+        if controller:
+            controller.add_column()
+
+    def delete_column(self):
+        controller = self.active_controller()
+        if controller:
+            controller.delete_column()

@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal, QSortFilterProxyModel
 from PySide6.QtGui import QColor
 
-from ..C import MEASUREMENT_COLUMNS, OBSERVABLE_COLUMNS, PARAMETER_COLUMNS
+from ..C import COLUMNS
 from ..utils import validate_value, create_empty_dataframe
 
 
@@ -107,21 +107,17 @@ class PandasTableModel(QAbstractTableModel):
         """
         if not (
             column_name in self._allowed_columns or
-            self._allowed_columns == {}
+            self.table_type == "condition"
         ):  # empty dict means all columns allowed
             self.new_log_message.emit(
                 f"Column '{column_name}' not allowed in {self.table_type} table",
-                color="orange"
+                "orange"
             )
-            return False
         position = self._data_frame.shape[1]
         self.beginInsertColumns(QModelIndex(), position, position)
-        column_type = self._allowed_columns.get(column_name, "STRING")
+        column_type = self._allowed_columns.get(column_name, {"type": "STRING"})["type"]
         default_value = "" if column_type == "STRING" else 0
         self._data_frame[column_name] = default_value
-        self.layoutChanged.emit()
-
-        # End the column insertion process, notifying the view
         self.endInsertColumns()
 
         return True
@@ -157,7 +153,7 @@ class PandasTableModel(QAbstractTableModel):
         # Maybe TODO: same for conditionId?
 
         # Validate data based on expected type
-        expected_type = self._allowed_columns.get(column_name)
+        expected_type = self._allowed_columns.get(column_name)["type"]
         if expected_type:
             tried_value = value
             value, error_message = validate_value(
@@ -236,13 +232,24 @@ class PandasTableModel(QAbstractTableModel):
             return list(self._data_frame.index.dropna().unique())
         return []
 
-    def delete_row(self, row, emit_signal=True):
+    def delete_row(self, row):
         """Delete a row from the table."""
         self.beginRemoveRows(QModelIndex(), row, row)
         self._data_frame.drop(self._data_frame.index[row], inplace=True)
         self.endRemoveRows()
-        if emit_signal:
-            self.something_changed.emit(True)
+
+    def delete_column(self, column_index):
+        """Delete a column from the DataFrame."""
+        self.beginRemoveColumns(QModelIndex(), column_index, column_index)
+        column_name = self._data_frame.columns[column_index]
+        self._data_frame.drop(columns=[column_name], inplace=True)
+        self.endRemoveColumns()
+
+    def clear_table(self):
+        """Clear the table."""
+        self.beginResetModel()
+        self._data_frame.drop(self._data_frame.index, inplace=True)
+        self.endResetModel()
 
 
 class IndexedPandasTableModel(PandasTableModel):
@@ -298,7 +305,7 @@ class MeasurementModel(PandasTableModel):
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
-            allowed_columns=MEASUREMENT_COLUMNS,
+            allowed_columns=COLUMNS["measurement"],
             table_type="measurement",
             parent=parent
         )
@@ -365,7 +372,7 @@ class ObservableModel(IndexedPandasTableModel):
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
-            allowed_columns=OBSERVABLE_COLUMNS,
+            allowed_columns=COLUMNS["observable"],
             table_type="observable",
             parent=parent
         )
@@ -398,7 +405,7 @@ class ParameterModel(IndexedPandasTableModel):
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
-            allowed_columns=PARAMETER_COLUMNS,
+            allowed_columns=COLUMNS["parameter"],
             table_type="parameter",
             parent=parent
         )
@@ -409,12 +416,11 @@ class ConditionModel(IndexedPandasTableModel):
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
-            allowed_columns={"conditionId": "STRING"},
+            allowed_columns=COLUMNS["condition"],
             table_type="condition",
             parent=parent
         )
         self._allowed_columns.pop("conditionId")
-
 
     def fill_row(self, row_position: int, data: dict):
         """Fill a row with data.

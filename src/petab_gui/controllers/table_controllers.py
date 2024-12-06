@@ -9,6 +9,7 @@ from ..models.pandas_table_model import PandasTableModel, PandasTableFilterProxy
 from ..views.table_view import TableViewer, SingleSuggestionDelegate, \
     ColumnSuggestionDelegate, ComboBoxDelegate, ParameterIdSuggestionDelegate
 from ..utils import get_selected
+from ..C import COLUMN
 
 
 class TableController(QObject):
@@ -51,6 +52,14 @@ class TableController(QObject):
     def setup_completers(self):
         pass
 
+    def release_completers(self):
+        """Sets the completers to None. Safety Measure."""
+        if not self.completers:
+            return
+        for column_index in range(self.model.columnCount()):
+            self.view.table_view.setItemDelegateForColumn(column_index, None)
+        self.completers = {}
+
     def setup_connections_specific(self):
         """Will be implemented in child controllers."""
         pass
@@ -60,10 +69,9 @@ class TableController(QObject):
 
         Only handles connections from within the table controllers.
         """
-        # if self.view.title == "Condition Table":
-        #     self.view.add_column_button.clicked.connect(
-        #         self.add_column
-        #     )
+        self.model.new_log_message.connect(
+            self.logger.log_message
+        )
         self.model.cell_needs_validation.connect(
             self.validate_changed_cell
         )
@@ -147,6 +155,10 @@ class TableController(QObject):
         )
         self.overwritten_df.emit()
 
+    def clear_table(self):
+        """Clear the table."""
+        self.model.clear_table()
+
     def delete_row(self):
         """Delete the selected row(s) from the table."""
         table_view = self.view.table_view
@@ -162,7 +174,7 @@ class TableController(QObject):
                 f" Data: {self.model.get_df().iloc[row].to_dict()}",
                 color="orange"
             )
-            self.model.delete_row(row, emit_signal=False)
+            self.model.delete_row(row)
         self.model.something_changed.emit(True)
 
     def add_row(self):
@@ -180,13 +192,38 @@ class TableController(QObject):
             self.view.table_view.scrollTo(new_row_index)
             self.view.table_view.setCurrentIndex(new_row_index)
 
-    def add_column(self):
-        # move to child controllers
-        column_name, ok = QInputDialog.getText(
-            self.view, "Add Column", "Column name:"
-        )
-        if ok and column_name:
-            self.model.insertColumn(column_name)
+    def delete_column(self):
+        """Delete the selected column(s) from the table."""
+        table_view = self.view.table_view
+
+        selected_columns = get_selected(table_view, mode=COLUMN)
+        if not selected_columns:
+            return
+        for column in sorted(selected_columns, reverse=True):
+            # safely delete potential item delegates
+            column_name = self.model.get_df().columns[column]
+            if column_name in self.completers:
+                self.view.table_view.setItemDelegateForColumn(column, None)
+                del self.completers[column_name]
+            column_name = self.model.get_df().columns[column]
+            self.logger.log_message(
+                f"Deleted column '{column_name}' from {self.model.table_type} table.",
+                color="orange"
+            )
+            self.model.delete_column(column)
+        self.model.something_changed.emit(True)
+
+    def add_column(self, column_name: str = None):
+        """Add a column to the datatable"""
+        if not column_name:
+            column_name, ok = QInputDialog.getText(
+                self.view,
+                "Add Column",
+                "Enter the name of the new column:"
+            )
+            if not ok:
+                return
+        self.model.insertColumn(column_name)
 
     def replace_text(self, find_text, replace_text):
         self.logger.log_message(

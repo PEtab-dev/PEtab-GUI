@@ -1,48 +1,42 @@
 """Constants for the PEtab edit GUI."""
-# Measurement Columns
-MEASUREMENT_COLUMNS = {
-    "observableId": "STRING",
-    "preequilibrationConditionId": "STRING",
-    "simulationConditionId": "STRING",
-    "measurement": "NUMERIC",
-    "time": "NUMERIC",
-    "observableParameters": "STRING",
-    "noiseParameters": "STRING",
-    "datasetId": "STRING",
-    "replicateId": "STRING"
-}
-
-# Observable Columns
-OBSERVABLE_COLUMNS = {
-    "observableId": "STRING",
-    "observableName": "STRING",  # optional
-    "observableFormula": "STRING",
-    "observableTransformation": "STRING",  # optional
-    "noiseFormula": "STRING",
-    "noiseDistribution": "STRING"  # optional
-}
-
-# Parameter Columns
-PARAMETER_COLUMNS = {
-    "parameterId": "STRING",
-    "parameterName": "STRING",  # optional
-    "parameterScale": "STRING",
-    "lowerBound": "NUMERIC",
-    "upperBound": "NUMERIC",
-    "nominalValue": "NUMERIC",
-    "estimate": "BOOLEAN",
-    "initializationPriorType": "STRING",  # optional
-    "initializationPriorParameters": "STRING",  # optional
-    "objectivePriorType": "STRING",  # optional
-    "objectivePriorParameters": "STRING"  # optional
-}
-
-# Condition Columns
-CONDITION_COLUMNS = {
-    "conditionId": "STRING",
-    "conditionName": "STRING"  # optional
-    # Additional columns representing different parameters and their values under varying conditions can be added as needed.
-}
+COLUMNS = {
+    "measurement": {
+        "observableId": {"type": "STRING", "optional": False},
+        "preequilibrationConditionId": {"type": "STRING", "optional": True},
+        "simulationConditionId": {"type": "STRING", "optional": False},
+        "time": {"type": "NUMERIC", "optional": False},
+        "measurement": {"type": "NUMERIC", "optional": False},
+        "observableParameters": {"type": "STRING", "optional": True},
+        "noiseParameters": {"type": "STRING", "optional": True},
+        "datasetId": {"type": "STRING", "optional": True},
+        "replicateId": {"type": "STRING", "optional": True},
+    },
+    "observable": {
+        "observableId": {"type": "STRING", "optional": False},
+        "observableName": {"type": "STRING", "optional": True},
+        "observableFormula": {"type": "STRING", "optional": False},
+        "observableTransformation": {"type": "STRING", "optional": True},
+        "noiseFormula": {"type": "STRING", "optional": False},
+        "noiseDistribution": {"type": "STRING", "optional": True},
+    },
+    "parameter": {
+        "parameterId": {"type": "STRING", "optional": False},
+        "parameterName": {"type": "STRING", "optional": True},
+        "parameterScale": {"type": "STRING", "optional": False},
+        "lowerBound": {"type": "NUMERIC", "optional": False},
+        "upperBound": {"type": "NUMERIC", "optional": False},
+        "nominalValue": {"type": "NUMERIC", "optional": False},
+        "estimate": {"type": "STRING", "optional": False},
+        "initializationPriorType": {"type": "STRING", "optional": True},
+        "initializationPriorParameters": {"type": "STRING", "optional": True},
+        "objectivePriorType": {"type": "STRING", "optional": True},
+        "objectivePriorParameters": {"type": "STRING", "optional": True},
+    },
+    "condition": {
+        "conditionId": {"type": "STRING", "optional": False},
+        "conditionName": {"type": "STRING", "optional": True},
+    }
+    }
 
 CONFIG = {
     'window_title': 'My Application',
