@@ -154,7 +154,13 @@ class MainController:
 
     def setup_actions(self):
         """Setup actions for the main controller."""
-        actions = {}
+        actions = {"close": QAction(
+            qta.icon("mdi6.close"),
+            "Close", self.view
+        )}
+        # Close
+        actions["close"].setShortcut("Ctrl+Q")
+        actions["close"].triggered.connect(self.maybe_close)
         # New File
         actions["new"] = QAction(
             qta.icon("mdi6.file-document"),

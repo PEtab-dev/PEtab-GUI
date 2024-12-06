@@ -36,19 +36,20 @@ class BasicMenu:
         raise NotImplementedError("Subclasses must provide a menu name.")
 
 
-
 class FileMenu(BasicMenu):
     """Class for the file menu."""
     def menu_name(self):
         return "File"
+
     def __init__(self, parent, actions):
         super().__init__(parent, actions)
 
         # Open, Save, and Close actions
-        self.upload_yaml_action = actions["open_yaml"]
-        self.menu.addAction(self.upload_yaml_action)
-        self.save_action = actions["save"]
-        self.menu.addAction(self.save_action)
+        self.menu.addAction(actions["new"])
+        self.menu.addAction(actions["open"])
+        self.menu.addAction(actions["save"])
+        self.menu.addSeparator()
+        self.menu.addAction(actions["close"])
 
 
 class EditMenu(BasicMenu):
