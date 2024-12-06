@@ -8,7 +8,7 @@ from pathlib import Path
 from ..models.pandas_table_model import PandasTableModel, PandasTableFilterProxy
 from ..views.table_view import TableViewer, SingleSuggestionDelegate, \
     ColumnSuggestionDelegate, ComboBoxDelegate, ParameterIdSuggestionDelegate
-from ..utils import get_selected
+from ..utils import get_selected, process_file
 from ..C import COLUMN
 
 
@@ -104,11 +104,12 @@ class TableController(QObject):
             self.model.discard_invalid_cell(row, column)
         self.model.notify_data_color_change(row, column)
 
-    def open_and_overwrite_table(self, file_path=None):
+    def open_and_overwrite_table(self, file_path=None, separator=None):
         if not file_path:
             # Open a file dialog to select the CSV or TSV file
             file_path, _ = QFileDialog.getOpenFileName(
-                self.view, "Open CSV or TSV", "", "CSV/TSV Files (*.csv *.tsv)"
+                self.view, "Open CSV or TSV", "",
+                "CSV/TSV/TXT Files (*.csv *.tsv *.txt)"
             )
         # just in case anything goes wrong here
         if not file_path:
@@ -117,17 +118,10 @@ class TableController(QObject):
         if type(file_path) is str:
             file_path = Path(file_path)
 
-        # Determine the file extension to choose the correct separator
-        if file_path.suffix == '.csv':
-            separator = ';'
-        elif file_path.suffix == '.tsv':
-            separator = '\t'
-        else:
-            self.logger.log_message(
-                "Unsupported file format. Please upload a CSV or TSV file.",
-                color="red"
-            )
-            return
+        if separator is None:
+            actionable, separator = process_file(file_path, self.logger)
+            if actionable in ["yaml", "sbml", "data_matrix", None]:  # no table
+                return
         try:
             if self.model.table_type == "measurement":
                 new_df = pd.read_csv(file_path, sep=separator)
@@ -320,14 +314,14 @@ class MeasurementController(TableController):
         if file_name:
             self.process_data_matrix_file(file_name)
 
-    def process_data_matrix_file(self, file_name):
+    def process_data_matrix_file(self, file_name, separator=None):
         """Process the data matrix file.
 
         Upload the data matrix. Then populate the measurement table with the
         new measurements. Additionally, triggers checks for observable_ids.
         """
         try:
-            data_matrix = self.load_data_matrix(file_name)
+            data_matrix = self.load_data_matrix(file_name, separator)
             if data_matrix is None or data_matrix.empty:
                 return
 
@@ -341,10 +335,10 @@ class MeasurementController(TableController):
                 color="red"
             )
 
-    def load_data_matrix(self, file_name):
+    def load_data_matrix(self, file_name, separator=None):
         """Loads in the data matrix. Checks for the 'time' column."""
         data_matrix = pd.read_csv(
-            file_name, delimiter='\t' if file_name.endswith('.tsv') else ','
+            file_name, delimiter=separator
         )
         if not any(col in data_matrix.columns for col in ["Time", "time", "t"]):
             self.logger.log_message(
@@ -385,16 +379,19 @@ class MeasurementController(TableController):
             self.model.fill_row(
                 i_row + current_rows,
                 data={
-                    "observable_id": observable_id,
+                    "observableId": observable_id,
                     "time": row["time"],
                     "measurement": row[observable_id],
                     "simulationConditionId": condition_id,
                 }
             )
-        bottom_right = self.model.createIndex(
-            x - 1 for x in self.model.get_df().shape
-        )
+        bottom, right = (x - 1 for x in self.model.get_df().shape)
+        bottom_right = self.model.createIndex(bottom, right)
         self.model.dataChanged.emit(top_left, bottom_right)
+        self.logger.log_message(
+            f"Added {rows} measurements to the measurement table.",
+            color="green"
+        )
 
     def setup_completers(self):
         """Set completers for the measurement table."""

@@ -577,3 +577,70 @@ def get_selected(table_view: QTableView, mode: str = ROW) -> list[int]:
         return selected_columns
     selected_rows = set([index.row() for index in selected_indexes])
     return selected_rows
+
+
+def process_file(filepath, logger):
+    """
+    Utility function to process a file based on its type and content.
+
+    Args:
+        filepath (str): Path to the file to process.
+    """
+    _, ext = os.path.splitext(filepath)
+    ext = ext.lower()
+
+    # Case 1: YAML files
+    if ext in {".yaml", ".yml"}:
+        return "yaml", None
+
+    # Case 2: XML/SBML files
+    if ext in {".xml", ".sbml"}:
+        return "sbml", None
+
+    # Case 3: CSV/TSV/TXT files
+    if ext in {".csv", ".tsv", ".txt"}:
+        # Determine separator by attempting to read the file with different delimiters
+        separators = [",", "\t", ";"]
+        separator = None
+        header = None
+
+        for sep in separators:
+            # read the first line of the file
+            try:
+                with open(filepath, "r") as file:
+                    header = file.readline().strip().split(sep)
+                if len(header) > 1:
+                    separator = sep
+                    break
+            except Exception:
+                continue
+
+        if header is None:
+            logger.log_message(
+                f"Failed to read file: {filepath}. Perhaps unsupported "
+                f"delimiter. Supported delimiters: {', '.join(separators)}",
+                color="red"
+            )
+            return None, None
+
+        # Case 3.2: Identify the table type based on header content
+        if {"observableId", "measurement", "time"}.issubset(header):
+            return "measurement", separator
+        elif {"observableId", "observableFormula"}.issubset(header):
+            return "observable", separator
+        elif "parameterId" in header:
+            return "parameter", separator
+        elif "conditionId" in header or "\ufeffconditionId" in header:
+            return "condition", separator
+        else:
+            logger.log_message(
+                f"Unrecognized table type for file: {filepath}. Uploading as "
+                f"data matrix.",
+                color="orange"
+            )
+            return "data_matrix", separator
+    logger.log_message(
+        f"Unrecognized file type for file: {filepath}.",
+        color="red"
+    )
+    return None, None
