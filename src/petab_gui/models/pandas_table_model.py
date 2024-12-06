@@ -111,17 +111,13 @@ class PandasTableModel(QAbstractTableModel):
         ):  # empty dict means all columns allowed
             self.new_log_message.emit(
                 f"Column '{column_name}' not allowed in {self.table_type} table",
-                color="orange"
+                "orange"
             )
-            return False
         position = self._data_frame.shape[1]
         self.beginInsertColumns(QModelIndex(), position, position)
         column_type = self._allowed_columns.get(column_name, {"type": "STRING"})["type"]
         default_value = "" if column_type == "STRING" else 0
         self._data_frame[column_name] = default_value
-        self.layoutChanged.emit()
-
-        # End the column insertion process, notifying the view
         self.endInsertColumns()
 
         return True
@@ -236,13 +232,18 @@ class PandasTableModel(QAbstractTableModel):
             return list(self._data_frame.index.dropna().unique())
         return []
 
-    def delete_row(self, row, emit_signal=True):
+    def delete_row(self, row):
         """Delete a row from the table."""
         self.beginRemoveRows(QModelIndex(), row, row)
         self._data_frame.drop(self._data_frame.index[row], inplace=True)
         self.endRemoveRows()
-        if emit_signal:
-            self.something_changed.emit(True)
+
+    def delete_column(self, column_index):
+        """Delete a column from the DataFrame."""
+        self.beginRemoveColumns(QModelIndex(), column_index, column_index)
+        column_name = self._data_frame.columns[column_index]
+        self._data_frame.drop(columns=[column_name], inplace=True)
+        self.endRemoveColumns()
 
     def clear_table(self):
         """Clear the table."""

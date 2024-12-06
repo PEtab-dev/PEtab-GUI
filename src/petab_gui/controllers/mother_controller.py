@@ -36,6 +36,7 @@ class MainController:
         model: PEtabModel
             The PEtab model.
         """
+        self.task_bar = None
         self.view = view
         self.model = model
         self.logger = LoggerController(view.logger_views)
@@ -96,7 +97,6 @@ class MainController:
 
         self.setup_connections()
         self.setup_task_bar()
-        self.setup_edit_menu()
 
 
     def setup_task_bar(self):
@@ -104,30 +104,7 @@ class MainController:
         self.view.task_bar = TaskBar(self.view, self.actions)
         self.task_bar = self.view.task_bar
 
-
     # CONNECTIONS
-    def setup_edit_menu(self):
-        """Create connections for the Edit menu actions in task bar."""
-        edit_menu = self.task_bar.edit_menu
-        # Find and Replace
-        edit_menu.find_replace_action.triggered.connect(
-            self.open_find_replace_dialog
-        )
-        # Add columns
-        edit_menu.add_c_meas_action.triggered.connect(
-            self.measurement_controller.add_column
-        )
-        edit_menu.add_c_obs_action.triggered.connect(
-            self.observable_controller.add_column
-        )
-        edit_menu.add_c_para_action.triggered.connect(
-            self.parameter_controller.add_column
-        )
-        edit_menu.add_c_cond_action.triggered.connect(
-            self.condition_controller.add_column
-        )
-
-
     def setup_connections(self):
         """Setup connections.
 
@@ -216,7 +193,17 @@ class MainController:
             "Delete Row(s)", self.view
         )
         actions["delete_row"].triggered.connect(self.delete_rows)
-        # TODO: fix add row and delete row
+        # add/delete column
+        actions["add_column"] = QAction(
+            qta.icon("mdi6.table-column-plus-after"),
+            "Add Column", self.view
+        )
+        actions["add_column"].triggered.connect(self.add_column)
+        actions["delete_column"] = QAction(
+            qta.icon("mdi6.table-column-remove"),
+            "Delete Column(s)", self.view
+        )
+        actions["delete_column"].triggered.connect(self.delete_column)
         # check petab model
         actions["check_petab"] = QAction(
             qta.icon("mdi6.checkbox-multiple-marked-circle-outline"),
@@ -566,12 +553,18 @@ class MainController:
         controller = self.active_controller()
         if controller:
             controller.delete_row()
-        else:
-            print("No active controller found")
 
     def add_row(self):
         controller = self.active_controller()
         if controller:
             controller.add_row()
-        else:
-            print("No active controller found")
+
+    def add_column(self):
+        controller = self.active_controller()
+        if controller:
+            controller.add_column()
+
+    def delete_column(self):
+        controller = self.active_controller()
+        if controller:
+            controller.delete_column()

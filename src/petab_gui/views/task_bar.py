@@ -63,23 +63,10 @@ class EditMenu(BasicMenu):
 
         # Find and Replace
         self.find_replace_action = self.add_action_or_menu("Find/Replace")
-        # Add Columns submenu
-        self.add_column_menu = self.add_action_or_menu(
-            "Add Column to ...", is_action=False
-        )
-        self.add_c_meas_action = self.add_action_or_menu(
-            "... Measurement Table", self.add_column_menu
-        )
-        self.add_c_obs_action = self.add_action_or_menu(
-            "... Observable Table", self.add_column_menu
-        )
-        self.add_c_para_action = self.add_action_or_menu(
-            "... Parameter Table", self.add_column_menu
-        )
-        self.add_c_cond_action = self.add_action_or_menu(
-            "... Condition Table", self.add_column_menu
-        )
-        # Add Rows submenu
+        # Add Columns
+        self.menu.addAction(actions["add_column"])
+        self.menu.addAction(actions["delete_column"])
+        # Add Rows
         self.menu.addAction(actions["add_row"])
         self.menu.addAction(actions["delete_row"])
 
