@@ -70,6 +70,13 @@ class MainController:
             self.logger,
             self
         )
+        self.controllers = [
+            self.measurement_controller,
+            self.observable_controller,
+            self.parameter_controller,
+            self.condition_controller,
+            self.sbml_controller
+        ]
         # Checkbox states for Find + Replace
         self.petab_checkbox_states = {
             "measurement": False,
@@ -416,6 +423,8 @@ class MainController:
         if not yaml_path:
             return
         try:
+            for controller in self.controllers:
+                controller.release_completers()
             # Load the YAML content
             with open(yaml_path, 'r') as file:
                 yaml_content = yaml.safe_load(file)
@@ -443,14 +452,9 @@ class MainController:
                 "All files uploaded successfully from the YAML configuration.",
                 color="green"
             )
-            # # rerun the completers
-            # for controller in [
-            #     self.measurement_controller,
-            #     self.observable_controller,
-            #     self.parameter_controller,
-            #     self.condition_controller
-            # ]:
-            #     controller.setup_completers()
+            # rerun the completers
+            for controller in self.controllers:
+                controller.setup_completers()
             self.unsaved_changes = False
 
         except Exception as e:

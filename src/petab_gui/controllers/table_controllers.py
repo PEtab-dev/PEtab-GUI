@@ -51,6 +51,15 @@ class TableController(QObject):
     def setup_completers(self):
         pass
 
+    def release_completers(self):
+        """Sets the completers to None. Safety Measure."""
+        if not self.completers:
+            return
+        for column_index in range(self.model.columnCount()):
+            self.view.table_view.setItemDelegateForColumn(column_index, None)
+        self.completers = {}
+        print("Completers released.")
+
     def setup_connections_specific(self):
         """Will be implemented in child controllers."""
         pass
