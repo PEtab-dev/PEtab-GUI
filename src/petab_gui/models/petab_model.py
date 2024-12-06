@@ -100,7 +100,7 @@ class PEtabModel:
         directory: str
             The directory to save the PEtab model to.
         """
-        self.problem.to_files(prefix_path=directory)
+        self.current_petab_problem.to_files_generic(prefix_path=directory)
 
     @property
     def current_petab_problem(self) -> petab.Problem:

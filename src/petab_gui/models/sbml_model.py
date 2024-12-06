@@ -2,6 +2,7 @@ from PySide6.QtCore import QObject, Signal
 import libsbml
 import tempfile
 from petab.v1.models.sbml_model import SbmlModel
+from petab.v1.sbml import load_sbml_from_string
 import petab.v1 as petab
 from ..utils import sbmlToAntimony, antimonyToSBML
 
@@ -42,8 +43,16 @@ class SbmlViewerModel(QObject):
         """Temporary write SBML to file and turn into petab.models.Model."""
         if self.sbml_text == "":
             return None
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
-            tmp.write(self.sbml_text)
-            tmp_path = tmp.name
-            sbml_model = SbmlModel.from_file(tmp_path)
-        return sbml_model
+        
+        sbml_reader, sbml_document, sbml_model = load_sbml_from_string(
+            self.sbml_text
+        )
+
+        model_id = sbml_model.getIdAttribute()
+
+        return SbmlModel(
+            sbml_model=sbml_model,
+            sbml_reader=sbml_reader,
+            sbml_document=sbml_document,
+            model_id=model_id,
+        )
