@@ -14,12 +14,6 @@ class LoggerController:
             The view of the logger widget.
         """
         self.views = views
-        self.views[0].upload_data_matrix_button.hide()
-        self.views[0].reset_to_original_button.show()
-        self.views[1].upload_data_matrix_button.show()
-        self.views[1].reset_to_original_button.hide()
-
-
 
     def log_message(self, message, color="black"):
         """Log a message to the logger.

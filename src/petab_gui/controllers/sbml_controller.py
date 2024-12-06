@@ -51,9 +51,6 @@ class SbmlController(QObject):
         self.view.forward_antimony_button.clicked.connect(
             self.update_sbml_from_antimony
         )
-        self.logger.views[0].reset_to_original_button.clicked.connect(
-            self.reset_to_original_model
-        )
 
     def reset_to_original_model(self):
         """Reset the model to the original SBML and Antimony text."""

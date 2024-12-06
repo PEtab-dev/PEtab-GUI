@@ -146,11 +146,6 @@ class MainController:
         self.view.closing_signal.connect(
             self.maybe_close
         )
-        # Lint Problem
-        for view in self.logger.views:
-            view.lint_model_button.clicked.connect(
-                self.model.test_consistency
-            )
 
     def setup_actions(self):
         """Setup actions for the main controller."""
@@ -216,6 +211,13 @@ class MainController:
             "Check PEtab", self.view
         )
         actions["check_petab"].triggered.connect(self.check_model)
+        actions["reset_model"] = QAction(
+            qta.icon("mdi6.restore"),
+            "Reset SBML Model", self.view
+        )
+        actions["reset_model"].triggered.connect(
+            self.sbml_controller.reset_to_original_model
+        )
 
         # Filter widget
         filter_widget = QWidget()

@@ -70,6 +70,8 @@ class EditMenu(BasicMenu):
         # Add Rows
         self.menu.addAction(actions["add_row"])
         self.menu.addAction(actions["delete_row"])
+        # Reset Model
+        self.menu.addAction(actions["reset_model"])
 
 
 class ViewMenu(BasicMenu):
