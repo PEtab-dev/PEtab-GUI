@@ -10,6 +10,8 @@ import logging
 from .C import ROW, COLUMN
 import antimony
 import os
+import numpy as np
+import math
 
 
 def _checkAntimonyReturnCode(code):
@@ -644,3 +646,15 @@ def process_file(filepath, logger):
         color="red"
     )
     return None, None
+
+
+def is_invalid(value):
+    """Check if a value is invalid."""
+    if value is None:  # None values are invalid
+        return True
+    if isinstance(value, str):  # Strings can always be displayed
+        return False
+    try:
+        return not math.isfinite(value)
+    except TypeError:
+        return True

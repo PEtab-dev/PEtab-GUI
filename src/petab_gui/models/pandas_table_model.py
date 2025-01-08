@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal, QSortFi
 from PySide6.QtGui import QColor
 
 from ..C import COLUMNS
-from ..utils import validate_value, create_empty_dataframe
+from ..utils import validate_value, create_empty_dataframe, is_invalid
 
 
 class PandasTableModel(QAbstractTableModel):
@@ -44,6 +44,8 @@ class PandasTableModel(QAbstractTableModel):
                 value = self._data_frame.index[row]
                 return str(value)
             value = self._data_frame.iloc[row, column-1]
+            if is_invalid(value):
+                return ""
             return str(value)
         elif role == Qt.BackgroundRole:
             if (row, column) in self._invalid_cells:
@@ -324,6 +326,8 @@ class MeasurementModel(PandasTableModel):
                     return f"New {self.table_type}"
                 return ""
             value = self._data_frame.iloc[row, column]
+            if is_invalid(value):
+                return ""
             return str(value)
         elif role == Qt.BackgroundRole:
             if (row, column) in self._invalid_cells:
