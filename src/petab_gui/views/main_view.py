@@ -144,7 +144,7 @@ class MainWindow(QMainWindow):
 
         # first the normal open / save operations
         tb.addAction(actions["new"])
-        tb.addAction(actions["open_yaml"])
+        tb.addAction(actions["open"])
         tb.addAction(actions["save"])
         tb.addAction(actions["check_petab"])
         tb.addAction(actions["find+replace"])

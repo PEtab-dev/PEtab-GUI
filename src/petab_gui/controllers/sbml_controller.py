@@ -51,9 +51,6 @@ class SbmlController(QObject):
         self.view.forward_antimony_button.clicked.connect(
             self.update_sbml_from_antimony
         )
-        self.logger.views[0].reset_to_original_button.clicked.connect(
-            self.reset_to_original_model
-        )
 
     def reset_to_original_model(self):
         """Reset the model to the original SBML and Antimony text."""
@@ -101,7 +98,7 @@ class SbmlController(QObject):
         self.model.something_changed.emit(True)
 
     def open_and_overwrite_sbml(self, file_path=None):
-        """Upload a new SBML file and overwrite the existing SBML model."""
+        """Open a new SBML file and overwrite the existing SBML model."""
         if not file_path:
             # Open a file dialog to select an SBML file
             file_path, _ = QFileDialog.getOpenFileName(
@@ -124,11 +121,11 @@ class SbmlController(QObject):
             )
             # self.overwritten_model.emit()  # Deactivated for now. Discuss!
             self.logger.log_message(
-                "SBML model successfully uploaded and overwritten.",
+                "SBML model successfully opened and overwritten.",
                 color="green"
             )
         except Exception as e:
             self.logger.log_message(
-                f"Failed to upload SBML file: {str(e)}",
+                f"Failed to open SBML file: {str(e)}",
                 color="red"
             )

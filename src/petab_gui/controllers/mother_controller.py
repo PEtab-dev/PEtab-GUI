@@ -8,7 +8,7 @@ from io import BytesIO, StringIO
 import logging
 import yaml
 import qtawesome as qta
-from ..utils import FindReplaceDialog, CaptureLogHandler
+from ..utils import FindReplaceDialog, CaptureLogHandler, process_file
 from PySide6.QtCore import Qt
 from pathlib import Path
 from ..models import PEtabModel
@@ -146,15 +146,16 @@ class MainController:
         self.view.closing_signal.connect(
             self.maybe_close
         )
-        # Lint Problem
-        for view in self.logger.views:
-            view.lint_model_button.clicked.connect(
-                self.model.test_consistency
-            )
 
     def setup_actions(self):
         """Setup actions for the main controller."""
-        actions = {}
+        actions = {"close": QAction(
+            qta.icon("mdi6.close"),
+            "Close", self.view
+        )}
+        # Close
+        actions["close"].setShortcut("Ctrl+Q")
+        actions["close"].triggered.connect(self.maybe_close)
         # New File
         actions["new"] = QAction(
             qta.icon("mdi6.file-document"),
@@ -163,11 +164,11 @@ class MainController:
         actions["new"].setShortcut("Ctrl+N")
         actions["new"].triggered.connect(self.new_file)
         # Open YAML
-        actions["open_yaml"] = QAction(
+        actions["open"] = QAction(
             qta.icon("mdi6.folder-open"),
-            "Open YAML Configuration", self.view
+            "Open File", self.view
         )
-        actions["open_yaml"].triggered.connect(self.open_yaml_and_load_files)
+        actions["open"].triggered.connect(self.open_file)
         # Save
         actions["save"] = QAction(
             qta.icon("mdi6.content-save-all"),
@@ -210,6 +211,13 @@ class MainController:
             "Check PEtab", self.view
         )
         actions["check_petab"].triggered.connect(self.check_model)
+        actions["reset_model"] = QAction(
+            qta.icon("mdi6.restore"),
+            "Reset SBML Model", self.view
+        )
+        actions["reset_model"].triggered.connect(
+            self.sbml_controller.reset_to_original_model
+        )
 
         # Filter widget
         filter_widget = QWidget()
@@ -378,24 +386,44 @@ class MainController:
 
         self.view.plot_dock.update_visualization(plot_data)
 
-    def open_file(self, file_path=None):
-        """Opens PEtab files (.yaml) or SBML files (.xml .sbml)."""
+    def open_file(self, file_path = None):
+        """Determines appropriate course of action for a given file.
+
+        Course of action depends on file extension, separator and header
+        structure. Opens the file in the appropriate controller.
+        """
         if not file_path:
             file_path, _ = QFileDialog.getOpenFileName(
                 self.view,
                 "Open File",
                 "",
-                "PEtab Files (*.yaml *.yml);;SBML Files (*.xml *.sbml)"
+                "PEtab Problems (*.yaml *.yml);;SBML Files (*.xml *.sbml);;"
+                "PEtab Tables or Data Matrix (*.tsv *.csv *.txt)"
             )
         if not file_path:
             return
-        if file_path.endswith((".yaml", ".yml")):
+        # handle file appropriately
+        actionable, sep = process_file(file_path, self.logger)
+        if not actionable:
+            return
+        if actionable == "yaml":
             self.open_yaml_and_load_files(file_path)
-        elif file_path.endswith((".xml", ".sbml")):
+        elif actionable == "sbml":
             self.sbml_controller.open_and_overwrite_sbml(file_path)
+        elif actionable == "measurement":
+            self.measurement_controller.open_and_overwrite_table(file_path, sep)
+        elif actionable == "observable":
+            self.observable_controller.open_and_overwrite_table(file_path, sep)
+        elif actionable == "parameter":
+            self.parameter_controller.open_and_overwrite_table(file_path, sep)
+        elif actionable == "condition":
+            self.condition_controller.open_and_overwrite_table(file_path, sep)
+        elif actionable == "data_matrix":
+            self.measurement_controller.process_data_matrix_file(file_path, sep)
+
 
     def open_yaml_and_load_files(self, yaml_path=None):
-        """Upload files from a YAML configuration.
+        """Open files from a YAML configuration.
 
         Opens a dialog to upload yaml file. Creates a PEtab problem and
         overwrites the current PEtab model with the new problem.
@@ -438,7 +466,7 @@ class MainController:
                 yaml_dir / yaml_content['problems'][0]['condition_files'][0]
             )
             self.logger.log_message(
-                "All files uploaded successfully from the YAML configuration.",
+                "All files opened successfully from the YAML configuration.",
                 color="green"
             )
             # rerun the completers
@@ -450,7 +478,7 @@ class MainController:
 
         except Exception as e:
             self.logger.log_message(
-                f"Failed to upload files from YAML: {str(e)}", color="red"
+                f"Failed to open files from YAML: {str(e)}", color="red"
             )
 
     def new_file(self):
