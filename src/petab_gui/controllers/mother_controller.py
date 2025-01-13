@@ -166,8 +166,9 @@ class MainController:
         # Open YAML
         actions["open"] = QAction(
             qta.icon("mdi6.folder-open"),
-            "Open File", self.view
+            "Open", self.view
         )
+        actions["open"].setShortcut("Ctrl+O")
         actions["open"].triggered.connect(self.open_file)
         # Save
         actions["save"] = QAction(
@@ -397,8 +398,10 @@ class MainController:
                 self.view,
                 "Open File",
                 "",
+                "All supported (*.yaml *.yml *.xml *.sbml *.tsv *.csv *.txt);;"
                 "PEtab Problems (*.yaml *.yml);;SBML Files (*.xml *.sbml);;"
-                "PEtab Tables or Data Matrix (*.tsv *.csv *.txt)"
+                "PEtab Tables or Data Matrix (*.tsv *.csv *.txt);;"
+                "All files (*)"
             )
         if not file_path:
             return
