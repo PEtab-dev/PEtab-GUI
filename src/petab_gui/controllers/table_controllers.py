@@ -564,6 +564,8 @@ class ObservableController(TableController):
         Opens a dialog to ask the user if they want to rename the observables.
         If so, emits a signal to rename the observables in the measurement_df.
         """
+        if old_id not in self.mother_controller.measurement_controller.model.get_df()["observableId"].values:
+            return
         reply = QMessageBox.question(
             self.view, 'Rename Observable',
             f'Do you want to rename observable "{old_id}" to "{new_id}" '
