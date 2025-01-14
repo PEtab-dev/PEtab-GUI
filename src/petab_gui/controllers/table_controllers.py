@@ -243,7 +243,7 @@ class MeasurementController(TableController):
             observable_df=observable_df,
         )
 
-    def rename_observable(self, old_id: str, new_id: str):
+    def rename_value(self, old_id: str, new_id: str, column_names: str | list[str]):
         """Rename the observables in the measurement_df.
 
         Triggered by changes in the original observable_df id.
@@ -255,10 +255,13 @@ class MeasurementController(TableController):
         new_id:
             The new observable_id.
         """
+        if not isinstance(column_names, list):
+            column_names = [column_names]
         rows = self.model.get_df().shape[0]
         for row in range(rows):
-            if self.model._data_frame.at[row, "observableId"] == old_id:
-                self.model._data_frame.at[row, "observableId"] = new_id
+            for column_name in column_names:
+                if self.model._data_frame.at[row, column_name] == old_id:
+                    self.model._data_frame.at[row, column_name] = new_id
         self.model.something_changed.emit(True)
         self.model.layoutChanged.emit()
 
@@ -444,6 +447,17 @@ class MeasurementController(TableController):
 
 class ConditionController(TableController):
     """Controller of the Condition table."""
+    condition_2be_renamed = Signal(str, str)  # Signal to mother controller
+
+    def setup_connections_specific(self):
+        """Setup connections specific to the condition controller.
+
+        Only handles connections from within the table controllers.
+        """
+        self.model.relevant_id_changed.connect(
+            self.maybe_rename_condition
+        )
+
     def check_petab_lint(self, row_data):
         """Check a single row of the model with petablint."""
         observable_df = self.mother_controller.model.observable.get_df()
@@ -454,15 +468,42 @@ class ConditionController(TableController):
             model=sbml_model,
         )
 
-    def maybe_add_condition(self, condition_id):
+    def maybe_rename_condition(self, new_id, old_id):
+        """Potentially rename condition_ids in measurement_df.
+
+        Opens a dialog to ask the user if they want to rename the conditions.
+        If so, emits a signal to rename the conditions in the measurement_df.
+        """
+        if old_id not in self.mother_controller.measurement_controller.model.get_df()["simulationConditionId"].values:
+            return
+        reply = QMessageBox.question(
+            self.view, 'Rename Condition',
+            f'Do you want to rename condition "{old_id}" to "{new_id}" '
+            f'in all measurements?',
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            self.logger.log_message(
+                f"Renaming condition '{old_id}' to '{new_id}' in all "
+                f"measurements",
+                color="green"
+            )
+            self.condition_2be_renamed.emit(old_id, new_id)
+
+
+    def maybe_add_condition(self, condition_id, old_id=None):
         """Add a condition to the condition table if it does not exist yet."""
-        if condition_id in self.model.get_df()["conditionId"].values:
+        if condition_id in self.model.get_df().index:
             return
         # add a row
         self.model.insertRows(position=None, rows=1)
         self.model.fill_row(
             self.model.get_df().shape[0] - 1,
             data={"conditionId": condition_id}
+        )
+        self.model.cell_needs_validation.emit(
+            self.model.get_df().shape[0] - 1, 0
         )
         self.logger.log_message(
             f"Automatically added condition '{condition_id}' to the condition "
@@ -550,7 +591,7 @@ class ObservableController(TableController):
 
         Only handles connections from within the table controllers.
         """
-        self.model.observable_id_changed.connect(
+        self.model.relevant_id_changed.connect(
             self.maybe_rename_observable
         )
 

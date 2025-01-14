@@ -1,3 +1,5 @@
+from functools import partial
+
 from PySide6.QtWidgets import QMessageBox, QFileDialog, QLineEdit, QWidget, \
     QHBoxLayout, QToolButton, QTableView
 from PySide6.QtGui import QShortcut, QKeySequence, QAction
@@ -113,11 +115,25 @@ class MainController:
         """
         # Rename Observable
         self.observable_controller.observable_2be_renamed.connect(
-            self.measurement_controller.rename_observable
+            partial(
+                self.measurement_controller.rename_value,
+                column_names = "observableId"
+            )
         )
-        # Add new observable
-        self.model.measurement.observable_id_changed.connect(
-            self.observable_controller.maybe_add_observable
+        # Rename Condition
+        self.condition_controller.condition_2be_renamed.connect(
+            partial(
+                self.measurement_controller.rename_value,
+                column_names = ["simulationConditionId",
+                "preequilibrationConditionId"]
+            )
+        )
+        # Add new condition or observable
+        self.model.measurement.relevant_id_changed.connect(
+            lambda x, y, z: self.observable_controller.maybe_add_observable(
+                x, y) if z == "observable" else
+            self.condition_controller.maybe_add_condition(
+                x, y) if z == "condition" else None
         )
         # Maybe Move to a Plot Model
         self.view.measurement_dock.table_view.selectionModel().selectionChanged.connect(
