@@ -165,7 +165,7 @@ class MainController:
         )
         actions["new"].setShortcut("Ctrl+N")
         actions["new"].triggered.connect(self.new_file)
-        # Open YAML
+        # Open File
         actions["open"] = QAction(
             qta.icon("mdi6.folder-open"),
             "Open", self.view
@@ -173,6 +173,15 @@ class MainController:
         actions["open"].setShortcut("Ctrl+O")
         actions["open"].triggered.connect(
             partial(self.open_file, mode="overwrite")
+        )
+        # Add File
+        actions["add"] = QAction(
+            qta.icon("mdi6.table-plus"),
+            "Add", self.view
+        )
+        actions["add"].setShortcut("Ctrl+Shift+O")
+        actions["add"].triggered.connect(
+            partial(self.open_file, mode="append")
         )
         # Save
         actions["save"] = QAction(
@@ -413,6 +422,12 @@ class MainController:
             return
         # handle file appropriately
         actionable, sep = process_file(file_path, self.logger)
+        if actionable in ["yaml", "sbml"] and mode == "append":
+            self.logger.log_message(
+                f"Append mode is not supported for *.{actionable} files.",
+                color="red"
+            )
+            return
         if not actionable:
             return
         if mode is None:
