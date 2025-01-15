@@ -296,7 +296,7 @@ class MainController:
             options=options
         )
         if not file_name:
-            return None
+            return False
         if not file_name.endswith(".zip"):
             file_name += ".zip"
 
@@ -320,6 +320,7 @@ class MainController:
             self.view, "Save Project",
             f"Project saved successfully to {file_name}"
         )
+        return True
 
     def open_find_replace_dialog(self):
         current_tab = self.view.tab_widget.currentIndex()
@@ -552,8 +553,8 @@ class MainController:
             QMessageBox.Save
         )
         if reply == QMessageBox.Save:
-            self.save_model()
-            self.view.allow_close = True
+            saved = self.save_model()
+            self.view.allow_close = saved
         elif reply == QMessageBox.Discard:
             self.view.allow_close = True
         else:

@@ -185,6 +185,8 @@ class MainWindow(QMainWindow):
         # Emit the signal to let the controller decide what to do
         self.closing_signal.emit()
 
+        QApplication.processEvents()
+
         if self.allow_close:
             self.save_settings()
             event.accept()
