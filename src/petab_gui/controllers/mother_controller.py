@@ -142,10 +142,6 @@ class MainController:
         self.model.sbml.something_changed.connect(
             self.unsaved_changes_change
         )
-        # Closing event
-        self.view.closing_signal.connect(
-            self.maybe_close
-        )
 
     def setup_actions(self):
         """Setup actions for the main controller."""
@@ -155,7 +151,7 @@ class MainController:
         )}
         # Close
         actions["close"].setShortcut("Ctrl+Q")
-        actions["close"].triggered.connect(self.maybe_close)
+        actions["close"].triggered.connect(self.view.close)
         # New File
         actions["new"] = QAction(
             qta.icon("mdi6.file-document"),
