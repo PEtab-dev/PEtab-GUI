@@ -47,6 +47,7 @@ class FileMenu(BasicMenu):
         # Open, Save, and Close actions
         self.menu.addAction(actions["new"])
         self.menu.addAction(actions["open"])
+        self.menu.addAction(actions["add"])
         self.menu.addAction(actions["save"])
         self.menu.addSeparator()
         self.menu.addAction(actions["close"])

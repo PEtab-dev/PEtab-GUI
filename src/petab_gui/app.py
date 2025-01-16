@@ -39,15 +39,14 @@ class PEtabGuiApp(QApplication):
         self.view.controller = self.controller
 
         if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):
-            self.controller.open_file(sys.argv[1])
+            self.controller.open_file(sys.argv[1], mode="overwrite")
 
         self.view.show()
 
     def event(self, event):
-
         if event.type() == QEvent.FileOpen:
             openEvent = QFileOpenEvent(event)            
-            self.controller.open_file(openEvent.file())
+            self.controller.open_file(openEvent.file(), mode="overwrite")
 
         return super().event(event)
 

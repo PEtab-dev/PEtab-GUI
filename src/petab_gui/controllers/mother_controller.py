@@ -1,10 +1,10 @@
 from PySide6.QtWidgets import QMessageBox, QFileDialog, QLineEdit, QWidget, \
     QHBoxLayout, QToolButton, QTableView
-from PySide6.QtGui import QShortcut, QKeySequence, QAction
+from PySide6.QtGui import QAction
 import zipfile
 import tempfile
 import os
-from io import BytesIO, StringIO
+from io import BytesIO
 import logging
 import yaml
 import qtawesome as qta
@@ -17,6 +17,8 @@ from .table_controllers import MeasurementController, ObservableController, \
     ConditionController, ParameterController
 from .logger_controller import LoggerController
 from ..views import TaskBar
+from .utils import prompt_overwrite_or_append
+from functools import partial
 
 
 class MainController:
@@ -26,6 +28,7 @@ class MainController:
     Mother controller to all other controllers. One controller to rule them
     all.
     """
+
     def __init__(self, view, model: PEtabModel):
         """Initialize the main controller.
 
@@ -98,7 +101,6 @@ class MainController:
         self.setup_connections()
         self.setup_task_bar()
 
-
     def setup_task_bar(self):
         """Create shortcuts for the main window."""
         self.view.task_bar = TaskBar(self.view, self.actions)
@@ -163,13 +165,24 @@ class MainController:
         )
         actions["new"].setShortcut("Ctrl+N")
         actions["new"].triggered.connect(self.new_file)
-        # Open YAML
+        # Open File
         actions["open"] = QAction(
             qta.icon("mdi6.folder-open"),
             "Open", self.view
         )
         actions["open"].setShortcut("Ctrl+O")
-        actions["open"].triggered.connect(self.open_file)
+        actions["open"].triggered.connect(
+            partial(self.open_file, mode="overwrite")
+        )
+        # Add File
+        actions["add"] = QAction(
+            qta.icon("mdi6.table-plus"),
+            "Add", self.view
+        )
+        actions["add"].setShortcut("Ctrl+Shift+O")
+        actions["add"].triggered.connect(
+            partial(self.open_file, mode="append")
+        )
         # Save
         actions["save"] = QAction(
             qta.icon("mdi6.content-save-all"),
@@ -183,7 +196,8 @@ class MainController:
             "Find/Replace", self.view
         )
         actions["find+replace"].setShortcut("Ctrl+R")
-        actions["find+replace"].triggered.connect(self.open_find_replace_dialog)
+        actions["find+replace"].triggered.connect(
+            self.open_find_replace_dialog)
         # add/delete row
         actions["add_row"] = QAction(
             qta.icon("mdi6.table-row-plus-after"),
@@ -366,7 +380,8 @@ class MainController:
                 selected_points[observable_id] = []
             selected_points[observable_id].append({
                 "x": self.model.measurement._data_frame.iloc[row]["time"],
-                "y": self.model.measurement._data_frame.iloc[row]["measurement"]
+                "y": self.model.measurement._data_frame.iloc[row][
+                    "measurement"]
             })
         if selected_points == {}:
             return None
@@ -387,7 +402,7 @@ class MainController:
 
         self.view.plot_dock.update_visualization(plot_data)
 
-    def open_file(self, file_path = None):
+    def open_file(self, file_path=None, mode=None):
         """Determines appropriate course of action for a given file.
 
         Course of action depends on file extension, separator and header
@@ -407,25 +422,53 @@ class MainController:
             return
         # handle file appropriately
         actionable, sep = process_file(file_path, self.logger)
+        if actionable in ["yaml", "sbml"] and mode == "append":
+            self.logger.log_message(
+                f"Append mode is not supported for *.{actionable} files.",
+                color="red"
+            )
+            return
         if not actionable:
             return
+        if mode is None:
+            if actionable in ["yaml", "sbml"]:
+                mode = "overwrite"
+            else:
+                mode = prompt_overwrite_or_append(self)
+        if mode is None:
+            return
+        self._open_file(actionable, file_path, sep, mode)
+
+    def _open_file(self, actionable, file_path, sep, mode):
+        """Overwrites the File in the appropriate controller.
+        Actionable dictates which controller to use.
+        """
         if actionable == "yaml":
             self.open_yaml_and_load_files(file_path)
         elif actionable == "sbml":
-            self.sbml_controller.open_and_overwrite_sbml(file_path)
+            self.sbml_controller.overwrite_sbml(file_path)
         elif actionable == "measurement":
-            self.measurement_controller.open_and_overwrite_table(file_path, sep)
+            self.measurement_controller.open_table(
+                file_path, sep, mode
+            )
         elif actionable == "observable":
-            self.observable_controller.open_and_overwrite_table(file_path, sep)
+            self.observable_controller.open_table(
+                file_path, sep, mode
+            )
         elif actionable == "parameter":
-            self.parameter_controller.open_and_overwrite_table(file_path, sep)
+            self.parameter_controller.open_table(
+                file_path, sep, mode
+            )
         elif actionable == "condition":
-            self.condition_controller.open_and_overwrite_table(file_path, sep)
+            self.condition_controller.open_table(
+                file_path, sep, mode
+            )
         elif actionable == "data_matrix":
-            self.measurement_controller.process_data_matrix_file(file_path, sep)
+            self.measurement_controller.process_data_matrix_file(
+                file_path, sep, mode
+            )
 
-
-    def open_yaml_and_load_files(self, yaml_path=None):
+    def open_yaml_and_load_files(self, yaml_path=None, mode="overwrite"):
         """Open files from a YAML configuration.
 
         Opens a dialog to upload yaml file. Creates a PEtab problem and
@@ -455,17 +498,17 @@ class MainController:
             # Upload SBML model
             sbml_file_path = \
                 yaml_dir / yaml_content['problems'][0]['sbml_files'][0]
-            self.sbml_controller.open_and_overwrite_sbml(sbml_file_path)
-            self.measurement_controller.open_and_overwrite_table(
+            self.sbml_controller.overwrite_sbml(sbml_file_path)
+            self.measurement_controller.open_table(
                 yaml_dir / yaml_content['problems'][0]['measurement_files'][0]
             )
-            self.observable_controller.open_and_overwrite_table(
+            self.observable_controller.open_table(
                 yaml_dir / yaml_content['problems'][0]['observable_files'][0]
             )
-            self.parameter_controller.open_and_overwrite_table(
+            self.parameter_controller.open_table(
                 yaml_dir / yaml_content['parameter_file']
             )
-            self.condition_controller.open_and_overwrite_table(
+            self.condition_controller.open_table(
                 yaml_dir / yaml_content['problems'][0]['condition_files'][0]
             )
             self.logger.log_message(
