@@ -164,6 +164,26 @@ class MainController:
         self.view.closing_signal.connect(
             self.maybe_close
         )
+        # correctly update the visibility even when "x" is clicked in a dock
+        self.view.measurement_dock.visibilityChanged.connect(
+            lambda visible: self.actions["show_measurement"].setChecked(
+                visible)
+        )
+        self.view.observable_dock.visibilityChanged.connect(
+            lambda visible: self.actions["show_observable"].setChecked(visible)
+        )
+        self.view.parameter_dock.visibilityChanged.connect(
+            lambda visible: self.actions["show_parameter"].setChecked(visible)
+        )
+        self.view.condition_dock.visibilityChanged.connect(
+            lambda visible: self.actions["show_condition"].setChecked(visible)
+        )
+        self.view.logger_dock.visibilityChanged.connect(
+            lambda visible: self.actions["show_logger"].setChecked(visible)
+        )
+        self.view.plot_dock.visibilityChanged.connect(
+            lambda visible: self.actions["show_plot"].setChecked(visible)
+        )
 
     def setup_actions(self):
         """Setup actions for the main controller."""
