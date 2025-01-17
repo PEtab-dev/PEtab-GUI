@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QInputDialog, QMessageBox, QFileDialog, \
     QCompleter
 import pandas as pd
 import petab.v1 as petab
-from PySide6.QtCore import Signal, QObject, QModelIndex, QPoint
+from PySide6.QtCore import Signal, QObject, QModelIndex, Qt
 from pathlib import Path
 from ..models.pandas_table_model import PandasTableModel, \
     PandasTableFilterProxy
@@ -80,6 +80,9 @@ class TableController(QObject):
         )
         self.model.inserted_row.connect(
             self.set_index_on_new_row
+        )
+        self.model.fill_defaults.connect(
+            self.model.get_default_values, Qt.QueuedConnection
         )
 
     def validate_changed_cell(self, row, column):
@@ -686,6 +689,16 @@ class ObservableController(TableController):
 
 class ParameterController(TableController):
     """Controller of the Parameter table."""
+
+    def setup_connections_specific(self):
+        """Connect signals specific to the parameter controller."""
+        self.overwritten_df.connect(
+            self.update_handler_model
+        )
+
+    def update_handler_model(self):
+        """Update the handler model."""
+        self.model.default_handler.model = self.model._data_frame
 
     def setup_completers(self):
         """Set completers for the parameter table."""

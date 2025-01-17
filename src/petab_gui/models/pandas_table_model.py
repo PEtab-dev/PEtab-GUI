@@ -1,9 +1,11 @@
 import pandas as pd
-from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal, QSortFilterProxyModel
+from PySide6.QtCore import (Qt, QAbstractTableModel, QModelIndex, Signal,
+                            QSortFilterProxyModel, QPersistentModelIndex)
 from PySide6.QtGui import QColor
 
 from ..C import COLUMNS
 from ..utils import validate_value, create_empty_dataframe, is_invalid
+from ..controllers.default_handler import DefaultHandlerModel
 
 
 class PandasTableModel(QAbstractTableModel):
@@ -14,6 +16,7 @@ class PandasTableModel(QAbstractTableModel):
     cell_needs_validation = Signal(int, int)  # row, column
     something_changed = Signal(bool)
     inserted_row = Signal(QModelIndex)
+    fill_defaults = Signal(QModelIndex)
 
     def __init__(self, data_frame, allowed_columns, table_type, parent=None):
         super().__init__(parent)
@@ -135,6 +138,8 @@ class PandasTableModel(QAbstractTableModel):
             # empty row at the end
             self.insertRows(index.row(), 1)
             self.layoutChanged.emit()
+            self.fill_defaults.emit(index)
+            # self.get_default_values(index)
             next_index = self.index(index.row(), 0)
             self.inserted_row.emit(next_index)
         if index.column() == 0 and self._has_named_index:
@@ -186,6 +191,10 @@ class PandasTableModel(QAbstractTableModel):
 
     def handle_named_index(self, index, value):
         """Handle the named index column."""
+        pass
+
+    def get_default_values(self, index):
+        """Return the default values for a the row in a new index."""
         pass
 
     def replace_text(self, old_text: str, new_text: str):
@@ -422,6 +431,35 @@ class ParameterModel(IndexedPandasTableModel):
             table_type="parameter",
             parent=parent
         )
+        self.config = {
+            "parameterName": {
+                "strategy": "copy_column", "source_column": "parameterId", "default_value": ""
+            },
+            "parameterScale": {
+                "strategy": "default_value", "default_value": "log10"
+            },
+            "lowerBound": {
+                "strategy": "min_column", "min_cap": 1e-8, "default_value": 1e-8
+            },
+            "upperBound": {
+                "strategy": "max_column", "max_cap": 1e8, "default_value": 1e8
+            },
+            "estimate": {
+                "strategy": "default_value", "default_value": 1
+            },
+        }
+        self.default_handler = DefaultHandlerModel(self, self.config)
+
+    def get_default_values(self, index):
+        """Return the default values for a the row in a new index."""
+        row = index.row()
+        if isinstance(row, int):
+            row = self._data_frame.index[row]
+        for colname in self._data_frame.columns:
+            # if column is empty, fill with default value
+            if self._data_frame.loc[row, colname] == "":
+                default_value = self.default_handler.get_default(colname, row)
+                self._data_frame.loc[row, colname] = default_value
 
 
 class ConditionModel(IndexedPandasTableModel):
