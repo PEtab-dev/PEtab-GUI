@@ -22,9 +22,14 @@ class DefaultHandlerModel:
         :param row_index: Optional index of the row (needed for some strategies).
         :return: The computed default value.
         """
+        source_column = column_name
         if column_name not in self.config:
-            print(f"No configuration found for column '{column_name}'.")
-            return ""
+            if "default_config" in self.config:
+                column_name = "default_config"
+            else:
+                print(f"No configuration found for column '{column_name}' "
+                      f"and no default configuration. Returning \"\".")
+                return ""
 
         column_config = self.config[column_name]
         strategy = column_config.get("strategy", "default_value")
@@ -38,6 +43,9 @@ class DefaultHandlerModel:
             return self._max_column(column_name, column_config)
         elif strategy == "copy_column":
             return self._copy_column(column_name, column_config, row_index)
+        elif strategy == "majority_vote":
+            column_config["source_column"] = source_column
+            return self._majority_vote(column_name, column_config)
         else:
             raise ValueError(f"Unknown strategy '{strategy}' for column '{column_name}'.")
 
