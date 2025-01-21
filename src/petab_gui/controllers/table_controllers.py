@@ -587,6 +587,10 @@ class ObservableController(TableController):
     """Controller of the Observable table."""
     observable_2be_renamed = Signal(str, str)  # Signal to mother controller
 
+    def update_handler_model(self):
+        """Update the handler model."""
+        self.model.default_handler.model = self.model._data_frame
+
     def setup_completers(self):
         """Set completers for the observable table."""
         table_view = self.view.table_view
@@ -641,6 +645,9 @@ class ObservableController(TableController):
         """
         self.model.relevant_id_changed.connect(
             self.maybe_rename_observable
+        )
+        self.overwritten_df.connect(
+            self.update_handler_model
         )
 
     def check_petab_lint(self, row_data):

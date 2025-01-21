@@ -78,10 +78,11 @@ class DefaultHandlerModel:
             source_column in self.model or source_column == self.model_index
         )
         if source_column and source_column_valid and row_index is not None:
+            prefix = config.get("prefix", "")
             if row_index in self.model.index:
                 if source_column == self.model_index:
-                    return row_index
-                value = self.model.at[row_index, source_column]
+                    return f"{prefix}{row_index}"
+                value = f"{prefix}{self.model.at[row_index, source_column]}"
                 return value if pd.notna(value) else config.get("default_value", "")
         return config.get("default_value", "")
 

@@ -398,6 +398,58 @@ class ObservableModel(IndexedPandasTableModel):
             table_type="observable",
             parent=parent
         )
+        self.config = {
+            "observableId": {
+                "strategy": "copy_column", "source_column": "observableFormula",
+                "prefix": "obs_", "default_value": ""
+            },
+            "observableName": {
+                "strategy": "copy_column", "source_column": "observableId",
+                "default_value": ""
+            },
+            # # Deactivate Formula DEfaults for now
+            # "observableFormula": {
+            #     "strategy": "copy_column", "source_column": "observableId",
+            #     "default_value": ""
+            # },
+            "noiseFormula": {
+                "strategy": "default_value", "default_value": 1
+            },
+            "observableTransformation": {
+                "strategy": "majority_vote",
+                "source_column": "source_column",  # Placeholder
+                "default_value": ""
+            },
+            "noiseDistribution": {
+                "strategy": "majority_vote",
+                "source_column": "source_column",  # Placeholder
+                "default_value": ""
+            }
+        }
+        self.default_handler = DefaultHandlerModel(self, self.config)
+
+    def get_default_values(self, index):
+        """Return the default values for a the row in a new index."""
+        row = index.row()
+        if isinstance(row, int):
+            row = self._data_frame.index[row]
+        columns_with_index = (
+            [self._data_frame.index.name or "index"] +
+            list(self._data_frame.columns)
+        )
+        for colname in columns_with_index:
+            if colname == self._data_frame.index.name and isinstance(row, int):
+                default_value = self.default_handler.get_default(colname, row)
+                self._data_frame.rename(
+                    index={self._data_frame.index[row]: default_value},
+                    inplace=True
+                )
+                row = default_value  # Update row to new index
+                continue
+            # if column is empty, fill with default value
+            if self._data_frame.loc[row, colname] == "":
+                default_value = self.default_handler.get_default(colname, row)
+                self._data_frame.loc[row, colname] = default_value
 
     def fill_row(self, row_position: int, data: dict):
         """Fill a row with data.
@@ -412,6 +464,9 @@ class ObservableModel(IndexedPandasTableModel):
         data_to_add = {
             column_name: "" for column_name in self._data_frame.columns
         }
+        # remove preequilibrationConditionId if not in columns
+        if "preequilibrationConditionId" not in self._data_frame.columns:
+            data.pop("preequilibrationConditionId", None)
         data_to_add.update(data)
         # Maybe add default values for missing columns?
         new_index = self._data_frame.index.tolist()
