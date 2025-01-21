@@ -57,3 +57,4 @@ CONFIG = {
 # String constants
 ROW = 'row'
 COLUMN = 'column'
+INDEX = 'index'
