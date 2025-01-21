@@ -167,8 +167,9 @@ class PandasTableModel(QAbstractTableModel):
             return True
 
         # Validate data based on expected type
-        expected_type = self._allowed_columns.get(column_name)["type"]
+        expected_type = self._allowed_columns.get(column_name, None)
         if expected_type:
+            expected_type = expected_type["type"]
             tried_value = value
             value, error_message = validate_value(
                 value, expected_type
