@@ -472,6 +472,29 @@ class ConditionModel(IndexedPandasTableModel):
             parent=parent
         )
         self._allowed_columns.pop("conditionId")
+        self.config = {
+            "conditionName": {
+                "strategy": "copy_column", "source_column": "conditionId",
+                "default_value": ""
+            },
+            "default_config": {
+                "strategy": "majority_vote",
+                "source_column": "source_column",  # Placeholder
+                "default_value": ""
+            },
+        }
+        self.default_handler = DefaultHandlerModel(self, self.config)
+
+    def get_default_values(self, index):
+        """Return the default values for a the row in a new index."""
+        row = index.row()
+        if isinstance(row, int):
+            row = self._data_frame.index[row]
+        for colname in self._data_frame.columns:
+            # if column is empty, fill with default value
+            if self._data_frame.loc[row, colname] == "":
+                default_value = self.default_handler.get_default(colname, row)
+                self._data_frame.loc[row, colname] = default_value
 
     def fill_row(self, row_position: int, data: dict):
         """Fill a row with data.

@@ -488,6 +488,10 @@ class ConditionController(TableController):
     """Controller of the Condition table."""
     condition_2be_renamed = Signal(str, str)  # Signal to mother controller
 
+    def update_handler_model(self):
+        """Update the handler model."""
+        self.model.default_handler.model = self.model._data_frame
+
     def setup_connections_specific(self):
         """Setup connections specific to the condition controller.
 
@@ -495,6 +499,9 @@ class ConditionController(TableController):
         """
         self.model.relevant_id_changed.connect(
             self.maybe_rename_condition
+        )
+        self.overwritten_df.connect(
+            self.update_handler_model
         )
 
     def check_petab_lint(self, row_data):

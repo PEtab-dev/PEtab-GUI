@@ -1,6 +1,10 @@
 """The Default Handlers for the GUI."""
 import pandas as pd
 import numpy as np
+import copy
+
+from collections import Counter
+
 
 class DefaultHandlerModel:
     def __init__(self, model, config):
@@ -79,4 +83,22 @@ class DefaultHandlerModel:
                     return row_index
                 value = self.model.at[row_index, source_column]
                 return value if pd.notna(value) else config.get("default_value", "")
+        return config.get("default_value", "")
+
+    def _majority_vote(self, column_name, config):
+        """Use the most frequent value in the column as the default.
+
+        Defaults to last used value in case of a tie.
+        """
+        source_column = config.get("source_column", None)
+        source_column_valid = (
+            source_column in self.model or source_column == self.model_index
+        )
+        if source_column and source_column_valid:
+            valid_values = copy.deepcopy(self.model[source_column][:-1])
+            valid_values = valid_values.iloc[::-1]
+            if valid_values.empty:
+                return config.get("default_value", "")
+            value_counts = Counter(valid_values)
+            return value_counts.most_common(1)[0][0]
         return config.get("default_value", "")
