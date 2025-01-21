@@ -378,6 +378,9 @@ class MeasurementModel(PandasTableModel):
         data_to_add = {
             column_name: "" for column_name in self._data_frame.columns
         }
+        # remove preequilibrationConditionId if not in columns
+        if "preequilibrationConditionId" not in self._data_frame.columns:
+            data.pop("preequilibrationConditionId", None)
         data_to_add.update(data)
         # Maybe add default values for missing columns
         self._data_frame.iloc[row_position] = data_to_add
@@ -438,6 +441,9 @@ class ObservableModel(IndexedPandasTableModel):
             list(self._data_frame.columns)
         )
         for colname in columns_with_index:
+            if colname == self._data_frame.index.name and not isinstance(
+                row, int):
+                continue
             if colname == self._data_frame.index.name and isinstance(row, int):
                 default_value = self.default_handler.get_default(colname, row)
                 self._data_frame.rename(
@@ -464,9 +470,6 @@ class ObservableModel(IndexedPandasTableModel):
         data_to_add = {
             column_name: "" for column_name in self._data_frame.columns
         }
-        # remove preequilibrationConditionId if not in columns
-        if "preequilibrationConditionId" not in self._data_frame.columns:
-            data.pop("preequilibrationConditionId", None)
         data_to_add.update(data)
         # Maybe add default values for missing columns?
         new_index = self._data_frame.index.tolist()
@@ -476,6 +479,9 @@ class ObservableModel(IndexedPandasTableModel):
         )
         self._data_frame.index = pd.Index(new_index, name=index_name)
         self._data_frame.iloc[row_position] = data_to_add
+        # make a QModelIndex for the new row
+        new_index = self.index(row_position, 0)
+        self.fill_defaults.emit(new_index)
 
 
 class ParameterModel(IndexedPandasTableModel):
@@ -573,6 +579,9 @@ class ConditionModel(IndexedPandasTableModel):
         )
         self._data_frame.index = pd.Index(new_index, name=index_name)
         self._data_frame.iloc[row_position] = data_to_add
+        # make a QModelIndex for the new row
+        new_index = self.index(row_position, 0)
+        self.fill_defaults.emit(new_index)
 
 
 class PandasTableFilterProxy(QSortFilterProxyModel):
