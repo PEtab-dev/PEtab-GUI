@@ -9,7 +9,7 @@ from ..models.pandas_table_model import PandasTableModel, \
     PandasTableFilterProxy
 from ..views.table_view import TableViewer, SingleSuggestionDelegate, \
     ColumnSuggestionDelegate, ComboBoxDelegate, ParameterIdSuggestionDelegate
-from ..utils import get_selected, process_file
+from ..utils import get_selected, process_file, ConditionInputDialog
 from .utils import prompt_overwrite_or_append
 from ..C import COLUMN
 
@@ -347,7 +347,7 @@ class MeasurementController(TableController):
             "CSV Files (*.csv);;TSV Files (*.tsv)"
         )
         if file_name:
-            self.process_data_matrix_file(file_name)
+            self.process_data_matrix_file(file_name, "append")
 
     def process_data_matrix_file(self, file_name, mode, separator=None):
         """Process the data matrix file.
@@ -360,10 +360,16 @@ class MeasurementController(TableController):
             if data_matrix is None or data_matrix.empty:
                 return
 
-            condition_id = "cond1"  # Does this need adjustment?
+            cond_dialog = ConditionInputDialog()
+            if cond_dialog.exec():
+                conditions = cond_dialog.get_condition_id()
+                condition_id = conditions.get("conditionId", "")
+                preeq_id = conditions.get("preeq_id", "")
             if mode == "overwrite":
                 self.model.clear_table()
-            self.populate_tables_from_data_matrix(data_matrix, condition_id)
+            self.populate_tables_from_data_matrix(
+                data_matrix, condition_id, preeq_id
+            )
             self.model.something_changed.emit(True)
 
         except Exception as e:
@@ -391,21 +397,33 @@ class MeasurementController(TableController):
         )
         return data_matrix.rename(columns={time_column: "time"})
 
-    def populate_tables_from_data_matrix(self, data_matrix, condition_id):
+    def populate_tables_from_data_matrix(
+        self, data_matrix, condition_id, preeq_id: str = ""
+    ):
         """Populate the measurement table from the data matrix."""
         for col in data_matrix.columns:
             if col == "time":
                 continue
             observable_id = col
-            self.model.possibly_new_condition.emit(observable_id)
-            self.model.possibly_new_observable.emit(condition_id)
+            self.model.relevant_id_changed.emit(
+                observable_id, "", "observable"
+            )
+            self.model.relevant_id_changed.emit(condition_id, "", "condition")
+            if preeq_id:
+                self.model.relevant_id_changed.emit(preeq_id, "", "condition")
             self.add_measurement_rows(
                 data_matrix[["time", observable_id]],
                 observable_id,
-                condition_id
+                condition_id,
+                preeq_id
             )
 
-    def add_measurement_rows(self, data_matrix, observable_id, condition_id):
+    def add_measurement_rows(
+        self, data_matrix,
+        observable_id,
+        condition_id: str = "",
+        preeq_id: str = ""
+    ):
         """Adds multiple rows to the measurement table."""
         # check number of rows and signal row insertion
         rows = data_matrix.shape[0]
@@ -422,6 +440,7 @@ class MeasurementController(TableController):
                     "time": row["time"],
                     "measurement": row[observable_id],
                     "simulationConditionId": condition_id,
+                    "preequilibrationConditionId": preeq_id
                 }
             )
         bottom, right = (x - 1 for x in self.model.get_df().shape)

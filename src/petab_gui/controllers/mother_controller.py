@@ -481,7 +481,7 @@ class MainController:
             )
         elif actionable == "data_matrix":
             self.measurement_controller.process_data_matrix_file(
-                file_path, sep, mode
+                file_path, mode, sep
             )
 
     def open_yaml_and_load_files(self, yaml_path=None, mode="overwrite"):

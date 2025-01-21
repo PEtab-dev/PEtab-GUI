@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, \
-    QLineEdit, QPushButton, QCompleter, QCheckBox, QGridLayout, QTableView
+    QLineEdit, QPushButton, QCompleter, QCheckBox, QGridLayout, QTableView, QDialogButtonBox
 from PySide6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor
 from PySide6.QtCore import QObject, Signal
 import re
@@ -70,54 +70,44 @@ def antimonyToSBML(ant):
 
 
 class ConditionInputDialog(QDialog):
-    def __init__(self, condition_id, condition_columns, initial_values=None, error_key=None, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Add Condition")
+        self.setWindowTitle("Name the Condition")
 
-        self.layout = QVBoxLayout(self)
+        # Layout and widgets
+        layout = QVBoxLayout()
 
-        # Condition ID
-        self.condition_id_layout = QHBoxLayout()
-        self.condition_id_label = QLabel("Condition ID:", self)
-        self.condition_id_input = QLineEdit(self)
-        self.condition_id_input.setText(condition_id)
-        self.condition_id_input.setReadOnly(True)
-        self.condition_id_layout.addWidget(self.condition_id_label)
-        self.condition_id_layout.addWidget(self.condition_id_input)
-        self.layout.addLayout(self.condition_id_layout)
+        # Instruction label
+        layout.addWidget(QLabel(
+            "We have detected the upload of a data matrix. Which condition "
+            "do these measurements belong to?"
+        ))
+        layout.addWidget(QLabel("Name the condition id:"))
+        # Text field
+        self.cond_id = QLineEdit()
+        layout.addWidget(self.cond_id)
+        layout.addWidget(QLabel(
+            "<b>Optional</b>: If you require steady state computation, name "
+            "the preequilibration condition id additionally:"
+        ))
+        self.preeq_cond_id = QLineEdit()
+        layout.addWidget(self.preeq_cond_id)
+        # OK and Cancel buttons
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
 
-        # Dynamic fields for existing columns
-        self.fields = {}
-        for column in condition_columns:
-            if column != "conditionId":  # Skip conditionId
-                field_layout = QHBoxLayout()
-                field_label = QLabel(f"{column}:", self)
-                field_input = QLineEdit(self)
-                if initial_values and column in initial_values:
-                    field_input.setText(str(initial_values[column]))
-                    if column == error_key:
-                        field_input.setStyleSheet("background-color: red;")
-                field_layout.addWidget(field_label)
-                field_layout.addWidget(field_input)
-                self.layout.addLayout(field_layout)
-                self.fields[column] = field_input
+        # Set layout
+        self.setLayout(layout)
 
-        # Buttons
-        self.buttons_layout = QHBoxLayout()
-        self.ok_button = QPushButton("OK", self)
-        self.cancel_button = QPushButton("Cancel", self)
-        self.buttons_layout.addWidget(self.ok_button)
-        self.buttons_layout.addWidget(self.cancel_button)
-        self.layout.addLayout(self.buttons_layout)
-
-        self.ok_button.clicked.connect(self.accept)
-        self.cancel_button.clicked.connect(self.reject)
-
-    def get_inputs(self):
-        inputs = {column: field.text() for column, field in self.fields.items()}
-        inputs["conditionId"] = self.condition_id_input.text()
-        inputs["conditionName"] = inputs["conditionId"]
-        return inputs
+    def get_condition_id(self):
+        return {
+            "conditionId": self.cond_id.text(),
+            "preeq_id": self.preeq_cond_id.text()
+        }
 
 
 class MeasurementInputDialog(QDialog):
