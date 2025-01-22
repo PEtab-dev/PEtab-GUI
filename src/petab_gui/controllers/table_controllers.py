@@ -144,6 +144,7 @@ class TableController(QObject):
             self.append_df(new_df)
         elif mode == "overwrite":
             self.overwrite_df(new_df)
+            self.model.reset_invalid_cells()
 
     def overwrite_df(self, new_df: pd.DataFrame):
         # TODO: Mother controller connects to overwritten_df signal. Set df
