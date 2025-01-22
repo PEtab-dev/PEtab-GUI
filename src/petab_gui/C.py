@@ -34,7 +34,7 @@ COLUMNS = {
     },
     "condition": {
         "conditionId": {"type": "STRING", "optional": False},
-        "conditionName": {"type": "STRING", "optional": True},
+        "conditionName": {"type": "STRING", "optional": False},
     }
     }
 
@@ -57,3 +57,4 @@ CONFIG = {
 # String constants
 ROW = 'row'
 COLUMN = 'column'
+INDEX = 'index'

@@ -5,16 +5,19 @@ import pandas as pd
 import petab.v1 as petab
 from PySide6.QtCore import Signal, QObject, QModelIndex, QPoint
 from pathlib import Path
-from ..models.pandas_table_model import PandasTableModel, PandasTableFilterProxy
+from ..models.pandas_table_model import PandasTableModel, \
+    PandasTableFilterProxy
 from ..views.table_view import TableViewer, SingleSuggestionDelegate, \
     ColumnSuggestionDelegate, ComboBoxDelegate, ParameterIdSuggestionDelegate
 from ..utils import get_selected, process_file
+from .utils import prompt_overwrite_or_append
 from ..C import COLUMN
 
 
 class TableController(QObject):
     """Base class for table controllers."""
     overwritten_df = Signal()  # Signal to mother controller
+
     def __init__(
         self,
         view: TableViewer,
@@ -39,6 +42,7 @@ class TableController(QObject):
         super().__init__()
         self.view = view
         self.model = model
+        self.model.view = self.view.table_view
         self.proxy_model = PandasTableFilterProxy(model)
         self.logger = logger
         self.mother_controller = mother_controller
@@ -104,7 +108,7 @@ class TableController(QObject):
             self.model.discard_invalid_cell(row, column)
         self.model.notify_data_color_change(row, column)
 
-    def open_and_overwrite_table(self, file_path=None, separator=None):
+    def open_table(self, file_path=None, separator=None, mode="overwrite"):
         if not file_path:
             # Open a file dialog to select the CSV or TSV file
             file_path, _ = QFileDialog.getOpenFileName(
@@ -133,9 +137,13 @@ class TableController(QObject):
                 color="red"
             )
             return
-
-        # Overwrite the table with the new DataFrame
-        self.overwrite_df(new_df)
+        if mode is None:
+            mode = prompt_overwrite_or_append(self)
+        # Overwrite or append the table with the new DataFrame
+        if mode == "append":
+            self.append_df(new_df)
+        elif mode == "overwrite":
+            self.overwrite_df(new_df)
 
     def overwrite_df(self, new_df: pd.DataFrame):
         # TODO: Mother controller connects to overwritten_df signal. Set df
@@ -145,6 +153,26 @@ class TableController(QObject):
         self.model.layoutChanged.emit()
         self.logger.log_message(
             f"Overwrote the {self.model.table_type} table with new data.",
+            color="green"
+        )
+        self.overwritten_df.emit()
+
+    def append_df(self, new_df: pd.DataFrame):
+        """Append the DataFrame of the model with the data from the view.
+
+        Merges two DataFrames:
+            1. Columns are the union of both DataFrame columns.
+            2. Rows are the union of both DataFrame rows (duplicates removed)
+        """
+        self.model._data_frame = pd.concat(
+            [self.model.get_df(), new_df], axis=0
+        )
+        self.model._data_frame = self.model._data_frame[
+            ~self.model._data_frame.index.duplicated(keep="first")
+        ]
+        self.model.layoutChanged.emit()
+        self.logger.log_message(
+            f"Appended the {self.model.table_type} table with new data.",
             color="green"
         )
         self.overwritten_df.emit()
@@ -231,19 +259,19 @@ class TableController(QObject):
         self.view.table_view.setCurrentIndex(index)
 
 
-
 class MeasurementController(TableController):
     """Controller of the Measurement table."""
+
     def check_petab_lint(self, row_data):
         """Check a single row of the model with petablint."""
         # Can this be done more elegantly?
-        observable_df = self.mother_controller.model.observable._data_frame
+        observable_df = self.mother_controller.model.observable.get_df()
         return petab.check_measurement_df(
             row_data,
             observable_df=observable_df,
         )
 
-    def rename_observable(self, old_id: str, new_id: str):
+    def rename_value(self, old_id: str, new_id: str, column_names: str | list[str]):
         """Rename the observables in the measurement_df.
 
         Triggered by changes in the original observable_df id.
@@ -255,10 +283,13 @@ class MeasurementController(TableController):
         new_id:
             The new observable_id.
         """
+        if not isinstance(column_names, list):
+            column_names = [column_names]
         rows = self.model.get_df().shape[0]
         for row in range(rows):
-            if self.model._data_frame.at[row, "observableId"] == old_id:
-                self.model._data_frame.at[row, "observableId"] = new_id
+            for column_name in column_names:
+                if self.model._data_frame.at[row, column_name] == old_id:
+                    self.model._data_frame.at[row, column_name] = new_id
         self.model.something_changed.emit(True)
         self.model.layoutChanged.emit()
 
@@ -286,12 +317,14 @@ class MeasurementController(TableController):
             parameter could be copied.
         """
         measurement_df = self.model.measurement._data_frame
-        matching_rows = measurement_df[measurement_df["observableId"] == observable_id]
+        matching_rows = measurement_df[
+            measurement_df["observableId"] == observable_id]
         if matching_rows.empty:
             return ""
         if not condition_id:
             return matching_rows["noiseParameters"].iloc[0]
-        preferred_row = matching_rows[matching_rows["simulationConditionId"] == condition_id]
+        preferred_row = matching_rows[
+            matching_rows["simulationConditionId"] == condition_id]
         if not preferred_row.empty:
             return preferred_row["noiseParameters"].iloc[0]
         else:
@@ -314,7 +347,7 @@ class MeasurementController(TableController):
         if file_name:
             self.process_data_matrix_file(file_name)
 
-    def process_data_matrix_file(self, file_name, separator=None):
+    def process_data_matrix_file(self, file_name, mode, separator=None):
         """Process the data matrix file.
 
         Upload the data matrix. Then populate the measurement table with the
@@ -326,6 +359,8 @@ class MeasurementController(TableController):
                 return
 
             condition_id = "cond1"  # Does this need adjustment?
+            if mode == "overwrite":
+                self.model.clear_table()
             self.populate_tables_from_data_matrix(data_matrix, condition_id)
             self.model.something_changed.emit(True)
 
@@ -340,7 +375,8 @@ class MeasurementController(TableController):
         data_matrix = pd.read_csv(
             file_name, delimiter=separator
         )
-        if not any(col in data_matrix.columns for col in ["Time", "time", "t"]):
+        if not any(
+            col in data_matrix.columns for col in ["Time", "time", "t"]):
             self.logger.log_message(
                 "Invalid File, the file must contain a 'Time' column. "
                 "Please ensure that the file contains a 'Time'",
@@ -373,7 +409,8 @@ class MeasurementController(TableController):
         rows = data_matrix.shape[0]
         # get current number of rows
         current_rows = self.model.get_df().shape[0]
-        self.model.insertRows(position=None, rows=rows)  # Fills the table with empty rows
+        self.model.insertRows(position=None,
+                              rows=rows)  # Fills the table with empty rows
         top_left = self.model.createIndex(current_rows, 0)
         for i_row, (_, row) in enumerate(data_matrix.iterrows()):
             self.model.fill_row(
@@ -411,7 +448,8 @@ class MeasurementController(TableController):
             "preequilibrationConditionId"
         )
         if preequilibrationConditionId_index > -1:
-            self.completers["preequilibrationConditionId"] = ColumnSuggestionDelegate(
+            self.completers[
+                "preequilibrationConditionId"] = ColumnSuggestionDelegate(
                 self.mother_controller.model.condition, "conditionId"
             )
             table_view.setItemDelegateForColumn(
@@ -423,7 +461,8 @@ class MeasurementController(TableController):
             "simulationConditionId"
         )
         if simulationConditionId_index > -1:
-            self.completers["simulationConditionId"] = ColumnSuggestionDelegate(
+            self.completers[
+                "simulationConditionId"] = ColumnSuggestionDelegate(
                 self.mother_controller.model.condition, "conditionId"
             )
             table_view.setItemDelegateForColumn(
@@ -431,7 +470,8 @@ class MeasurementController(TableController):
                 self.completers["simulationConditionId"]
             )
         # noiseParameters
-        noiseParameters_index = self.model.return_column_index("noiseParameters")
+        noiseParameters_index = self.model.return_column_index(
+            "noiseParameters")
         if noiseParameters_index > -1:
             self.completers["noiseParameters"] = SingleSuggestionDelegate(
                 self.model, "observableId", afix="sd_"
@@ -444,6 +484,17 @@ class MeasurementController(TableController):
 
 class ConditionController(TableController):
     """Controller of the Condition table."""
+    condition_2be_renamed = Signal(str, str)  # Signal to mother controller
+
+    def setup_connections_specific(self):
+        """Setup connections specific to the condition controller.
+
+        Only handles connections from within the table controllers.
+        """
+        self.model.relevant_id_changed.connect(
+            self.maybe_rename_condition
+        )
+
     def check_petab_lint(self, row_data):
         """Check a single row of the model with petablint."""
         observable_df = self.mother_controller.model.observable.get_df()
@@ -454,15 +505,42 @@ class ConditionController(TableController):
             model=sbml_model,
         )
 
-    def maybe_add_condition(self, condition_id):
+    def maybe_rename_condition(self, new_id, old_id):
+        """Potentially rename condition_ids in measurement_df.
+
+        Opens a dialog to ask the user if they want to rename the conditions.
+        If so, emits a signal to rename the conditions in the measurement_df.
+        """
+        if old_id not in self.mother_controller.measurement_controller.model.get_df()["simulationConditionId"].values:
+            return
+        reply = QMessageBox.question(
+            self.view, 'Rename Condition',
+            f'Do you want to rename condition "{old_id}" to "{new_id}" '
+            f'in all measurements?',
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            self.logger.log_message(
+                f"Renaming condition '{old_id}' to '{new_id}' in all "
+                f"measurements",
+                color="green"
+            )
+            self.condition_2be_renamed.emit(old_id, new_id)
+
+
+    def maybe_add_condition(self, condition_id, old_id=None):
         """Add a condition to the condition table if it does not exist yet."""
-        if condition_id in self.model.get_df()["conditionId"].values:
+        if condition_id in self.model.get_df().index:
             return
         # add a row
         self.model.insertRows(position=None, rows=1)
         self.model.fill_row(
             self.model.get_df().shape[0] - 1,
             data={"conditionId": condition_id}
+        )
+        self.model.cell_needs_validation.emit(
+            self.model.get_df().shape[0] - 1, 0
         )
         self.logger.log_message(
             f"Automatically added condition '{condition_id}' to the condition "
@@ -476,7 +554,8 @@ class ConditionController(TableController):
         # conditionName
         conditionName_index = self.model.return_column_index("conditionName")
         if conditionName_index > -1:
-            self.completers["conditionName"] = SingleSuggestionDelegate(self.model, "conditionId")
+            self.completers["conditionName"] = SingleSuggestionDelegate(
+                self.model, "conditionId")
             table_view.setItemDelegateForColumn(
                 conditionName_index,
                 self.completers["conditionName"]
@@ -505,7 +584,8 @@ class ObservableController(TableController):
         # observableName
         observableName_index = self.model.return_column_index("observableName")
         if observableName_index > -1:
-            self.completers["observableName"] = SingleSuggestionDelegate(self.model, "observableId")
+            self.completers["observableName"] = SingleSuggestionDelegate(
+                self.model, "observableId")
             table_view.setItemDelegateForColumn(
                 observableName_index,
                 self.completers["observableName"]
@@ -550,7 +630,7 @@ class ObservableController(TableController):
 
         Only handles connections from within the table controllers.
         """
-        self.model.observable_id_changed.connect(
+        self.model.relevant_id_changed.connect(
             self.maybe_rename_observable
         )
 
@@ -564,6 +644,8 @@ class ObservableController(TableController):
         Opens a dialog to ask the user if they want to rename the observables.
         If so, emits a signal to rename the observables in the measurement_df.
         """
+        if old_id not in self.mother_controller.measurement_controller.model.get_df()["observableId"].values:
+            return
         reply = QMessageBox.question(
             self.view, 'Rename Observable',
             f'Do you want to rename observable "{old_id}" to "{new_id}" '
@@ -605,13 +687,15 @@ class ObservableController(TableController):
 
 class ParameterController(TableController):
     """Controller of the Parameter table."""
+
     def setup_completers(self):
         """Set completers for the parameter table."""
         table_view = self.view.table_view
         # parameterName
         parameterName_index = self.model.return_column_index("parameterName")
         if parameterName_index > -1:
-            self.completers["parameterName"] = SingleSuggestionDelegate(self.model, "parameterId")
+            self.completers["parameterName"] = SingleSuggestionDelegate(
+                self.model, "parameterId")
             table_view.setItemDelegateForColumn(
                 parameterName_index,
                 self.completers["parameterName"]
@@ -661,8 +745,8 @@ class ParameterController(TableController):
         sbml_model = self.mother_controller.model.sbml
         if parameterId_index > -1:
             self.completers["parameterId"] = ParameterIdSuggestionDelegate(
-                par_model = self.model,
-                sbml_model = sbml_model
+                par_model=self.model,
+                sbml_model=sbml_model
             )
             table_view.setItemDelegateForColumn(
                 parameterId_index,

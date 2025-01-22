@@ -1,14 +1,15 @@
+import pandas as pd
 from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal, QSortFilterProxyModel
 from PySide6.QtGui import QColor
 
 from ..C import COLUMNS
-from ..utils import validate_value, create_empty_dataframe, is_invalid
+from ..utils import validate_value, create_empty_dataframe, is_invalid, get_selected
 
 
 class PandasTableModel(QAbstractTableModel):
     """Basic table model for a pandas DataFrame."""
     # Signals
-    observable_id_changed = Signal(str, str)  # new_id, old_id
+    relevant_id_changed = Signal(str, str, str)  # new_id, old_id, type
     new_log_message = Signal(str, str)  # message, color
     cell_needs_validation = Signal(int, int)  # row, column
     something_changed = Signal(bool)
@@ -23,6 +24,8 @@ class PandasTableModel(QAbstractTableModel):
         if data_frame is None:
             data_frame = create_empty_dataframe(allowed_columns, table_type)
         self._data_frame = data_frame
+        # add a view here, access is needed for selectionModels
+        self.view = None
 
     def rowCount(self, parent=QModelIndex()):
         return self._data_frame.shape[0] + 1  # empty row at the end
@@ -125,11 +128,23 @@ class PandasTableModel(QAbstractTableModel):
         return True
 
     def setData(self, index, value, role=Qt.EditRole):
+        if not (index.isValid() and role == Qt.EditRole):
+            return False
+        # check whether multiple rows but only one column is selected
+        multi_row_change, selected = self.check_selection()
+        if not multi_row_change:
+            return self._set_data_single(index, value)
+        # multiple rows but only one column is selected
+        all_set = list()
+        for index in selected:
+            all_set.append(self._set_data_single(index, value))
+        return all(all_set)
+
+    def _set_data_single(self, index, value):
+        """Set the data of a single cell."""
         col_setoff = 0
         if self._has_named_index:
             col_setoff = 1
-        if not (index.isValid() and role == Qt.EditRole):
-            return False
         if index.row() == self._data_frame.shape[0]:
             # empty row at the end
             self.insertRows(index.row(), 1)
@@ -148,11 +163,17 @@ class PandasTableModel(QAbstractTableModel):
         if column_name == "observableId":
             self._data_frame.iloc[row, column - col_setoff] = value
             self.dataChanged.emit(index, index, [Qt.DisplayRole])
-            self.observable_id_changed.emit(value, old_value)
+            self.relevant_id_changed.emit(value, old_value, "observable")
             self.cell_needs_validation.emit(row, column)
             self.something_changed.emit(True)
             return True
-        # Maybe TODO: same for conditionId?
+        if column_name in ["conditionId", "simulationConditionId", "preequilibrationConditionId"]:
+            self._data_frame.iloc[row, column - col_setoff] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole])
+            self.relevant_id_changed.emit(value, old_value, "condition")
+            self.cell_needs_validation.emit(row, column)
+            self.something_changed.emit(True)
+            return True
 
         # Validate data based on expected type
         expected_type = self._allowed_columns.get(column_name)["type"]
@@ -165,7 +186,7 @@ class PandasTableModel(QAbstractTableModel):
                 self.new_log_message.emit(
                     f"Column '{column_name}' expects a value of "
                     f"type {expected_type}, but got '{tried_value}'",
-                    color="red"
+                    "red"
                 )
                 return False
         # Set the new value
@@ -253,9 +274,20 @@ class PandasTableModel(QAbstractTableModel):
         self._data_frame.drop(self._data_frame.index, inplace=True)
         self.endResetModel()
 
+    def check_selection(self):
+        """Check if multiple rows but only one column is selected."""
+        if self.view is None:
+            return False
+        selected = get_selected(self.view, mode="index")
+        cols = set([index.column() for index in selected])
+        rows = set([index.row() for index in selected])
+        return len(rows) > 1 and len(cols) == 1, selected
+
+
 
 class IndexedPandasTableModel(PandasTableModel):
     """Table model for tables with named index."""
+    condition_2be_renamed = Signal(str, str)  # Signal to mother controller
     def __init__(self, data_frame, allowed_columns, table_type, parent=None):
         super().__init__(
             data_frame=data_frame,
@@ -274,20 +306,20 @@ class IndexedPandasTableModel(PandasTableModel):
         if value in self._data_frame.index:
             self.new_log_message.emit(
                 f"Duplicate index value '{value}'",
-                color="red"
+                "red"
             )
             return False
         try:
             self._data_frame.rename(index={old_value: value}, inplace=True)
             self.dataChanged.emit(index, index, [Qt.DisplayRole])
-            self.observable_id_changed.emit(value, old_value)
+            self.relevant_id_changed.emit(value, old_value, self.table_type)
             self.cell_needs_validation.emit(row, 0)
             self.something_changed.emit(True)
             return True
         except Exception as e:
             self.new_log_message.emit(
                 f"Error renaming index value '{old_value}' to '{value}': {e}",
-                color="red"
+                "red"
             )
             return False
 
@@ -397,10 +429,11 @@ class ObservableModel(IndexedPandasTableModel):
         data_to_add.update(data)
         # Maybe add default values for missing columns?
         new_index = self._data_frame.index.tolist()
+        index_name = self._data_frame.index.name
         new_index[row_position] = data_to_add.pop(
             "observableId"
         )
-        self._data_frame.index = new_index
+        self._data_frame.index = pd.Index(new_index, name=index_name)
         self._data_frame.iloc[row_position] = data_to_add
 
 
@@ -440,7 +473,12 @@ class ConditionModel(IndexedPandasTableModel):
             column_name: "" for column_name in self._data_frame.columns
         }
         data_to_add.update(data)
-        self._data_frame.index[row_position] = data_to_add.pop("conditionId")
+        new_index = self._data_frame.index.tolist()
+        index_name = self._data_frame.index.name
+        new_index[row_position] = data_to_add.pop(
+            "conditionId"
+        )
+        self._data_frame.index = pd.Index(new_index, name=index_name)
         self._data_frame.iloc[row_position] = data_to_add
 
 
