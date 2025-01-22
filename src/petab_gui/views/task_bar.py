@@ -39,7 +39,7 @@ class BasicMenu:
 class FileMenu(BasicMenu):
     """Class for the file menu."""
     def menu_name(self):
-        return "File"
+        return "&File"
 
     def __init__(self, parent, actions):
         super().__init__(parent, actions)
@@ -58,7 +58,7 @@ class EditMenu(BasicMenu):
     #  done in the next PR)
     """Edit Menu of the TaskBar."""
     def menu_name(self):
-        return "Edit"
+        return "&Edit"
 
     def __init__(self, parent, actions):
         super().__init__(parent, actions)
@@ -78,7 +78,7 @@ class EditMenu(BasicMenu):
 class ViewMenu(BasicMenu):
     """View Menu of the TaskBar."""
     def menu_name(self):
-        return "View"
+        return "&View"
 
     def __init__(self, parent, actions):
         super().__init__(parent, actions)

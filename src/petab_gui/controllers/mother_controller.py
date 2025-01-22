@@ -160,10 +160,6 @@ class MainController:
         self.model.sbml.something_changed.connect(
             self.unsaved_changes_change
         )
-        # Closing event
-        self.view.closing_signal.connect(
-            self.maybe_close
-        )
         # correctly update the visibility even when "x" is clicked in a dock
         self.view.measurement_dock.visibilityChanged.connect(
             lambda visible: self.actions["show_measurement"].setChecked(
@@ -189,22 +185,22 @@ class MainController:
         """Setup actions for the main controller."""
         actions = {"close": QAction(
             qta.icon("mdi6.close"),
-            "Close", self.view
+            "&Close", self.view
         )}
         # Close
         actions["close"].setShortcut("Ctrl+Q")
-        actions["close"].triggered.connect(self.maybe_close)
+        actions["close"].triggered.connect(self.view.close)
         # New File
         actions["new"] = QAction(
             qta.icon("mdi6.file-document"),
-            "New", self.view
+            "&New", self.view
         )
         actions["new"].setShortcut("Ctrl+N")
         actions["new"].triggered.connect(self.new_file)
         # Open File
         actions["open"] = QAction(
             qta.icon("mdi6.folder-open"),
-            "Open", self.view
+            "&Open", self.view
         )
         actions["open"].setShortcut("Ctrl+O")
         actions["open"].triggered.connect(
@@ -222,7 +218,7 @@ class MainController:
         # Save
         actions["save"] = QAction(
             qta.icon("mdi6.content-save-all"),
-            "Save", self.view
+            "&Save", self.view
         )
         actions["save"].setShortcut("Ctrl+S")
         actions["save"].triggered.connect(self.save_model)
@@ -346,7 +342,7 @@ class MainController:
             options=options
         )
         if not file_name:
-            return None
+            return False
         if not file_name.endswith(".zip"):
             file_name += ".zip"
 
@@ -370,6 +366,7 @@ class MainController:
             self.view, "Save Project",
             f"Project saved successfully to {file_name}"
         )
+        return True
 
     def open_find_replace_dialog(self):
         current_tab = self.view.tab_widget.currentIndex()
@@ -631,8 +628,8 @@ class MainController:
             QMessageBox.Save
         )
         if reply == QMessageBox.Save:
-            self.save_model()
-            self.view.allow_close = True
+            saved = self.save_model()
+            self.view.allow_close = saved
         elif reply == QMessageBox.Discard:
             self.view.allow_close = True
         else:

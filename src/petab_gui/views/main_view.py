@@ -10,8 +10,6 @@ from .measurement_plot import MeasuremenPlotter
 
 
 class MainWindow(QMainWindow):
-    closing_signal = Signal()
-
     def __init__(self):
         super().__init__()
 
@@ -184,7 +182,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         """Override the closeEvent to emit a signal and let the controller handle it."""
         # Emit the signal to let the controller decide what to do
-        self.closing_signal.emit()
+        self.controller.maybe_close()
 
         if self.allow_close:
             self.save_settings()
