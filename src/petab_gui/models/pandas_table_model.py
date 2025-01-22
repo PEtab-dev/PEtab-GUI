@@ -4,7 +4,7 @@ from PySide6.QtCore import (Qt, QAbstractTableModel, QModelIndex, Signal,
 from PySide6.QtGui import QColor
 
 from ..C import COLUMNS
-from ..utils import validate_value, create_empty_dataframe, is_invalid
+from ..utils import validate_value, create_empty_dataframe, is_invalid, get_selected
 from ..controllers.default_handler import DefaultHandlerModel
 
 
@@ -27,6 +27,8 @@ class PandasTableModel(QAbstractTableModel):
         if data_frame is None:
             data_frame = create_empty_dataframe(allowed_columns, table_type)
         self._data_frame = data_frame
+        # add a view here, access is needed for selectionModels
+        self.view = None
 
     def rowCount(self, parent=QModelIndex()):
         return self._data_frame.shape[0] + 1  # empty row at the end
@@ -129,11 +131,23 @@ class PandasTableModel(QAbstractTableModel):
         return True
 
     def setData(self, index, value, role=Qt.EditRole):
+        if not (index.isValid() and role == Qt.EditRole):
+            return False
+        # check whether multiple rows but only one column is selected
+        multi_row_change, selected = self.check_selection()
+        if not multi_row_change:
+            return self._set_data_single(index, value)
+        # multiple rows but only one column is selected
+        all_set = list()
+        for index in selected:
+            all_set.append(self._set_data_single(index, value))
+        return all(all_set)
+
+    def _set_data_single(self, index, value):
+        """Set the data of a single cell."""
         col_setoff = 0
         if self._has_named_index:
             col_setoff = 1
-        if not (index.isValid() and role == Qt.EditRole):
-            return False
         if index.row() == self._data_frame.shape[0]:
             # empty row at the end
             self.insertRows(index.row(), 1)
@@ -269,6 +283,16 @@ class PandasTableModel(QAbstractTableModel):
         self.beginResetModel()
         self._data_frame.drop(self._data_frame.index, inplace=True)
         self.endResetModel()
+
+    def check_selection(self):
+        """Check if multiple rows but only one column is selected."""
+        if self.view is None:
+            return False
+        selected = get_selected(self.view, mode="index")
+        cols = set([index.column() for index in selected])
+        rows = set([index.row() for index in selected])
+        return len(rows) > 1 and len(cols) == 1, selected
+
 
 
 class IndexedPandasTableModel(PandasTableModel):
