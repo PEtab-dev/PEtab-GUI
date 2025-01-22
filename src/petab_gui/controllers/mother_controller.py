@@ -548,6 +548,7 @@ class MainController:
                 "All files opened successfully from the YAML configuration.",
                 color="green"
             )
+            self.check_model()
             # rerun the completers
             for controller in self.controllers:
                 if controller == self.sbml_controller:
