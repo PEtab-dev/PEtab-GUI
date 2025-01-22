@@ -62,6 +62,25 @@ class PEtabModel:
             sbml_model=self.problem.model,
         )
 
+    @property
+    def models(self):
+        return {
+            "measurement": self.measurement,
+            "observable": self.observable,
+            "parameter": self.parameter,
+            "condition": self.condition,
+            "sbml": self.sbml,
+        }
+
+    @property
+    def pandas_models(self):
+        return {
+            "measurement": self.measurement,
+            "observable": self.observable,
+            "parameter": self.parameter,
+            "condition": self.condition,
+        }
+
     @staticmethod
     def from_petab_yaml(
         petab_yaml_path: str,

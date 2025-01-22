@@ -283,6 +283,11 @@ class PandasTableModel(QAbstractTableModel):
         rows = set([index.row() for index in selected])
         return len(rows) > 1 and len(cols) == 1, selected
 
+    def reset_invalid_cells(self):
+        """Reset the invalid cells."""
+        self._invalid_cells = set()
+        self.layoutChanged.emit()
+
 
 
 class IndexedPandasTableModel(PandasTableModel):
