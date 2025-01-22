@@ -147,7 +147,7 @@ class MainController:
         """Setup actions for the main controller."""
         actions = {"close": QAction(
             qta.icon("mdi6.close"),
-            "Close", self.view
+            "&Close", self.view
         )}
         # Close
         actions["close"].setShortcut("Ctrl+Q")
@@ -155,21 +155,21 @@ class MainController:
         # New File
         actions["new"] = QAction(
             qta.icon("mdi6.file-document"),
-            "New", self.view
+            "&New", self.view
         )
         actions["new"].setShortcut("Ctrl+N")
         actions["new"].triggered.connect(self.new_file)
         # Open YAML
         actions["open"] = QAction(
             qta.icon("mdi6.folder-open"),
-            "Open", self.view
+            "&Open", self.view
         )
         actions["open"].setShortcut("Ctrl+O")
         actions["open"].triggered.connect(self.open_file)
         # Save
         actions["save"] = QAction(
             qta.icon("mdi6.content-save-all"),
-            "Save", self.view
+            "&Save", self.view
         )
         actions["save"].setShortcut("Ctrl+S")
         actions["save"].triggered.connect(self.save_model)
