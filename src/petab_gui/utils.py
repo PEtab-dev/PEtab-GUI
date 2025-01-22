@@ -7,7 +7,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import pandas as pd
 import logging
-from .C import ROW, COLUMN
+from .C import ROW, COLUMN, INDEX
 import antimony
 import os
 import numpy as np
@@ -567,18 +567,22 @@ def get_selected(table_view: QTableView, mode: str = ROW) -> list[int]:
     """
     if not table_view or not isinstance(table_view, QTableView):
         return []
-    if mode not in [ROW, COLUMN]:
+    if mode not in [ROW, COLUMN, INDEX]:
         return []
 
     selection_model = table_view.selectionModel()
     if not selection_model:
         return []
     selected_indexes = selection_model.selectedIndexes()
+    if mode == INDEX:
+        return selected_indexes
     if mode == COLUMN:
         selected_columns = set([index.column() for index in selected_indexes])
         return selected_columns
-    selected_rows = set([index.row() for index in selected_indexes])
-    return selected_rows
+    if mode == ROW:
+        selected_rows = set([index.row() for index in selected_indexes])
+        return selected_rows
+    return None
 
 
 def process_file(filepath, logger):
