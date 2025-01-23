@@ -322,6 +322,7 @@ class PandasTableModel(QAbstractTableModel):
         """Set the data from text."""
         # TODO: Does this need to be more flexible in the separator?
         lines = text.split("\n")
+        self.maybe_add_rows(start_row, len(lines))
         for row_offset, line in enumerate(lines):
             values = line.split("\t")
             for col_offset, value in enumerate(values):
@@ -334,6 +335,15 @@ class PandasTableModel(QAbstractTableModel):
                     value,
                     Qt.EditRole
                 )
+
+    def maybe_add_rows(self, start_row, n_rows):
+        """Add rows if needed."""
+        if start_row + n_rows > self._data_frame.shape[0]:
+            self.insertRows(
+                self._data_frame.shape[0],
+                start_row + n_rows - self._data_frame.shape[0]
+            )
+            self.layoutChanged.emit()
 
 
 class IndexedPandasTableModel(PandasTableModel):
