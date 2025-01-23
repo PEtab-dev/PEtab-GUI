@@ -259,6 +259,15 @@ class TableController(QObject):
         """Set the index of the model when a new row is added."""
         self.view.table_view.setCurrentIndex(index)
 
+    def copy_to_clipboard(self):
+        """Copy the currently selected cells to the clipboard."""
+        self.view.copy_to_clipboard()
+
+    def paste_from_clipboard(self):
+        """Paste the clipboard content to the currently selected cells."""
+        self.view.paste_from_clipboard()
+
+
 
 class MeasurementController(TableController):
     """Controller of the Measurement table."""

@@ -1,5 +1,6 @@
 import pandas as pd
-from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal, QSortFilterProxyModel
+from PySide6.QtCore import (Qt, QAbstractTableModel, QModelIndex, Signal,
+                            QSortFilterProxyModel, QMimeData)
 from PySide6.QtGui import QColor
 
 from ..C import COLUMNS
@@ -288,11 +289,57 @@ class PandasTableModel(QAbstractTableModel):
         self._invalid_cells = set()
         self.layoutChanged.emit()
 
+    def mimeData(self, rectangle, start_index):
+        """Return the data to be copied to the clipboard.
+
+        Parameters
+        ----------
+        rectangle: np.ndarray
+            The rectangle of selected cells. Creates a minimum rectangle
+            around all selected cells and is True if the cell is selected.
+        start_index: (int, int)
+            The start index of the selection. Used to determine the location
+            of the copied data.
+        """
+        copied_data = ""
+        for row in range(rectangle.shape[0]):
+            for col in range(rectangle.shape[1]):
+                if rectangle[row, col]:
+                    copied_data += self.data(
+                        self.index(start_index[0] + row, start_index[1] + col),
+                        Qt.DisplayRole
+                    )
+                else:
+                    copied_data += "SKIP"
+                if col < rectangle.shape[1] - 1:
+                    copied_data += "\t"
+            copied_data += "\n"
+        mime_data = QMimeData()
+        mime_data.setText(copied_data.strip())
+        return mime_data
+
+    def setDataFromText(self, text, start_row, start_column):
+        """Set the data from text."""
+        # TODO: Does this need to be more flexible in the separator?
+        lines = text.split("\n")
+        for row_offset, line in enumerate(lines):
+            values = line.split("\t")
+            for col_offset, value in enumerate(values):
+                if value == "SKIP":
+                    continue
+                self.setData(
+                    self.index(
+                        start_row + row_offset, start_column + col_offset
+                    ),
+                    value,
+                    Qt.EditRole
+                )
 
 
 class IndexedPandasTableModel(PandasTableModel):
     """Table model for tables with named index."""
     condition_2be_renamed = Signal(str, str)  # Signal to mother controller
+
     def __init__(self, data_frame, allowed_columns, table_type, parent=None):
         super().__init__(
             data_frame=data_frame,
@@ -341,6 +388,7 @@ class MeasurementModel(PandasTableModel):
     """Table model for the measurement data."""
     possibly_new_condition = Signal(str)  # Signal for new condition
     possibly_new_observable = Signal(str)  # Signal for new observable
+
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,

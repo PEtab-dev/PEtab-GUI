@@ -1,6 +1,10 @@
 from PySide6.QtWidgets import QDockWidget, QVBoxLayout, QTableView, QWidget,\
     QCompleter, QLineEdit, QStyledItemDelegate, QComboBox
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QGuiApplication
+
+from ..utils import get_selected, get_selected_rectangles
+from ..C import INDEX
 
 
 class TableViewer(QDockWidget):
@@ -20,6 +24,28 @@ class TableViewer(QDockWidget):
         layout.addWidget(self.table_view)
         # Dictionary to store column-specific completers
         self.completers = {}
+
+    def copy_to_clipboard(self):
+        selected_rect, rect_start = get_selected_rectangles(
+            self.table_view
+        )
+        if selected_rect.any():
+            mime_data = self.table_view.model().mimeData(
+                selected_rect, rect_start
+            )
+            clipboard = QGuiApplication.clipboard()
+            clipboard.setMimeData(mime_data)
+
+    def paste_from_clipboard(self):
+        clipboard = QGuiApplication.clipboard()
+        text = clipboard.text()
+        if text:
+            start_index = self.table_view.selectionModel().currentIndex()
+            if start_index.isValid():
+                self.table_view.model().setDataFromText(
+                    text, start_index.row(),
+                    start_index.column()
+                )
 
 
 class ComboBoxDelegate(QStyledItemDelegate):
