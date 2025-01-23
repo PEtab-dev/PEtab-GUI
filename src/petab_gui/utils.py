@@ -613,7 +613,7 @@ def process_file(filepath, logger):
         for sep in separators:
             # read the first line of the file
             try:
-                with open(filepath, "r") as file:
+                with open(filepath, "r", encoding="utf-8") as file:
                     header = file.readline().strip().split(sep)
                 if len(header) > 1:
                     separator = sep
