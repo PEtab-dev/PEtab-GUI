@@ -524,9 +524,8 @@ class SignalForwarder(QObject):
 def create_empty_dataframe(column_dict: dict, table_type: str):
     columns = [col for col, props in column_dict.items() if not props["optional"]]
     dtypes = {
-        col: 'float64' if props["type"] == "NUMERIC"
-        else 'object'
-        for col, props in column_dict.items() if not props["optional"]
+        col: props["type"] for col, props in column_dict.items() if not
+        props["optional"]
     }
     df = pd.DataFrame(columns=columns).astype(dtypes)
     # set potential index columns

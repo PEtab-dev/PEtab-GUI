@@ -1,6 +1,7 @@
 """Classes for the controllers of the tables in the GUI."""
 from PySide6.QtWidgets import QInputDialog, QMessageBox, QFileDialog, \
     QCompleter
+import numpy as np
 import pandas as pd
 import petab.v1 as petab
 from PySide6.QtCore import Signal, QObject, QModelIndex, QPoint
@@ -45,6 +46,7 @@ class TableController(QObject):
         self.model.view = self.view.table_view
         self.proxy_model = PandasTableFilterProxy(model)
         self.logger = logger
+        self.check_petab_lint_mode = True
         self.mother_controller = mother_controller
         self.view.table_view.setModel(self.model)
         self.setup_connections()
@@ -85,6 +87,8 @@ class TableController(QObject):
 
     def validate_changed_cell(self, row, column):
         """Validate the changed cell and whether its linting is correct."""
+        if not self.check_petab_lint_mode:
+            return
         row_data = self.model.get_df().iloc[row]
         index_name = self.model.get_df().index.name
         row_data = row_data.to_frame().T
@@ -137,6 +141,12 @@ class TableController(QObject):
                 color="red"
             )
             return
+        dtypes = {
+            col: self.model._allowed_columns.get(
+                col, {"type": np.object_}
+            )["type"] for col in new_df.columns
+        }
+        new_df = new_df.astype(dtypes)
         if mode is None:
             mode = prompt_overwrite_or_append(self)
         # Overwrite or append the table with the new DataFrame
@@ -265,15 +275,30 @@ class TableController(QObject):
 
     def paste_from_clipboard(self):
         """Paste the clipboard content to the currently selected cells."""
+        self.check_petab_lint_mode = False
         self.view.paste_from_clipboard()
-
+        self.check_petab_lint_mode = True
+        try:
+            self.check_petab_lint()
+        except Exception as e:
+            self.logger.log_message(
+                f"PEtab linter failed after copying: {str(e)}",
+                color="red"
+            )
+    def check_petab_lint(self, row_data):
+        """Check a single row of the model with petablint."""
+        raise NotImplementedError(
+            "This method must be implemented in child classes."
+        )
 
 
 class MeasurementController(TableController):
     """Controller of the Measurement table."""
 
-    def check_petab_lint(self, row_data):
-        """Check a single row of the model with petablint."""
+    def check_petab_lint(self, row_data: pd.DataFrame = None):
+        """Check a number of rows of the model with petablint."""
+        if row_data is None:
+            row_data = self.model.get_df()
         # Can this be done more elegantly?
         observable_df = self.mother_controller.model.observable.get_df()
         return petab.check_measurement_df(
@@ -505,8 +530,10 @@ class ConditionController(TableController):
             self.maybe_rename_condition
         )
 
-    def check_petab_lint(self, row_data):
-        """Check a single row of the model with petablint."""
+    def check_petab_lint(self, row_data: pd.DataFrame = None):
+        """Check a number of rows of the model with petablint."""
+        if row_data is None:
+            row_data = self.model.get_df()
         observable_df = self.mother_controller.model.observable.get_df()
         sbml_model = self.mother_controller.model.sbml.get_current_sbml_model()
         return petab.check_condition_df(
@@ -541,7 +568,7 @@ class ConditionController(TableController):
 
     def maybe_add_condition(self, condition_id, old_id=None):
         """Add a condition to the condition table if it does not exist yet."""
-        if condition_id in self.model.get_df().index:
+        if condition_id in self.model.get_df().index or not condition_id:
             return
         # add a row
         self.model.insertRows(position=None, rows=1)
@@ -644,8 +671,10 @@ class ObservableController(TableController):
             self.maybe_rename_observable
         )
 
-    def check_petab_lint(self, row_data):
-        """Check a single row of the model with petablint."""
+    def check_petab_lint(self, row_data: pd.DataFrame = None):
+        """Check a number of rows of the model with petablint."""
+        if row_data is None:
+            row_data = self.model.get_df()
         return petab.check_observable_df(row_data)
 
     def maybe_rename_observable(self, new_id, old_id):
@@ -677,7 +706,7 @@ class ObservableController(TableController):
 
         Currently, `old_id` is not used.
         """
-        if observable_id in self.model.get_df().index:
+        if observable_id in self.model.get_df().index or not observable_id:
             return
         # add a row
         self.model.insertRows(position=None, rows=1)
@@ -763,8 +792,10 @@ class ParameterController(TableController):
                 self.completers["parameterId"]
             )
 
-    def check_petab_lint(self, row_data):
-        """Check a single row of the model with petablint."""
+    def check_petab_lint(self, row_data: pd.DataFrame = None):
+        """Check a number of rows of the model with petablint."""
+        if row_data is None:
+            row_data = self.model.get_df()
         observable_df = self.mother_controller.model.observable.get_df()
         measurement_df = self.mother_controller.model.measurement.get_df()
         condition_df = self.mother_controller.model.condition.get_df()

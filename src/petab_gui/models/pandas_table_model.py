@@ -131,6 +131,8 @@ class PandasTableModel(QAbstractTableModel):
     def setData(self, index, value, role=Qt.EditRole):
         if not (index.isValid() and role == Qt.EditRole):
             return False
+        if is_invalid(value) or value == "":
+            value = None
         # check whether multiple rows but only one column is selected
         multi_row_change, selected = self.check_selection()
         if not multi_row_change:
@@ -158,6 +160,16 @@ class PandasTableModel(QAbstractTableModel):
         # Handling non-index (regular data) columns
         column_name = self._data_frame.columns[column - col_setoff]
         old_value = self._data_frame.iloc[row, column - col_setoff]
+        # cast to numeric if necessary
+        if not self._data_frame[column_name].dtype == "object":
+            try:
+                value = float(value)
+            except ValueError:
+                self.new_log_message.emit(
+                    f"Column '{column_name}' expects a numeric value",
+                    "red"
+                )
+                return False
         if value == old_value:
             return False
 
