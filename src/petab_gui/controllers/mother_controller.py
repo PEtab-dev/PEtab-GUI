@@ -19,7 +19,7 @@ from .table_controllers import MeasurementController, ObservableController, \
     ConditionController, ParameterController
 from .logger_controller import LoggerController
 from ..views import TaskBar
-from .utils import prompt_overwrite_or_append
+from .utils import prompt_overwrite_or_append, RecentFilesManager
 from functools import partial
 
 
@@ -83,6 +83,8 @@ class MainController:
             self.condition_controller,
             self.sbml_controller
         ]
+        # Recent Files
+        self.recent_files_manager = RecentFilesManager(max_files=10)
         # Checkbox states for Find + Replace
         self.petab_checkbox_states = {
             "measurement": False,
@@ -180,6 +182,10 @@ class MainController:
         self.view.plot_dock.visibilityChanged.connect(
             lambda visible: self.actions["show_plot"].setChecked(visible)
         )
+        # Recent Files
+        self.recent_files_manager.open_file.connect(
+            partial(self.open_file, mode="overwrite")
+        )
 
     def setup_actions(self):
         """Setup actions for the main controller."""
@@ -265,6 +271,8 @@ class MainController:
         actions["reset_model"].triggered.connect(
             self.sbml_controller.reset_to_original_model
         )
+        # Recent Files
+        actions["recent_files"] = self.recent_files_manager.tool_bar_menu
 
         # Filter widget
         filter_widget = QWidget()
@@ -470,6 +478,7 @@ class MainController:
                 mode = prompt_overwrite_or_append(self)
         if mode is None:
             return
+        self.recent_files_manager.add_file(file_path)
         self._open_file(actionable, file_path, sep, mode)
 
     def _open_file(self, actionable, file_path, sep, mode):

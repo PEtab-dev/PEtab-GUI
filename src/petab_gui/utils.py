@@ -10,7 +10,6 @@ import logging
 from .C import ROW, COLUMN, INDEX
 import antimony
 import os
-import numpy as np
 import math
 
 
@@ -23,6 +22,7 @@ def _checkAntimonyReturnCode(code):
     """
     if code < 0:
         raise Exception('Antimony: {}'.format(antimony.getLastError()))
+
 
 def sbmlToAntimony(sbml):
     """ Convert SBML to antimony string.
@@ -45,6 +45,7 @@ def sbmlToAntimony(sbml):
         code = antimony.loadSBMLString(str(sbml))
     _checkAntimonyReturnCode(code)
     return antimony.getAntimonyString(None)
+
 
 def antimonyToSBML(ant):
     """ Convert Antimony to SBML string.
