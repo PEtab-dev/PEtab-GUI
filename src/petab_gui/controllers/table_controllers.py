@@ -46,7 +46,7 @@ class TableController(QObject):
         self.proxy_model = PandasTableFilterProxy(model)
         self.logger = logger
         self.mother_controller = mother_controller
-        self.view.table_view.setModel(self.model)
+        self.view.table_view.setModel(self.proxy_model)
         self.setup_connections()
         self.setup_connections_specific()
 
@@ -150,12 +150,16 @@ class TableController(QObject):
         # TODO: Mother controller connects to overwritten_df signal. Set df
         #  in petabProblem and unsaved changes to True
         """Overwrite the DataFrame of the model with the data from the view."""
+        self.proxy_model.setSourceModel(None)
+        self.model.beginResetModel()
         self.model._data_frame = new_df
-        self.model.layoutChanged.emit()
+        self.model.beginResetModel()
         self.logger.log_message(
             f"Overwrote the {self.model.table_type} table with new data.",
             color="green"
         )
+        # test: overwrite the new model as source model
+        self.proxy_model.setSourceModel(self.model)
         self.overwritten_df.emit()
 
     def append_df(self, new_df: pd.DataFrame):
@@ -176,6 +180,8 @@ class TableController(QObject):
             f"Appended the {self.model.table_type} table with new data.",
             color="green"
         )
+        # test: overwrite the new model as source model
+        self.proxy_model.setSourceModel(self.model)
         self.overwritten_df.emit()
 
     def clear_table(self):
@@ -258,6 +264,16 @@ class TableController(QObject):
     def set_index_on_new_row(self, index: QModelIndex):
         """Set the index of the model when a new row is added."""
         self.view.table_view.setCurrentIndex(index)
+
+    def filter_table(self, text):
+        """Filter the table."""
+        self.proxy_model.setFilterRegularExpression(text)
+        self.proxy_model.setFilterKeyColumn(-1)
+
+    def remove_filter(self):
+        """Remove the filter from the table."""
+        self.proxy_model.setFilterRegularExpression("")
+        self.proxy_model.setFilterKeyColumn(-1)
 
 
 class MeasurementController(TableController):

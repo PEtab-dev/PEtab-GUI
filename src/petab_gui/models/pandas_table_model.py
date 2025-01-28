@@ -492,7 +492,6 @@ class PandasTableFilterProxy(QSortFilterProxyModel):
         super().__init__(parent)
         self.source_model = model
         self.setSourceModel(model)
-        self.column_filters = {}  # Store filters for multiple columns
 
     def setFilterForColumn(self, column, pattern):
         """Set filter pattern for a specific column."""
@@ -510,18 +509,11 @@ class PandasTableFilterProxy(QSortFilterProxyModel):
         if source_row == source_model.rowCount() - 1:
             return True
 
-        # Apply all column filters
-        for column, pattern in self.column_filters.items():
+        for column in range(source_model.columnCount()):
             index = source_model.index(source_row, column, source_parent)
-            value = source_model.data(index, Qt.DisplayRole)
-            if not self.valueMatchesFilter(value, pattern):
-                return False  # Reject the row if any column doesn't match its filter
-
-        return True  # Accept row if it matches all filters
-
-    def valueMatchesFilter(self, value, pattern):
-        """Check if the value matches the filter pattern."""
-        if pattern and pattern not in str(value):
-            return False
-        return True
+            if self.filterRegularExpression().match(
+                source_model.data(index)
+            ).hasMatch():
+                return True
+        return False
 
