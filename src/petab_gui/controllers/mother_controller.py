@@ -121,7 +121,7 @@ class MainController:
         self.observable_controller.observable_2be_renamed.connect(
             partial(
                 self.measurement_controller.rename_value,
-                column_names = "observableId"
+                column_names="observableId"
             )
         )
         # Rename Condition
@@ -236,6 +236,19 @@ class MainController:
         actions["find+replace"].setShortcut("Ctrl+R")
         actions["find+replace"].triggered.connect(
             self.open_find_replace_dialog)
+        # Copy / Paste
+        actions["copy"] = QAction(
+            qta.icon("mdi6.content-copy"),
+            "Copy", self.view
+        )
+        actions["copy"].setShortcut("Ctrl+C")
+        actions["copy"].triggered.connect(self.copy_to_clipboard)
+        actions["paste"] = QAction(
+            qta.icon("mdi6.content-paste"),
+            "Paste", self.view
+        )
+        actions["paste"].setShortcut("Ctrl+V")
+        actions["paste"].triggered.connect(self.paste_from_clipboard)
         # add/delete row
         actions["add_row"] = QAction(
             qta.icon("mdi6.table-row-plus-after"),
@@ -687,3 +700,13 @@ class MainController:
         controller = self.active_controller()
         if controller:
             controller.delete_column()
+
+    def copy_to_clipboard(self):
+        controller = self.active_controller()
+        if controller:
+            controller.copy_to_clipboard()
+
+    def paste_from_clipboard(self):
+        controller = self.active_controller()
+        if controller:
+            controller.paste_from_clipboard()
