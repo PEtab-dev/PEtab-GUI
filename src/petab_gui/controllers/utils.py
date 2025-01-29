@@ -1,4 +1,6 @@
-from PySide6.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QMessageBox, QMenu
+from PySide6.QtCore import QObject, Signal, QSettings
+from PySide6.QtGui import QAction
 
 
 def prompt_overwrite_or_append(controller):
@@ -18,3 +20,51 @@ def prompt_overwrite_or_append(controller):
         return "overwrite"
     elif msg_box.clickedButton() == append_button:
         return "append"
+
+
+class RecentFilesManager(QObject):
+    """Manage a list of recent files."""
+    open_file = Signal(str)  # Signal to open a file
+
+    def __init__(self, max_files=10):
+        super().__init__()
+        self.max_files = max_files
+        # TODO: link together with other settings, i.e. move settings to mc
+        self.settings = QSettings("PEtab_GUI", "PEtab_GUI")
+        self.recent_files = self.load_recent_files()
+        self.tool_bar_menu = QMenu("Recent Files")
+        self.update_tool_bar_menu()
+
+    def add_file(self, file_path):
+        """Add a file to the recent files list."""
+        if file_path in self.recent_files:
+            self.recent_files.remove(file_path)
+        self.recent_files.insert(0, file_path)
+        self.recent_files = self.recent_files[:self.max_files]
+        self.save_recent_files()
+        self.update_tool_bar_menu()
+
+    def load_recent_files(self):
+        """Load recent files from settings."""
+        return self.settings.value("recent_files", [])
+
+    def save_recent_files(self):
+        """Save recent files to settings."""
+        self.settings.setValue("recent_files", self.recent_files)
+
+    def update_tool_bar_menu(self):
+        """Create a menu for the tool bar."""
+        self.tool_bar_menu.clear()
+        for idx, file_path in enumerate(self.recent_files):
+            action = QAction(file_path, self.tool_bar_menu)
+            action.triggered.connect(lambda: self.open_file.emit(file_path))
+            self.tool_bar_menu.addAction(action)
+        self.tool_bar_menu.addSeparator()
+        clear_action = QAction("Clear Recent Files", self.tool_bar_menu)
+        clear_action.triggered.connect(self.clear_recent_files)
+
+    def clear_recent_files(self):
+        """Clear the recent files list."""
+        self.recent_files = []
+        self.save_recent_files()
+        self.update_tool_bar_menu()
