@@ -39,13 +39,34 @@ class TableViewer(QDockWidget):
     def paste_from_clipboard(self):
         clipboard = QGuiApplication.clipboard()
         text = clipboard.text()
-        if text:
-            start_index = self.table_view.selectionModel().currentIndex()
-            if start_index.isValid():
-                self.table_view.model().setDataFromText(
-                    text, start_index.row(),
-                    start_index.column()
-                )
+        if not text:
+            return
+        start_index = self.table_view.selectionModel().currentIndex()
+        if not start_index.isValid():
+            return
+        model = self.table_view.model()
+        row_start, col_start = start_index.row(), start_index.column()
+        # identify which invalid cells are being pasted into
+        pasted_data = [line.split("\t") for line in text.split("\n") if line.strip()]
+        num_rows = len(pasted_data)
+        num_cols = max([len(line) for line in pasted_data])
+        overridden_cells = {
+            (row_start + r, col_start + c)
+            for r in range(num_rows)
+            for c in range(num_cols)
+            if model.index(row_start + r, col_start + c).isValid()
+        }
+        invalid_overridden_cells = overridden_cells.intersection(
+            model._invalid_cells
+        )
+        if invalid_overridden_cells:
+            for row_invalid, col_invalid in invalid_overridden_cells:
+                model.discard_invalid_cell(row_invalid, col_invalid)
+
+        model.setDataFromText(
+            text, start_index.row(),
+            start_index.column()
+        )
 
 
 class ComboBoxDelegate(QStyledItemDelegate):

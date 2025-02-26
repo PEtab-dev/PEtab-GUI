@@ -229,11 +229,49 @@ class PandasTableModel(QAbstractTableModel):
 
     def add_invalid_cell(self, row, column):
         """Add an invalid cell to the set."""
+        # check that the index is valid
+        if not self.index(row, column).isValid():
+            return
+        # return if it is the last row
+        if row == self._data_frame.shape[0]:
+            return
+        # return if it is already invalid
+        if (row, column) in self._invalid_cells:
+            return
         self._invalid_cells.add((row, column))
+        self.dataChanged.emit(
+            self.index(row, column),
+            self.index(row, column),
+            [Qt.BackgroundRole]
+        )
 
     def discard_invalid_cell(self, row, column):
         """Discard an invalid cell from the set."""
         self._invalid_cells.discard((row, column))
+        self.dataChanged.emit(
+            self.index(row, column),
+            self.index(row, column),
+            [Qt.BackgroundRole]
+        )
+
+    def update_invalid_cells(self, selected, mode: str = "rows"):
+        """Edits the invalid cells when values are deleted."""
+        old_invalid_cells = self._invalid_cells.copy()
+        new_invalid_cells = set()
+        sorted_to_del = sorted(selected)
+        for a, b in old_invalid_cells:
+            if mode == "rows":
+                to_be_change = a
+                not_changed = b
+            elif mode == "columns":
+                to_be_change = b
+                not_changed = a
+            if to_be_change in selected:
+                continue
+            smaller_count = sum(1 for x in sorted_to_del if x < to_be_change)
+            new_val = to_be_change - smaller_count
+            new_invalid_cells.add((new_val, not_changed))
+        self._invalid_cells = new_invalid_cells
 
     def notify_data_color_change(self, row, column):
         """Notify the view to change the color of some cells"""
