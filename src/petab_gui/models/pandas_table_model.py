@@ -1,9 +1,11 @@
 import pandas as pd
-from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal, QSortFilterProxyModel
+from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal, \
+    QSortFilterProxyModel
 from PySide6.QtGui import QColor
 
 from ..C import COLUMNS
-from ..utils import validate_value, create_empty_dataframe, is_invalid, get_selected
+from ..utils import validate_value, create_empty_dataframe, is_invalid, \
+    get_selected
 
 
 class PandasTableModel(QAbstractTableModel):
@@ -46,7 +48,7 @@ class PandasTableModel(QAbstractTableModel):
             if column == 0:
                 value = self._data_frame.index[row]
                 return str(value)
-            value = self._data_frame.iloc[row, column-1]
+            value = self._data_frame.iloc[row, column - 1]
             if is_invalid(value):
                 return ""
             return str(value)
@@ -120,7 +122,8 @@ class PandasTableModel(QAbstractTableModel):
             )
         position = self._data_frame.shape[1]
         self.beginInsertColumns(QModelIndex(), position, position)
-        column_type = self._allowed_columns.get(column_name, {"type": "STRING"})["type"]
+        column_type = \
+        self._allowed_columns.get(column_name, {"type": "STRING"})["type"]
         default_value = "" if column_type == "STRING" else 0
         self._data_frame[column_name] = default_value
         self.endInsertColumns()
@@ -167,7 +170,8 @@ class PandasTableModel(QAbstractTableModel):
             self.cell_needs_validation.emit(row, column)
             self.something_changed.emit(True)
             return True
-        if column_name in ["conditionId", "simulationConditionId", "preequilibrationConditionId"]:
+        if column_name in ["conditionId", "simulationConditionId",
+                           "preequilibrationConditionId"]:
             self._data_frame.iloc[row, column - col_setoff] = value
             self.dataChanged.emit(index, index, [Qt.DisplayRole])
             self.relevant_id_changed.emit(value, old_value, "condition")
@@ -284,15 +288,22 @@ class PandasTableModel(QAbstractTableModel):
         return len(rows) > 1 and len(cols) == 1, selected
 
     def reset_invalid_cells(self):
-        """Reset the invalid cells."""
-        self._invalid_cells = set()
-        self.layoutChanged.emit()
+        """Reset the invalid cells and update their background color."""
+        if not self._invalid_cells:
+            return
 
+        invalid_cells = list(self._invalid_cells)
+        self._invalid_cells.clear()  # Clear invalid cells set
+
+        for row, col in invalid_cells:
+            index = self.index(row, col)
+            self.dataChanged.emit(index, index, [Qt.BackgroundRole])
 
 
 class IndexedPandasTableModel(PandasTableModel):
     """Table model for tables with named index."""
     condition_2be_renamed = Signal(str, str)  # Signal to mother controller
+
     def __init__(self, data_frame, allowed_columns, table_type, parent=None):
         super().__init__(
             data_frame=data_frame,
@@ -341,6 +352,7 @@ class MeasurementModel(PandasTableModel):
     """Table model for the measurement data."""
     possibly_new_condition = Signal(str)  # Signal for new condition
     possibly_new_observable = Signal(str)  # Signal for new observable
+
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
@@ -410,6 +422,7 @@ class MeasurementModel(PandasTableModel):
 
 class ObservableModel(IndexedPandasTableModel):
     """Table model for the observable data."""
+
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
@@ -444,6 +457,7 @@ class ObservableModel(IndexedPandasTableModel):
 
 class ParameterModel(IndexedPandasTableModel):
     """Table model for the parameter data."""
+
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
@@ -455,6 +469,7 @@ class ParameterModel(IndexedPandasTableModel):
 
 class ConditionModel(IndexedPandasTableModel):
     """Table model for the condition data."""
+
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
@@ -493,27 +508,21 @@ class PandasTableFilterProxy(QSortFilterProxyModel):
         self.source_model = model
         self.setSourceModel(model)
 
-    def setFilterForColumn(self, column, pattern):
-        """Set filter pattern for a specific column."""
-        if pattern:
-            self.column_filters[column] = pattern  # Add or update filter for the column
-        else:
-            self.column_filters.pop(column, None)  # Remove filter if pattern is empty
-        self.invalidateFilter()  # Trigger the proxy to re-evaluate the filters
-
     def filterAcceptsRow(self, source_row, source_parent):
-        """Custom filtering logic to apply filters on multiple columns."""
+        """Custom filtering logic to apply global filtering across all columns."""
         source_model = self.sourceModel()
 
         # Always accept the last row (for "add new row")
         if source_row == source_model.rowCount() - 1:
             return True
 
-        for column in range(source_model.columnCount()):
-            index = source_model.index(source_row, column, source_parent)
-            if self.filterRegularExpression().match(
-                source_model.data(index)
-            ).hasMatch():
-                return True
-        return False
+        regex = self.filterRegularExpression()
+        if regex.pattern() == "":
+            return True
 
+        for column in range(source_model.columnCount()):
+            index = source_model.index(source_row, column, QModelIndex())
+            data_str = str(source_model.data(index) or "")
+            if regex.match(data_str).hasMatch():
+                return True
+        return False  # No match found
