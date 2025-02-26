@@ -53,9 +53,9 @@ class PandasTableModel(QAbstractTableModel):
             return str(value)
         elif role == Qt.BackgroundRole:
             if (row, column) in self._invalid_cells:
-                return QColor(Qt.red)
+                return QColor(255, 0, 0, 255)  # Fully opaque red
             if (row, column) == (self._data_frame.shape[0], 0):
-                return QColor(144, 238, 144, 150)
+                return QColor(144, 238, 144, 150)  # Light green
         return None
 
     def flags(self, index):

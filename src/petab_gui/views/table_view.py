@@ -24,6 +24,7 @@ class TableViewer(QDockWidget):
         layout.addWidget(self.table_view)
         # Dictionary to store column-specific completers
         self.completers = {}
+        self.table_view.setAlternatingRowColors(True)
 
     def copy_to_clipboard(self):
         selected_rect, rect_start = get_selected_rectangles(

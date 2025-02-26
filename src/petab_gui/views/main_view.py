@@ -116,6 +116,7 @@ class MainWindow(QMainWindow):
 
         # drag drop
         self.setAcceptDrops(True)
+        # self.dumpObjectTree()
 
 
     def dragEnterEvent(self, event):
