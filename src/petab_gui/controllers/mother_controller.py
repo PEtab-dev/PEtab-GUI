@@ -350,6 +350,12 @@ class MainController:
         actions["show_plot"].toggled.connect(
             lambda checked: self.view.plot_dock.setVisible(checked)
         )
+        # Clear Log
+        actions["clear_log"] = QAction(
+            qta.icon("mdi6.delete"),
+            "Clear Log", self.view
+        )
+        actions["clear_log"].triggered.connect(self.logger.clear_log)
 
         return actions
 

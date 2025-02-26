@@ -1,5 +1,6 @@
-from PySide6.QtWidgets import QMenu, QStyle
+from PySide6.QtWidgets import QMenu
 from PySide6.QtGui import QAction
+import qtawesome as qta
 
 
 class BasicMenu:
@@ -88,12 +89,20 @@ class ViewMenu(BasicMenu):
         super().__init__(parent, actions)
 
         # Add actions to the menu for re-adding tables
+        visibility_header = QAction(
+            qta.icon("fa5s.eye"), "Visibility", parent
+        )
+        visibility_header.setEnabled(False)
+        self.menu.addAction(visibility_header)
+        self.menu.addSeparator()
         self.menu.addAction(actions["show_measurement"])
         self.menu.addAction(actions["show_observable"])
         self.menu.addAction(actions["show_parameter"])
         self.menu.addAction(actions["show_condition"])
         self.menu.addAction(actions["show_logger"])
         self.menu.addAction(actions["show_plot"])
+        self.menu.addSeparator()
+        self.menu.addAction(actions["clear_log"])
 
 
 class TaskBar:
