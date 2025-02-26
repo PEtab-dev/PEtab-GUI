@@ -199,6 +199,7 @@ class TableController(QObject):
         selected_rows = get_selected(table_view)
         if not selected_rows:
             return
+        self.model.update_invalid_cells(selected_rows, mode="rows")
         for row in sorted(selected_rows, reverse=True):
             if row >= self.model.rowCount() - 1:
                 continue
@@ -232,6 +233,7 @@ class TableController(QObject):
         selected_columns = get_selected(table_view, mode=COLUMN)
         if not selected_columns:
             return
+        self.model.update_invalid_cells(selected_columns, mode="columns")
         for column in sorted(selected_columns, reverse=True):
             # safely delete potential item delegates
             column_name = self.model.get_df().columns[column]
