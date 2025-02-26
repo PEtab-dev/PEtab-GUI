@@ -11,6 +11,7 @@ from .C import ROW, COLUMN, INDEX
 import antimony
 import os
 import math
+import numpy as np
 
 
 def _checkAntimonyReturnCode(code):
