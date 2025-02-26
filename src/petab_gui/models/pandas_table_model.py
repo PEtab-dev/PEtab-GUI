@@ -151,7 +151,6 @@ class PandasTableModel(QAbstractTableModel):
         if index.row() == self._data_frame.shape[0]:
             # empty row at the end
             self.insertRows(index.row(), 1)
-            self.layoutChanged.emit()
             next_index = self.index(index.row(), 0)
             self.inserted_row.emit(next_index)
         if index.column() == 0 and self._has_named_index:
@@ -208,11 +207,31 @@ class PandasTableModel(QAbstractTableModel):
 
     def replace_text(self, old_text: str, new_text: str):
         """Replace text in the table."""
-        self._data_frame.replace(old_text, new_text, inplace=True)
+        # find all occurences of old_text and sae indices
+        mask = self._data_frame.eq(old_text)
+        if mask.any().any():
+            self._data_frame.replace(old_text, new_text, inplace=True)
+            # Get first and last modified cell for efficient `dataChanged` emit
+            changed_cells = mask.stack()[
+                mask.stack()].index.tolist()  # Extract (row, col) pairs
+            if changed_cells:
+                first_row, first_col = changed_cells[0]
+                last_row, last_col = changed_cells[-1]
+                if self._has_named_index:
+                    first_col += 1
+                    last_col += 1
+                top_left = self.index(first_row, first_col)
+                bottom_right = self.index(last_row, last_col)
+                self.dataChanged.emit(top_left, bottom_right, [Qt.DisplayRole])
         # also replace in the index
-        if self._has_named_index:
+        if self._has_named_index and old_text in self._data_frame.index:
             self._data_frame.rename(index={old_text: new_text}, inplace=True)
-        self.layoutChanged.emit()
+            index_row = self._data_frame.index.get_loc(new_text)
+            index_top_left = self.index(index_row, 0)
+            index_bottom_right = self.index(index_row, 0)
+            self.dataChanged.emit(
+                index_top_left, index_bottom_right, [Qt.DisplayRole]
+            )
 
     def get_df(self):
         """Return the DataFrame."""
