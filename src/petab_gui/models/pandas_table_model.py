@@ -229,6 +229,15 @@ class PandasTableModel(QAbstractTableModel):
 
     def add_invalid_cell(self, row, column):
         """Add an invalid cell to the set."""
+        # check that the index is valid
+        if not self.index(row, column).isValid():
+            return
+        # return if it is the last row
+        if row == self._data_frame.shape[0]:
+            return
+        # return if it is already invalid
+        if (row, column) in self._invalid_cells:
+            return
         self._invalid_cells.add((row, column))
         self.dataChanged.emit(
             self.index(row, column),
