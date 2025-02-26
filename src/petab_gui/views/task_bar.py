@@ -49,6 +49,7 @@ class FileMenu(BasicMenu):
         self.menu.addAction(actions["open"])
         self.menu.addAction(actions["add"])
         self.menu.addAction(actions["save"])
+        self.menu.addMenu(actions["recent_files"])
         self.menu.addSeparator()
         self.menu.addAction(actions["close"])
 
@@ -65,6 +66,9 @@ class EditMenu(BasicMenu):
 
         # Find and Replace
         self.find_replace_action = self.add_action_or_menu("Find/Replace")
+        # Copy, Paste
+        self.menu.addAction(actions["copy"])
+        self.menu.addAction(actions["paste"])
         # Add Columns
         self.menu.addAction(actions["add_column"])
         self.menu.addAction(actions["delete_column"])

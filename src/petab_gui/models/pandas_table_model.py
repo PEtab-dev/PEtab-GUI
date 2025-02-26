@@ -1,6 +1,6 @@
 import pandas as pd
-from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal, \
-    QSortFilterProxyModel
+from PySide6.QtCore import (Qt, QAbstractTableModel, QModelIndex, Signal,
+                            QSortFilterProxyModel, QMimeData)
 from PySide6.QtGui import QColor
 
 from ..C import COLUMNS
@@ -133,6 +133,8 @@ class PandasTableModel(QAbstractTableModel):
     def setData(self, index, value, role=Qt.EditRole):
         if not (index.isValid() and role == Qt.EditRole):
             return False
+        if is_invalid(value) or value == "":
+            value = None
         # check whether multiple rows but only one column is selected
         multi_row_change, selected = self.check_selection()
         if not multi_row_change:
@@ -159,6 +161,16 @@ class PandasTableModel(QAbstractTableModel):
         # Handling non-index (regular data) columns
         column_name = self._data_frame.columns[column - col_setoff]
         old_value = self._data_frame.iloc[row, column - col_setoff]
+        # cast to numeric if necessary
+        if not self._data_frame[column_name].dtype == "object":
+            try:
+                value = float(value)
+            except ValueError:
+                self.new_log_message.emit(
+                    f"Column '{column_name}' expects a numeric value",
+                    "red"
+                )
+                return False
         if value == old_value:
             return False
 
@@ -317,6 +329,61 @@ class PandasTableModel(QAbstractTableModel):
         for row, col in invalid_cells:
             index = self.index(row, col)
             self.dataChanged.emit(index, index, [Qt.BackgroundRole])
+    def mimeData(self, rectangle, start_index):
+        """Return the data to be copied to the clipboard.
+
+        Parameters
+        ----------
+        rectangle: np.ndarray
+            The rectangle of selected cells. Creates a minimum rectangle
+            around all selected cells and is True if the cell is selected.
+        start_index: (int, int)
+            The start index of the selection. Used to determine the location
+            of the copied data.
+        """
+        copied_data = ""
+        for row in range(rectangle.shape[0]):
+            for col in range(rectangle.shape[1]):
+                if rectangle[row, col]:
+                    copied_data += self.data(
+                        self.index(start_index[0] + row, start_index[1] + col),
+                        Qt.DisplayRole
+                    )
+                else:
+                    copied_data += "SKIP"
+                if col < rectangle.shape[1] - 1:
+                    copied_data += "\t"
+            copied_data += "\n"
+        mime_data = QMimeData()
+        mime_data.setText(copied_data.strip())
+        return mime_data
+
+    def setDataFromText(self, text, start_row, start_column):
+        """Set the data from text."""
+        # TODO: Does this need to be more flexible in the separator?
+        lines = text.split("\n")
+        self.maybe_add_rows(start_row, len(lines))
+        for row_offset, line in enumerate(lines):
+            values = line.split("\t")
+            for col_offset, value in enumerate(values):
+                if value == "SKIP":
+                    continue
+                self.setData(
+                    self.index(
+                        start_row + row_offset, start_column + col_offset
+                    ),
+                    value,
+                    Qt.EditRole
+                )
+
+    def maybe_add_rows(self, start_row, n_rows):
+        """Add rows if needed."""
+        if start_row + n_rows > self._data_frame.shape[0]:
+            self.insertRows(
+                self._data_frame.shape[0],
+                start_row + n_rows - self._data_frame.shape[0]
+            )
+            self.layoutChanged.emit()
 
 
 class IndexedPandasTableModel(PandasTableModel):

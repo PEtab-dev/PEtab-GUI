@@ -19,7 +19,7 @@ from .table_controllers import MeasurementController, ObservableController, \
     ConditionController, ParameterController
 from .logger_controller import LoggerController
 from ..views import TaskBar
-from .utils import prompt_overwrite_or_append
+from .utils import prompt_overwrite_or_append, RecentFilesManager
 from functools import partial
 
 
@@ -83,6 +83,8 @@ class MainController:
             self.condition_controller,
             self.sbml_controller
         ]
+        # Recent Files
+        self.recent_files_manager = RecentFilesManager(max_files=10)
         # Checkbox states for Find + Replace
         self.petab_checkbox_states = {
             "measurement": False,
@@ -119,7 +121,7 @@ class MainController:
         self.observable_controller.observable_2be_renamed.connect(
             partial(
                 self.measurement_controller.rename_value,
-                column_names = "observableId"
+                column_names="observableId"
             )
         )
         # Rename Condition
@@ -180,6 +182,10 @@ class MainController:
         self.view.plot_dock.visibilityChanged.connect(
             lambda visible: self.actions["show_plot"].setChecked(visible)
         )
+        # Recent Files
+        self.recent_files_manager.open_file.connect(
+            partial(self.open_file, mode="overwrite")
+        )
 
     def setup_actions(self):
         """Setup actions for the main controller."""
@@ -230,6 +236,19 @@ class MainController:
         actions["find+replace"].setShortcut("Ctrl+R")
         actions["find+replace"].triggered.connect(
             self.open_find_replace_dialog)
+        # Copy / Paste
+        actions["copy"] = QAction(
+            qta.icon("mdi6.content-copy"),
+            "Copy", self.view
+        )
+        actions["copy"].setShortcut("Ctrl+C")
+        actions["copy"].triggered.connect(self.copy_to_clipboard)
+        actions["paste"] = QAction(
+            qta.icon("mdi6.content-paste"),
+            "Paste", self.view
+        )
+        actions["paste"].setShortcut("Ctrl+V")
+        actions["paste"].triggered.connect(self.paste_from_clipboard)
         # add/delete row
         actions["add_row"] = QAction(
             qta.icon("mdi6.table-row-plus-after"),
@@ -265,6 +284,8 @@ class MainController:
         actions["reset_model"].triggered.connect(
             self.sbml_controller.reset_to_original_model
         )
+        # Recent Files
+        actions["recent_files"] = self.recent_files_manager.tool_bar_menu
 
         # Filter widget
         filter_widget = QWidget()
@@ -474,6 +495,7 @@ class MainController:
                 mode = prompt_overwrite_or_append(self)
         if mode is None:
             return
+        self.recent_files_manager.add_file(file_path)
         self._open_file(actionable, file_path, sep, mode)
 
     def _open_file(self, actionable, file_path, sep, mode):
@@ -693,3 +715,13 @@ class MainController:
             else:
                 controller = getattr(self, f"{table_name}_controller")
                 controller.remove_filter()
+
+    def copy_to_clipboard(self):
+        controller = self.active_controller()
+        if controller:
+            controller.copy_to_clipboard()
+
+    def paste_from_clipboard(self):
+        controller = self.active_controller()
+        if controller:
+            controller.paste_from_clipboard()
