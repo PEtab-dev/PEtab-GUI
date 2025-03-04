@@ -16,8 +16,9 @@ class LoggerController:
             The view of the logger widget.
         """
         self.views = views
+        self.logger_level = 1
 
-    def log_message(self, message, color="black"):
+    def log_message(self, message, color="black", loglevel=1):
         """Log a message to the logger.
 
         Parameters
@@ -27,6 +28,8 @@ class LoggerController:
         color: str
             The color of the message. Default is black.
         """
+        if loglevel > self.logger_level:
+            return
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         full_message = \
             f"[{timestamp}]\t <span style='color: {color};'>{message}</span>"

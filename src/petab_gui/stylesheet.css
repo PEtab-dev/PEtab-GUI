@@ -1,0 +1,141 @@
+/* 🌟 Light Mode */
+QWidget {
+    background-color: #f8f9fa;  /* Soft background */
+    color: #333;  /* Dark text */
+    font-family: "Arial", sans-serif;
+}
+
+/* Dark Mode */
+QWidget[darkMode="true"] {
+    background-color: #2b2b2b;
+    color: #f8f9fa;
+}
+
+/* 🌟 Ensure alternate row colors but allow BackgroundRole */
+QTableView {
+    background: transparent; /* Keep the overall table background transparent */
+    border: none;
+    border-radius: 10px;
+    padding: 5px;
+    gridline-color: transparent;
+}
+
+/* 🎨 Restore table header style */
+QHeaderView::section {
+    background-color: #d5dcef;
+    font-weight: bold;
+    border: none;
+    padding: 6px;
+    border-radius: 5px;
+}
+
+/* 🚀 Selection should remain visible */
+QTableView::item:selected {
+    background-color: rgba(122, 93, 204, 0.2);
+    color: white;
+    border: none;
+}
+
+/* Fix cell editing */
+QTableView::item:selected:active {
+    background-color: rgba(122, 93, 204, 0.6);
+    color: white;
+    border: none;
+    outline: none;
+}
+
+QTableView QLineEdit {
+    background-color: white;
+    color: black;
+    padding: 3px;
+    border: 2px solid #7A5DCC;
+    border-radius: 5px;
+}
+
+
+QMenuBar {
+    background-color: #dee2e6; /* Soft gray */
+    padding: 6px;
+}
+
+QMenuBar::item {
+    background-color: transparent;
+    padding: 8px 16px;
+    border-radius: 5px;
+}
+
+/* Hover Effect */
+QMenuBar::item:selected {
+    background-color: #7A5DCC; /* Purple */
+    color: white;
+}
+
+/* Menu Items */
+QMenu {
+    background-color: white;
+    border: 1px solid #ccc;
+}
+
+QMenu::item {
+    padding: 8px 12px;
+}
+
+QMenu::item:selected {
+    background-color: #7A5DCC; /* Purple hover */
+    color: white;
+}
+/* Rounded Buttons */
+QPushButton {
+    background-color: #d5e8d4; /* Light green */
+    color: black;
+    border-radius: 15px;
+    padding: 8px 16px;
+    border: 2px solid transparent;
+}
+
+/* Button Hover */
+QPushButton:hover {
+    background-color: #b7e1b5; /* Slightly darker green */
+}
+
+/* Input Fields */
+QLineEdit, QTextEdit {
+    background-color: white;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    padding: 6px;
+}
+
+/* Selected Input */
+QLineEdit:focus, QTextEdit:focus {
+    border: 2px solid #7A5DCC; /* Purple border when focused */
+}
+
+/* 🌟 Rounded Dock Widgets */
+QDockWidget {
+    background-color: #eef1f6; /* Light grayish-blue */
+    border-radius: 10px;
+    border: 1px solid #ccc;
+}
+
+/* 🌟 Dock Title Styling */
+QDockWidget::title {
+    background-color: #d5dcef; /* Soft blue */
+    padding: 5px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    font-weight: bold;
+}
+
+/* 🌟 Hover effect for close button */
+QDockWidget::close-button {
+    border: none;
+    background: transparent;
+}
+
+/* Change close button color on hover */
+QDockWidget::close-button:hover {
+    background-color: #ffcccc; /* Light red */
+    border-radius: 5px;
+}
+

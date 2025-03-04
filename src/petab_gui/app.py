@@ -12,7 +12,6 @@ from .models import PEtabModel
 from pathlib import Path
 
 
-
 def find_example(path: Path) -> Path:
     while path.parent != path:
         if (path / "example").is_dir():
@@ -26,11 +25,8 @@ class PEtabGuiApp(QApplication):
     def __init__(self):
         super().__init__(sys.argv)
 
-        # no need to instantiate a PEtab problem, as we are not using it
-        # 
-        # petab_problem = petab.Problem.from_yaml(
-        #     find_example(Path(__file__).parent) / "problem.yaml"
-        # )
+        # Load the styleshee
+        self.apply_stylesheet()
         self.model = PEtabModel()
         self.view = MainWindow()
         self.controller = MainController(self.view, self.model)
@@ -49,6 +45,17 @@ class PEtabGuiApp(QApplication):
             self.controller.open_file(openEvent.file(), mode="overwrite")
 
         return super().event(event)
+
+    def apply_stylesheet(self):
+        """Load and apply the QSS stylesheet."""
+        stylesheet_path = os.path.join(
+            os.path.dirname(__file__), "stylesheet.css"
+        )
+        if os.path.exists(stylesheet_path):
+            with open(stylesheet_path, "r") as f:
+                self.setStyleSheet(f.read())
+        else:
+            print(f"Warning: Stylesheet '{stylesheet_path}' not found!")
 
 
 def main():
