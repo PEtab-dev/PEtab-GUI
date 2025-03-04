@@ -52,10 +52,7 @@ class PandasTableModel(QAbstractTableModel):
                 return ""
             return str(value)
         elif role == Qt.BackgroundRole:
-            if (row, column) in self._invalid_cells:
-                return QColor(255, 0, 0, 255)  # Fully opaque red
-            if (row, column) == (self._data_frame.shape[0], 0):
-                return QColor(144, 238, 144, 150)  # Light green
+            return self.determine_background_color(row, column)
         return None
 
     def flags(self, index):
@@ -395,6 +392,22 @@ class PandasTableModel(QAbstractTableModel):
             )
             self.layoutChanged.emit()
 
+    def determine_background_color(self, row, column):
+        """Determine the background color of a cell.
+
+        1. If it is the first column and last row, return light green.
+        2. If it is an invalid cell, return red
+        3. If it is an even row return light blue
+        4. Otherwise return light green
+        """
+        if (row, column) == (self._data_frame.shape[0], 0):
+            return QColor(144, 238, 144, 150)
+        if (row, column) in self._invalid_cells:
+            return QColor(255, 100, 100, 150)
+        if row % 2 == 0:
+            return QColor(144, 190, 109, 102)
+        return QColor(177, 217, 231, 102)
+
 
 class IndexedPandasTableModel(PandasTableModel):
     """Table model for tables with named index."""
@@ -475,10 +488,7 @@ class MeasurementModel(PandasTableModel):
                 return ""
             return str(value)
         elif role == Qt.BackgroundRole:
-            if (row, column) in self._invalid_cells:
-                return QColor(Qt.red)
-            if (row, column) == (self._data_frame.shape[0], 0):
-                return QColor(144, 238, 144, 150)
+            return self.determine_background_color(row, column)
         return None
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):

@@ -11,20 +11,13 @@ QWidget[darkMode="true"] {
     color: #f8f9fa;
 }
 
-/* 🌟 Ensure alternate row colors */
+/* 🌟 Ensure alternate row colors but allow BackgroundRole */
 QTableView {
-    background-color: transparent;
+    background: transparent; /* Keep the overall table background transparent */
     border: none;
     border-radius: 10px;
     padding: 5px;
     gridline-color: transparent;
-}
-
-QTableView::item {
-    background-color: rgba(144, 190, 109, 0.4);
-}
-QTableView::item:alternate {
-    background-color: rgba(177, 217, 231, 0.4);
 }
 
 /* 🎨 Restore table header style */
