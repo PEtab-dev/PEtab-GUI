@@ -2,7 +2,7 @@ from functools import partial
 
 from PySide6.QtWidgets import QMessageBox, QFileDialog, QLineEdit, QWidget, \
     QHBoxLayout, QToolButton, QTableView
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QDesktopServices
 import zipfile
 import tempfile
 import os
@@ -11,7 +11,7 @@ import logging
 import yaml
 import qtawesome as qta
 from ..utils import FindReplaceDialog, CaptureLogHandler, process_file
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QUrl
 from pathlib import Path
 from ..models import PEtabModel
 from .sbml_controller import SbmlController
@@ -356,6 +356,18 @@ class MainController:
             "Clear Log", self.view
         )
         actions["clear_log"].triggered.connect(self.logger.clear_log)
+
+        # Opening the PEtab documentation
+        actions["open_documentation"] = QAction(
+            qta.icon("mdi6.web"),
+            "View PEtab Documentation", self.view
+        )
+        actions["open_documentation"].triggered.connect(
+            lambda: QDesktopServices.openUrl(QUrl(
+                "https://petab.readthedocs.io/en/latest/v1/"
+                "documentation_data_format.html"
+            ))
+        )
 
         return actions
 
