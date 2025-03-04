@@ -27,12 +27,15 @@ class PandasTableModel(QAbstractTableModel):
         self._data_frame = data_frame
         # add a view here, access is needed for selectionModels
         self.view = None
+        # offset for row and column to get from the data_frame to the view
+        self.row_index_offset = 0
+        self.column_offset = 0
 
     def rowCount(self, parent=QModelIndex()):
         return self._data_frame.shape[0] + 1  # empty row at the end
 
     def columnCount(self, parent=QModelIndex()):
-        return self._data_frame.shape[1] + 1  # measurement needs other
+        return self._data_frame.shape[1] + self.column_offset
 
     def data(self, index, role=Qt.DisplayRole):
         """Return the data at the given index and role for the View."""
@@ -290,10 +293,8 @@ class PandasTableModel(QAbstractTableModel):
         return ""
 
     def return_column_index(self, column_name):
-        """Return the index of a column."""
-        if column_name in self._data_frame.columns:
-            return self._data_frame.columns.get_loc(column_name) + 1
-        return -1
+        """Return the index of a column. Defined in Subclasses"""
+        pass
 
     def unique_values(self, column_name):
         """Return the unique values in a column."""
@@ -312,7 +313,7 @@ class PandasTableModel(QAbstractTableModel):
     def delete_column(self, column_index):
         """Delete a column from the DataFrame."""
         self.beginRemoveColumns(QModelIndex(), column_index, column_index)
-        column_name = self._data_frame.columns[column_index]
+        column_name = self._data_frame.columns[column_index - self.column_offset]
         self._data_frame.drop(columns=[column_name], inplace=True)
         self.endRemoveColumns()
 
@@ -421,6 +422,7 @@ class IndexedPandasTableModel(PandasTableModel):
             parent=parent
         )
         self._has_named_index = True
+        self.column_offset = 1
 
     def handle_named_index(self, index, value):
         """Handle the named index column."""
@@ -469,9 +471,6 @@ class MeasurementModel(PandasTableModel):
             table_type="measurement",
             parent=parent
         )
-
-    def columnCount(self, parent=QModelIndex()):
-        return self._data_frame.shape[1]
 
     def data(self, index, role=Qt.DisplayRole):
         """Return the data at the given index and role for the View."""
