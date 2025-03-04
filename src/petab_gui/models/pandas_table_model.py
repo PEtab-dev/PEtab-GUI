@@ -312,8 +312,8 @@ class PandasTableModel(QAbstractTableModel):
 
     def delete_column(self, column_index):
         """Delete a column from the DataFrame."""
-        self.beginRemoveColumns(QModelIndex(), column_index, column_index)
         column_name = self._data_frame.columns[column_index - self.column_offset]
+        self.beginRemoveColumns(QModelIndex(), column_index, column_index)
         self._data_frame.drop(columns=[column_name], inplace=True)
         self.endRemoveColumns()
 
@@ -408,6 +408,15 @@ class PandasTableModel(QAbstractTableModel):
         if row % 2 == 0:
             return QColor(144, 190, 109, 102)
         return QColor(177, 217, 231, 102)
+
+    def allow_column_deletion(self, column: int) -> bool:
+        """Checks whether the column can safely be deleted"""
+        if column == 0 and self._has_named_index:
+            return False, self._data_frame.index.name
+        column_name = self._data_frame.columns[column-self.column_offset]
+        if column_name not in self._allowed_columns.keys():
+            return True, column_name
+        return self._allowed_columns[column_name]["optional"], column_name
 
 
 class IndexedPandasTableModel(PandasTableModel):

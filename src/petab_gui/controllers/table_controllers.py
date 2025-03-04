@@ -236,16 +236,22 @@ class TableController(QObject):
         self.model.update_invalid_cells(selected_columns, mode="columns")
         for column in sorted(selected_columns, reverse=True):
             # safely delete potential item delegates
-            column_name = self.model.get_df().columns[column]
+            allow_del, column_name = self.model.allow_column_deletion(column)
+            if not allow_del:
+                self.logger.log_message(
+                    f"Cannot delete column {column_name}, as it is a "
+                    f"required column!",
+                    color = "red"
+                )
+                continue
             if column_name in self.completers:
                 self.view.table_view.setItemDelegateForColumn(column, None)
                 del self.completers[column_name]
-            column_name = self.model.get_df().columns[column]
+            self.model.delete_column(column)
             self.logger.log_message(
                 f"Deleted column '{column_name}' from {self.model.table_type} table.",
                 color="orange"
             )
-            self.model.delete_column(column)
         self.model.something_changed.emit(True)
 
     def add_column(self, column_name: str = None):
