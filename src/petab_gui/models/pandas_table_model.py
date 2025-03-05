@@ -256,6 +256,8 @@ class PandasTableModel(QAbstractTableModel):
 
     def update_invalid_cells(self, selected, mode: str = "rows"):
         """Edits the invalid cells when values are deleted."""
+        if not selected:
+            return
         old_invalid_cells = self._invalid_cells.copy()
         new_invalid_cells = set()
         sorted_to_del = sorted(selected)

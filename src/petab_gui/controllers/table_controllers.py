@@ -203,12 +203,12 @@ class TableController(QObject):
         for row in sorted(selected_rows, reverse=True):
             if row >= self.model.rowCount() - 1:
                 continue
+            self.model.delete_row(row)
             self.logger.log_message(
                 f"Deleted row {row} from {self.model.table_type} table."
                 f" Data: {self.model.get_df().iloc[row].to_dict()}",
                 color="orange"
             )
-            self.model.delete_row(row)
         self.model.something_changed.emit(True)
 
     def add_row(self):
@@ -233,7 +233,7 @@ class TableController(QObject):
         selected_columns = get_selected(table_view, mode=COLUMN)
         if not selected_columns:
             return
-        self.model.update_invalid_cells(selected_columns, mode="columns")
+        deleted_columns = set()
         for column in sorted(selected_columns, reverse=True):
             # safely delete potential item delegates
             allow_del, column_name = self.model.allow_column_deletion(column)
@@ -252,6 +252,8 @@ class TableController(QObject):
                 f"Deleted column '{column_name}' from {self.model.table_type} table.",
                 color="orange"
             )
+            deleted_columns.add(column)
+        self.model.update_invalid_cells(deleted_columns, mode="columns")
         self.model.something_changed.emit(True)
 
     def add_column(self, column_name: str = None):
