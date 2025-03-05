@@ -364,6 +364,7 @@ class PandasTableModel(QAbstractTableModel):
         for row, col in invalid_cells:
             index = self.index(row, col)
             self.dataChanged.emit(index, index, [Qt.BackgroundRole])
+
     def mimeData(self, rectangle, start_index):
         """Return the data to be copied to the clipboard.
 
@@ -660,3 +661,15 @@ class PandasTableFilterProxy(QSortFilterProxyModel):
             if regex.match(data_str).hasMatch():
                 return True
         return False  # No match found
+
+    def mimeData(self, rectangle, start_index):
+        """Return the data to be copied to the clipboard."""
+        return self.source_model.mimeData(rectangle, start_index)
+
+    def setDataFromText(self, text, start_row, start_column):
+        """Set the data from text."""
+        return self.source_model.setDataFromText(text, start_row, start_column)
+
+    @property
+    def _invalid_cells(self):
+        return self.source_model._invalid_cells
