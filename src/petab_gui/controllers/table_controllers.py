@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QInputDialog, QMessageBox, QFileDialog, \
 import numpy as np
 import pandas as pd
 import petab.v1 as petab
-from PySide6.QtCore import Signal, QObject, QModelIndex, QPoint
+from PySide6.QtCore import Signal, QObject, QModelIndex, Qt
 from pathlib import Path
 from ..models.pandas_table_model import PandasTableModel, \
     PandasTableFilterProxy
@@ -48,7 +48,7 @@ class TableController(QObject):
         self.logger = logger
         self.check_petab_lint_mode = True
         self.mother_controller = mother_controller
-        self.view.table_view.setModel(self.model)
+        self.view.table_view.setModel(self.proxy_model)
         self.setup_connections()
         self.setup_connections_specific()
 
@@ -160,12 +160,16 @@ class TableController(QObject):
         # TODO: Mother controller connects to overwritten_df signal. Set df
         #  in petabProblem and unsaved changes to True
         """Overwrite the DataFrame of the model with the data from the view."""
+        self.proxy_model.setSourceModel(None)
+        self.model.beginResetModel()
         self.model._data_frame = new_df
-        self.model.layoutChanged.emit()
+        self.model.beginResetModel()
         self.logger.log_message(
             f"Overwrote the {self.model.table_type} table with new data.",
             color="green"
         )
+        # test: overwrite the new model as source model
+        self.proxy_model.setSourceModel(self.model)
         self.overwritten_df.emit()
 
     def append_df(self, new_df: pd.DataFrame):
@@ -175,17 +179,20 @@ class TableController(QObject):
             1. Columns are the union of both DataFrame columns.
             2. Rows are the union of both DataFrame rows (duplicates removed)
         """
-        self.model._data_frame = pd.concat(
+        self.model.beginResetModel()
+        combined_df = pd.concat(
             [self.model.get_df(), new_df], axis=0
         )
-        self.model._data_frame = self.model._data_frame[
-            ~self.model._data_frame.index.duplicated(keep="first")
-        ]
-        self.model.layoutChanged.emit()
+        combined_df = combined_df[~combined_df.index.duplicated(keep="first")]
+        self.model._data_frame = combined_df
+        self.proxy_model.setSourceModel(None)
+        self.proxy_model.setSourceModel(self.model)
+        self.model.endResetModel()
         self.logger.log_message(
             f"Appended the {self.model.table_type} table with new data.",
             color="green"
         )
+        # test: overwrite the new model as source model
         self.overwritten_df.emit()
 
     def clear_table(self):
@@ -271,6 +278,16 @@ class TableController(QObject):
         """Set the index of the model when a new row is added."""
         self.view.table_view.setCurrentIndex(index)
 
+    def filter_table(self, text):
+        """Filter the table."""
+        self.proxy_model.setFilterRegularExpression(text)
+        self.proxy_model.setFilterKeyColumn(-1)
+
+    def remove_filter(self):
+        """Remove the filter from the table."""
+        self.proxy_model.setFilterRegularExpression("")
+        self.proxy_model.setFilterKeyColumn(-1)
+
     def copy_to_clipboard(self):
         """Copy the currently selected cells to the clipboard."""
         self.view.copy_to_clipboard()
@@ -322,13 +339,25 @@ class MeasurementController(TableController):
         """
         if not isinstance(column_names, list):
             column_names = [column_names]
-        rows = self.model.get_df().shape[0]
-        for row in range(rows):
-            for column_name in column_names:
-                if self.model._data_frame.at[row, column_name] == old_id:
-                    self.model._data_frame.at[row, column_name] = new_id
-        self.model.something_changed.emit(True)
-        self.model.layoutChanged.emit()
+
+        # Find occurences
+        mask = self.model._data_frame[column_names].eq(old_id)
+        if mask.any().any():
+            self.model._data_frame.loc[mask] = new_id
+            changed_rows = mask.any(axis=1)
+            first_row, last_row = (
+                changed_rows.idxmax(), changed_rows[::-1].idxmax()
+            )
+            top_left = self.model.index(first_row, 1)
+            bottom_right = self.model.index(
+                last_row, self.model.columnCount() - 1
+            )
+            self.model.dataChanged.emit(
+                top_left, bottom_right, [Qt.DisplayRole, Qt.EditRole]
+            )
+
+            # Emit change signal
+            self.model.something_changed.emit(True)
 
     def copy_noise_parameters(
         self,

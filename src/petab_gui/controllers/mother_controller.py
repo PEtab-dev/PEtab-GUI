@@ -292,12 +292,12 @@ class MainController:
         filter_layout = QHBoxLayout()
         filter_layout.setContentsMargins(0, 0, 0, 0)
         filter_widget.setLayout(filter_layout)
-        filter_input = QLineEdit()
-        filter_input.setPlaceholderText("Filter not functional yet ...")
-        filter_layout.addWidget(filter_input)
+        self.filter_input = QLineEdit()
+        self.filter_input.setPlaceholderText("Filter not functional yet ...")
+        filter_layout.addWidget(self.filter_input)
         for table_n, table_name in zip(
-            ["m", "p", "o", "c", "x"],
-            ["Measurement", "Parameter", "Observable", "Condition", "SBML"]
+            ["m", "p", "o", "c"],
+            ["measurement", "parameter", "observable", "condition"]
         ):
             tool_button = QToolButton()
             icon = qta.icon(
@@ -312,7 +312,11 @@ class MainController:
             tool_button.setToolTip(f"Filter for {table_name}")
             filter_layout.addWidget(tool_button)
             self.filter_active[table_name] = tool_button
+            self.filter_active[table_name].toggled.connect(
+                self.filter_table
+            )
         actions["filter_widget"] = filter_widget
+        self.filter_input.textChanged.connect(self.filter_table)
 
         # show/hide elements
         for element in ["measurement", "observable", "parameter", "condition"]:
@@ -706,6 +710,17 @@ class MainController:
         controller = self.active_controller()
         if controller:
             controller.delete_column()
+
+    def filter_table(self):
+        """Filter the currently activated tables"""
+        filter_text = self.filter_input.text()
+        for table_name, tool_button in self.filter_active.items():
+            if tool_button.isChecked():
+                controller = getattr(self, f"{table_name}_controller")
+                controller.filter_table(filter_text)
+            else:
+                controller = getattr(self, f"{table_name}_controller")
+                controller.remove_filter()
 
     def copy_to_clipboard(self):
         controller = self.active_controller()
