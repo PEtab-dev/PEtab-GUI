@@ -10,8 +10,8 @@ import logging
 from .C import ROW, COLUMN, INDEX
 import antimony
 import os
-import numpy as np
 import math
+import numpy as np
 
 
 def _checkAntimonyReturnCode(code):
@@ -23,6 +23,7 @@ def _checkAntimonyReturnCode(code):
     """
     if code < 0:
         raise Exception('Antimony: {}'.format(antimony.getLastError()))
+
 
 def sbmlToAntimony(sbml):
     """ Convert SBML to antimony string.
@@ -45,6 +46,7 @@ def sbmlToAntimony(sbml):
         code = antimony.loadSBMLString(str(sbml))
     _checkAntimonyReturnCode(code)
     return antimony.getAntimonyString(None)
+
 
 def antimonyToSBML(ant):
     """ Convert Antimony to SBML string.
@@ -514,9 +516,8 @@ class SignalForwarder(QObject):
 def create_empty_dataframe(column_dict: dict, table_type: str):
     columns = [col for col, props in column_dict.items() if not props["optional"]]
     dtypes = {
-        col: 'float64' if props["type"] == "NUMERIC"
-        else 'object'
-        for col, props in column_dict.items() if not props["optional"]
+        col: props["type"] for col, props in column_dict.items() if not
+        props["optional"]
     }
     df = pd.DataFrame(columns=columns).astype(dtypes)
     # set potential index columns
@@ -575,6 +576,29 @@ def get_selected(table_view: QTableView, mode: str = ROW) -> list[int]:
     return None
 
 
+def get_selected_rectangles(table_view: QTableView) -> np.array:
+    """Returns the selected cells in a rectangular view.
+
+    The size of the rectangle is determined by Max_row - Min_row and
+    Max_column - Min_column. The returned array is a boolean array with
+    True values for selected cells.
+    """
+    selected = get_selected(table_view, mode=INDEX)
+    if not selected:
+        return None
+    rows = [index.row() for index in selected]
+    cols = [index.column() for index in selected]
+    min_row, max_row = min(rows), max(rows)
+    min_col, max_col = min(cols), max(cols)
+    rect_start = (min_row, min_col)
+    selected_rect = np.zeros(
+        (max_row - min_row + 1, max_col - min_col + 1), dtype=bool
+    )
+    for index in selected:
+        selected_rect[index.row() - min_row, index.column() - min_col] = True
+    return selected_rect, rect_start
+
+
 def process_file(filepath, logger):
     """
     Utility function to process a file based on its type and content.
@@ -603,7 +627,7 @@ def process_file(filepath, logger):
         for sep in separators:
             # read the first line of the file
             try:
-                with open(filepath, "r") as file:
+                with open(filepath, "r", encoding="utf-8") as file:
                     header = file.readline().strip().split(sep)
                 if len(header) > 1:
                     separator = sep

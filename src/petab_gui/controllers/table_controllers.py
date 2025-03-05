@@ -1,6 +1,7 @@
 """Classes for the controllers of the tables in the GUI."""
 from PySide6.QtWidgets import QInputDialog, QMessageBox, QFileDialog, \
     QCompleter
+import numpy as np
 import pandas as pd
 import petab.v1 as petab
 from PySide6.QtCore import Signal, QObject, QModelIndex, Qt
@@ -45,8 +46,9 @@ class TableController(QObject):
         self.model.view = self.view.table_view
         self.proxy_model = PandasTableFilterProxy(model)
         self.logger = logger
+        self.check_petab_lint_mode = True
         self.mother_controller = mother_controller
-        self.view.table_view.setModel(self.model)
+        self.view.table_view.setModel(self.proxy_model)
         self.setup_connections()
         self.setup_connections_specific()
 
@@ -88,6 +90,8 @@ class TableController(QObject):
 
     def validate_changed_cell(self, row, column):
         """Validate the changed cell and whether its linting is correct."""
+        if not self.check_petab_lint_mode:
+            return
         row_data = self.model.get_df().iloc[row]
         index_name = self.model.get_df().index.name
         row_data = row_data.to_frame().T
@@ -140,6 +144,12 @@ class TableController(QObject):
                 color="red"
             )
             return
+        dtypes = {
+            col: self.model._allowed_columns.get(
+                col, {"type": np.object_}
+            )["type"] for col in new_df.columns
+        }
+        new_df = new_df.astype(dtypes)
         if mode is None:
             mode = prompt_overwrite_or_append(self)
         # Overwrite or append the table with the new DataFrame
@@ -147,17 +157,22 @@ class TableController(QObject):
             self.append_df(new_df)
         elif mode == "overwrite":
             self.overwrite_df(new_df)
+            self.model.reset_invalid_cells()
 
     def overwrite_df(self, new_df: pd.DataFrame):
         # TODO: Mother controller connects to overwritten_df signal. Set df
         #  in petabProblem and unsaved changes to True
         """Overwrite the DataFrame of the model with the data from the view."""
+        self.proxy_model.setSourceModel(None)
+        self.model.beginResetModel()
         self.model._data_frame = new_df
-        self.model.layoutChanged.emit()
+        self.model.beginResetModel()
         self.logger.log_message(
             f"Overwrote the {self.model.table_type} table with new data.",
             color="green"
         )
+        # test: overwrite the new model as source model
+        self.proxy_model.setSourceModel(self.model)
         self.overwritten_df.emit()
 
     def append_df(self, new_df: pd.DataFrame):
@@ -167,17 +182,20 @@ class TableController(QObject):
             1. Columns are the union of both DataFrame columns.
             2. Rows are the union of both DataFrame rows (duplicates removed)
         """
-        self.model._data_frame = pd.concat(
+        self.model.beginResetModel()
+        combined_df = pd.concat(
             [self.model.get_df(), new_df], axis=0
         )
-        self.model._data_frame = self.model._data_frame[
-            ~self.model._data_frame.index.duplicated(keep="first")
-        ]
-        self.model.layoutChanged.emit()
+        combined_df = combined_df[~combined_df.index.duplicated(keep="first")]
+        self.model._data_frame = combined_df
+        self.proxy_model.setSourceModel(None)
+        self.proxy_model.setSourceModel(self.model)
+        self.model.endResetModel()
         self.logger.log_message(
             f"Appended the {self.model.table_type} table with new data.",
             color="green"
         )
+        # test: overwrite the new model as source model
         self.overwritten_df.emit()
 
     def clear_table(self):
@@ -191,6 +209,7 @@ class TableController(QObject):
         selected_rows = get_selected(table_view)
         if not selected_rows:
             return
+        self.model.update_invalid_cells(selected_rows, mode="rows")
         for row in sorted(selected_rows, reverse=True):
             if row >= self.model.rowCount() - 1:
                 continue
@@ -224,6 +243,7 @@ class TableController(QObject):
         selected_columns = get_selected(table_view, mode=COLUMN)
         if not selected_columns:
             return
+        self.model.update_invalid_cells(selected_columns, mode="columns")
         for column in sorted(selected_columns, reverse=True):
             # safely delete potential item delegates
             column_name = self.model.get_df().columns[column]
@@ -261,12 +281,46 @@ class TableController(QObject):
         """Set the index of the model when a new row is added."""
         self.view.table_view.setCurrentIndex(index)
 
+    def filter_table(self, text):
+        """Filter the table."""
+        self.proxy_model.setFilterRegularExpression(text)
+        self.proxy_model.setFilterKeyColumn(-1)
+
+    def remove_filter(self):
+        """Remove the filter from the table."""
+        self.proxy_model.setFilterRegularExpression("")
+        self.proxy_model.setFilterKeyColumn(-1)
+
+    def copy_to_clipboard(self):
+        """Copy the currently selected cells to the clipboard."""
+        self.view.copy_to_clipboard()
+
+    def paste_from_clipboard(self):
+        """Paste the clipboard content to the currently selected cells."""
+        self.check_petab_lint_mode = False
+        self.view.paste_from_clipboard()
+        self.check_petab_lint_mode = True
+        try:
+            self.check_petab_lint()
+        except Exception as e:
+            self.logger.log_message(
+                f"PEtab linter failed after copying: {str(e)}",
+                color="red"
+            )
+    def check_petab_lint(self, row_data):
+        """Check a single row of the model with petablint."""
+        raise NotImplementedError(
+            "This method must be implemented in child classes."
+        )
+
 
 class MeasurementController(TableController):
     """Controller of the Measurement table."""
 
-    def check_petab_lint(self, row_data):
-        """Check a single row of the model with petablint."""
+    def check_petab_lint(self, row_data: pd.DataFrame = None):
+        """Check a number of rows of the model with petablint."""
+        if row_data is None:
+            row_data = self.model.get_df()
         # Can this be done more elegantly?
         observable_df = self.mother_controller.model.observable.get_df()
         return petab.check_measurement_df(
@@ -288,13 +342,25 @@ class MeasurementController(TableController):
         """
         if not isinstance(column_names, list):
             column_names = [column_names]
-        rows = self.model.get_df().shape[0]
-        for row in range(rows):
-            for column_name in column_names:
-                if self.model._data_frame.at[row, column_name] == old_id:
-                    self.model._data_frame.at[row, column_name] = new_id
-        self.model.something_changed.emit(True)
-        self.model.layoutChanged.emit()
+
+        # Find occurences
+        mask = self.model._data_frame[column_names].eq(old_id)
+        if mask.any().any():
+            self.model._data_frame.loc[mask] = new_id
+            changed_rows = mask.any(axis=1)
+            first_row, last_row = (
+                changed_rows.idxmax(), changed_rows[::-1].idxmax()
+            )
+            top_left = self.model.index(first_row, 1)
+            bottom_right = self.model.index(
+                last_row, self.model.columnCount() - 1
+            )
+            self.model.dataChanged.emit(
+                top_left, bottom_right, [Qt.DisplayRole, Qt.EditRole]
+            )
+
+            # Emit change signal
+            self.model.something_changed.emit(True)
 
     def copy_noise_parameters(
         self,
@@ -524,8 +590,10 @@ class ConditionController(TableController):
             self.update_handler_model
         )
 
-    def check_petab_lint(self, row_data):
-        """Check a single row of the model with petablint."""
+    def check_petab_lint(self, row_data: pd.DataFrame = None):
+        """Check a number of rows of the model with petablint."""
+        if row_data is None:
+            row_data = self.model.get_df()
         observable_df = self.mother_controller.model.observable.get_df()
         sbml_model = self.mother_controller.model.sbml.get_current_sbml_model()
         return petab.check_condition_df(
@@ -560,7 +628,7 @@ class ConditionController(TableController):
 
     def maybe_add_condition(self, condition_id, old_id=None):
         """Add a condition to the condition table if it does not exist yet."""
-        if condition_id in self.model.get_df().index:
+        if condition_id in self.model.get_df().index or not condition_id:
             return
         # add a row
         self.model.insertRows(position=None, rows=1)
@@ -670,8 +738,10 @@ class ObservableController(TableController):
             self.update_handler_model
         )
 
-    def check_petab_lint(self, row_data):
-        """Check a single row of the model with petablint."""
+    def check_petab_lint(self, row_data: pd.DataFrame = None):
+        """Check a number of rows of the model with petablint."""
+        if row_data is None:
+            row_data = self.model.get_df()
         return petab.check_observable_df(row_data)
 
     def maybe_rename_observable(self, new_id, old_id):
@@ -703,7 +773,7 @@ class ObservableController(TableController):
 
         Currently, `old_id` is not used.
         """
-        if observable_id in self.model.get_df().index:
+        if observable_id in self.model.get_df().index or not observable_id:
             return
         # add a row
         self.model.insertRows(position=None, rows=1)
@@ -799,8 +869,10 @@ class ParameterController(TableController):
                 self.completers["parameterId"]
             )
 
-    def check_petab_lint(self, row_data):
-        """Check a single row of the model with petablint."""
+    def check_petab_lint(self, row_data: pd.DataFrame = None):
+        """Check a number of rows of the model with petablint."""
+        if row_data is None:
+            row_data = self.model.get_df()
         observable_df = self.mother_controller.model.observable.get_df()
         measurement_df = self.mother_controller.model.measurement.get_df()
         condition_df = self.mother_controller.model.condition.get_df()

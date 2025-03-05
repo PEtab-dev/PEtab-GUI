@@ -1,5 +1,6 @@
-from PySide6.QtWidgets import QMenu, QStyle
+from PySide6.QtWidgets import QMenu
 from PySide6.QtGui import QAction
+import qtawesome as qta
 
 
 class BasicMenu:
@@ -39,7 +40,7 @@ class BasicMenu:
 class FileMenu(BasicMenu):
     """Class for the file menu."""
     def menu_name(self):
-        return "File"
+        return "&File"
 
     def __init__(self, parent, actions):
         super().__init__(parent, actions)
@@ -49,6 +50,7 @@ class FileMenu(BasicMenu):
         self.menu.addAction(actions["open"])
         self.menu.addAction(actions["add"])
         self.menu.addAction(actions["save"])
+        self.menu.addMenu(actions["recent_files"])
         self.menu.addSeparator()
         self.menu.addAction(actions["close"])
 
@@ -58,13 +60,16 @@ class EditMenu(BasicMenu):
     #  done in the next PR)
     """Edit Menu of the TaskBar."""
     def menu_name(self):
-        return "Edit"
+        return "&Edit"
 
     def __init__(self, parent, actions):
         super().__init__(parent, actions)
 
         # Find and Replace
         self.find_replace_action = self.add_action_or_menu("Find/Replace")
+        # Copy, Paste
+        self.menu.addAction(actions["copy"])
+        self.menu.addAction(actions["paste"])
         # Add Columns
         self.menu.addAction(actions["add_column"])
         self.menu.addAction(actions["delete_column"])
@@ -78,18 +83,26 @@ class EditMenu(BasicMenu):
 class ViewMenu(BasicMenu):
     """View Menu of the TaskBar."""
     def menu_name(self):
-        return "View"
+        return "&View"
 
     def __init__(self, parent, actions):
         super().__init__(parent, actions)
 
         # Add actions to the menu for re-adding tables
+        visibility_header = QAction(
+            qta.icon("fa5s.eye"), "Visibility", parent
+        )
+        visibility_header.setEnabled(False)
+        self.menu.addAction(visibility_header)
+        self.menu.addSeparator()
         self.menu.addAction(actions["show_measurement"])
         self.menu.addAction(actions["show_observable"])
         self.menu.addAction(actions["show_parameter"])
         self.menu.addAction(actions["show_condition"])
         self.menu.addAction(actions["show_logger"])
         self.menu.addAction(actions["show_plot"])
+        self.menu.addSeparator()
+        self.menu.addAction(actions["clear_log"])
 
 
 class TaskBar:

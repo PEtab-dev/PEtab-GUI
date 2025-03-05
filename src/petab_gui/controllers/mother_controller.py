@@ -19,7 +19,7 @@ from .table_controllers import MeasurementController, ObservableController, \
     ConditionController, ParameterController
 from .logger_controller import LoggerController
 from ..views import TaskBar
-from .utils import prompt_overwrite_or_append
+from .utils import prompt_overwrite_or_append, RecentFilesManager
 from functools import partial
 
 
@@ -83,6 +83,8 @@ class MainController:
             self.condition_controller,
             self.sbml_controller
         ]
+        # Recent Files
+        self.recent_files_manager = RecentFilesManager(max_files=10)
         # Checkbox states for Find + Replace
         self.petab_checkbox_states = {
             "measurement": False,
@@ -119,7 +121,7 @@ class MainController:
         self.observable_controller.observable_2be_renamed.connect(
             partial(
                 self.measurement_controller.rename_value,
-                column_names = "observableId"
+                column_names="observableId"
             )
         )
         # Rename Condition
@@ -160,10 +162,6 @@ class MainController:
         self.model.sbml.something_changed.connect(
             self.unsaved_changes_change
         )
-        # Closing event
-        self.view.closing_signal.connect(
-            self.maybe_close
-        )
         # correctly update the visibility even when "x" is clicked in a dock
         self.view.measurement_dock.visibilityChanged.connect(
             lambda visible: self.actions["show_measurement"].setChecked(
@@ -184,27 +182,31 @@ class MainController:
         self.view.plot_dock.visibilityChanged.connect(
             lambda visible: self.actions["show_plot"].setChecked(visible)
         )
+        # Recent Files
+        self.recent_files_manager.open_file.connect(
+            partial(self.open_file, mode="overwrite")
+        )
 
     def setup_actions(self):
         """Setup actions for the main controller."""
         actions = {"close": QAction(
             qta.icon("mdi6.close"),
-            "Close", self.view
+            "&Close", self.view
         )}
         # Close
         actions["close"].setShortcut("Ctrl+Q")
-        actions["close"].triggered.connect(self.maybe_close)
+        actions["close"].triggered.connect(self.view.close)
         # New File
         actions["new"] = QAction(
             qta.icon("mdi6.file-document"),
-            "New", self.view
+            "&New", self.view
         )
         actions["new"].setShortcut("Ctrl+N")
         actions["new"].triggered.connect(self.new_file)
         # Open File
         actions["open"] = QAction(
             qta.icon("mdi6.folder-open"),
-            "Open", self.view
+            "&Open", self.view
         )
         actions["open"].setShortcut("Ctrl+O")
         actions["open"].triggered.connect(
@@ -222,7 +224,7 @@ class MainController:
         # Save
         actions["save"] = QAction(
             qta.icon("mdi6.content-save-all"),
-            "Save", self.view
+            "&Save", self.view
         )
         actions["save"].setShortcut("Ctrl+S")
         actions["save"].triggered.connect(self.save_model)
@@ -234,6 +236,19 @@ class MainController:
         actions["find+replace"].setShortcut("Ctrl+R")
         actions["find+replace"].triggered.connect(
             self.open_find_replace_dialog)
+        # Copy / Paste
+        actions["copy"] = QAction(
+            qta.icon("mdi6.content-copy"),
+            "Copy", self.view
+        )
+        actions["copy"].setShortcut("Ctrl+C")
+        actions["copy"].triggered.connect(self.copy_to_clipboard)
+        actions["paste"] = QAction(
+            qta.icon("mdi6.content-paste"),
+            "Paste", self.view
+        )
+        actions["paste"].setShortcut("Ctrl+V")
+        actions["paste"].triggered.connect(self.paste_from_clipboard)
         # add/delete row
         actions["add_row"] = QAction(
             qta.icon("mdi6.table-row-plus-after"),
@@ -269,18 +284,20 @@ class MainController:
         actions["reset_model"].triggered.connect(
             self.sbml_controller.reset_to_original_model
         )
+        # Recent Files
+        actions["recent_files"] = self.recent_files_manager.tool_bar_menu
 
         # Filter widget
         filter_widget = QWidget()
         filter_layout = QHBoxLayout()
         filter_layout.setContentsMargins(0, 0, 0, 0)
         filter_widget.setLayout(filter_layout)
-        filter_input = QLineEdit()
-        filter_input.setPlaceholderText("Filter not functional yet ...")
-        filter_layout.addWidget(filter_input)
+        self.filter_input = QLineEdit()
+        self.filter_input.setPlaceholderText("Filter not functional yet ...")
+        filter_layout.addWidget(self.filter_input)
         for table_n, table_name in zip(
-            ["m", "p", "o", "c", "x"],
-            ["Measurement", "Parameter", "Observable", "Condition", "SBML"]
+            ["m", "p", "o", "c"],
+            ["measurement", "parameter", "observable", "condition"]
         ):
             tool_button = QToolButton()
             icon = qta.icon(
@@ -295,7 +312,11 @@ class MainController:
             tool_button.setToolTip(f"Filter for {table_name}")
             filter_layout.addWidget(tool_button)
             self.filter_active[table_name] = tool_button
+            self.filter_active[table_name].toggled.connect(
+                self.filter_table
+            )
         actions["filter_widget"] = filter_widget
+        self.filter_input.textChanged.connect(self.filter_table)
 
         # show/hide elements
         for element in ["measurement", "observable", "parameter", "condition"]:
@@ -333,6 +354,12 @@ class MainController:
         actions["show_plot"].toggled.connect(
             lambda checked: self.view.plot_dock.setVisible(checked)
         )
+        # Clear Log
+        actions["clear_log"] = QAction(
+            qta.icon("mdi6.delete"),
+            "Clear Log", self.view
+        )
+        actions["clear_log"].triggered.connect(self.logger.clear_log)
 
         return actions
 
@@ -346,7 +373,7 @@ class MainController:
             options=options
         )
         if not file_name:
-            return None
+            return False
         if not file_name.endswith(".zip"):
             file_name += ".zip"
 
@@ -370,6 +397,7 @@ class MainController:
             self.view, "Save Project",
             f"Project saved successfully to {file_name}"
         )
+        return True
 
     def open_find_replace_dialog(self):
         current_tab = self.view.tab_widget.currentIndex()
@@ -473,6 +501,7 @@ class MainController:
                 mode = prompt_overwrite_or_append(self)
         if mode is None:
             return
+        self.recent_files_manager.add_file(file_path)
         self._open_file(actionable, file_path, sep, mode)
 
     def _open_file(self, actionable, file_path, sep, mode):
@@ -551,6 +580,7 @@ class MainController:
                 "All files opened successfully from the YAML configuration.",
                 color="green"
             )
+            self.check_model()
             # rerun the completers
             for controller in self.controllers:
                 if controller == self.sbml_controller:
@@ -607,6 +637,8 @@ class MainController:
             # Log the consistency check result
             if not failed:
                 self.logger.log_message("Model is consistent.", color="green")
+                for model in self.model.pandas_models.values():
+                    model.reset_invalid_cells()
             else:
                 self.logger.log_message("Model is inconsistent.", color="red")
         finally:
@@ -631,8 +663,8 @@ class MainController:
             QMessageBox.Save
         )
         if reply == QMessageBox.Save:
-            self.save_model()
-            self.view.allow_close = True
+            saved = self.save_model()
+            self.view.allow_close = saved
         elif reply == QMessageBox.Discard:
             self.view.allow_close = True
         else:
@@ -678,3 +710,24 @@ class MainController:
         controller = self.active_controller()
         if controller:
             controller.delete_column()
+
+    def filter_table(self):
+        """Filter the currently activated tables"""
+        filter_text = self.filter_input.text()
+        for table_name, tool_button in self.filter_active.items():
+            if tool_button.isChecked():
+                controller = getattr(self, f"{table_name}_controller")
+                controller.filter_table(filter_text)
+            else:
+                controller = getattr(self, f"{table_name}_controller")
+                controller.remove_filter()
+
+    def copy_to_clipboard(self):
+        controller = self.active_controller()
+        if controller:
+            controller.copy_to_clipboard()
+
+    def paste_from_clipboard(self):
+        controller = self.active_controller()
+        if controller:
+            controller.paste_from_clipboard()

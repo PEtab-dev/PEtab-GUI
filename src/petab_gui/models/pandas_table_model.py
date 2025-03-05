@@ -1,10 +1,11 @@
 import pandas as pd
 from PySide6.QtCore import (Qt, QAbstractTableModel, QModelIndex, Signal,
-                            QSortFilterProxyModel, QPersistentModelIndex)
+                            QSortFilterProxyModel, QPersistentModelIndex, QMimeData)
 from PySide6.QtGui import QColor
 
 from ..C import COLUMNS
-from ..utils import validate_value, create_empty_dataframe, is_invalid, get_selected
+from ..utils import validate_value, create_empty_dataframe, is_invalid, \
+    get_selected
 from ..controllers.default_handler import DefaultHandlerModel
 
 
@@ -49,15 +50,12 @@ class PandasTableModel(QAbstractTableModel):
             if column == 0:
                 value = self._data_frame.index[row]
                 return str(value)
-            value = self._data_frame.iloc[row, column-1]
+            value = self._data_frame.iloc[row, column - 1]
             if is_invalid(value):
                 return ""
             return str(value)
         elif role == Qt.BackgroundRole:
-            if (row, column) in self._invalid_cells:
-                return QColor(Qt.red)
-            if (row, column) == (self._data_frame.shape[0], 0):
-                return QColor(144, 238, 144, 150)
+            return self.determine_background_color(row, column)
         return None
 
     def flags(self, index):
@@ -123,7 +121,8 @@ class PandasTableModel(QAbstractTableModel):
             )
         position = self._data_frame.shape[1]
         self.beginInsertColumns(QModelIndex(), position, position)
-        column_type = self._allowed_columns.get(column_name, {"type": "STRING"})["type"]
+        column_type = \
+        self._allowed_columns.get(column_name, {"type": "STRING"})["type"]
         default_value = "" if column_type == "STRING" else 0
         self._data_frame[column_name] = default_value
         self.endInsertColumns()
@@ -133,6 +132,8 @@ class PandasTableModel(QAbstractTableModel):
     def setData(self, index, value, role=Qt.EditRole):
         if not (index.isValid() and role == Qt.EditRole):
             return False
+        if is_invalid(value) or value == "":
+            value = None
         # check whether multiple rows but only one column is selected
         multi_row_change, selected = self.check_selection()
         if not multi_row_change:
@@ -151,7 +152,6 @@ class PandasTableModel(QAbstractTableModel):
         if index.row() == self._data_frame.shape[0]:
             # empty row at the end
             self.insertRows(index.row(), 1)
-            self.layoutChanged.emit()
             self.fill_defaults.emit(index)
             # self.get_default_values(index)
             next_index = self.index(index.row(), 0)
@@ -162,6 +162,16 @@ class PandasTableModel(QAbstractTableModel):
         # Handling non-index (regular data) columns
         column_name = self._data_frame.columns[column - col_setoff]
         old_value = self._data_frame.iloc[row, column - col_setoff]
+        # cast to numeric if necessary
+        if not self._data_frame[column_name].dtype == "object":
+            try:
+                value = float(value)
+            except ValueError:
+                self.new_log_message.emit(
+                    f"Column '{column_name}' expects a numeric value",
+                    "red"
+                )
+                return False
         if value == old_value:
             return False
 
@@ -172,7 +182,8 @@ class PandasTableModel(QAbstractTableModel):
             self.cell_needs_validation.emit(row, column)
             self.something_changed.emit(True)
             return True
-        if column_name in ["conditionId", "simulationConditionId", "preequilibrationConditionId"]:
+        if column_name in ["conditionId", "simulationConditionId",
+                           "preequilibrationConditionId"]:
             self._data_frame.iloc[row, column - col_setoff] = value
             self.dataChanged.emit(index, index, [Qt.DisplayRole])
             self.relevant_id_changed.emit(value, old_value, "condition")
@@ -214,11 +225,31 @@ class PandasTableModel(QAbstractTableModel):
 
     def replace_text(self, old_text: str, new_text: str):
         """Replace text in the table."""
-        self._data_frame.replace(old_text, new_text, inplace=True)
+        # find all occurences of old_text and sae indices
+        mask = self._data_frame.eq(old_text)
+        if mask.any().any():
+            self._data_frame.replace(old_text, new_text, inplace=True)
+            # Get first and last modified cell for efficient `dataChanged` emit
+            changed_cells = mask.stack()[
+                mask.stack()].index.tolist()  # Extract (row, col) pairs
+            if changed_cells:
+                first_row, first_col = changed_cells[0]
+                last_row, last_col = changed_cells[-1]
+                if self._has_named_index:
+                    first_col += 1
+                    last_col += 1
+                top_left = self.index(first_row, first_col)
+                bottom_right = self.index(last_row, last_col)
+                self.dataChanged.emit(top_left, bottom_right, [Qt.DisplayRole])
         # also replace in the index
-        if self._has_named_index:
+        if self._has_named_index and old_text in self._data_frame.index:
             self._data_frame.rename(index={old_text: new_text}, inplace=True)
-        self.layoutChanged.emit()
+            index_row = self._data_frame.index.get_loc(new_text)
+            index_top_left = self.index(index_row, 0)
+            index_bottom_right = self.index(index_row, 0)
+            self.dataChanged.emit(
+                index_top_left, index_bottom_right, [Qt.DisplayRole]
+            )
 
     def get_df(self):
         """Return the DataFrame."""
@@ -226,11 +257,49 @@ class PandasTableModel(QAbstractTableModel):
 
     def add_invalid_cell(self, row, column):
         """Add an invalid cell to the set."""
+        # check that the index is valid
+        if not self.index(row, column).isValid():
+            return
+        # return if it is the last row
+        if row == self._data_frame.shape[0]:
+            return
+        # return if it is already invalid
+        if (row, column) in self._invalid_cells:
+            return
         self._invalid_cells.add((row, column))
+        self.dataChanged.emit(
+            self.index(row, column),
+            self.index(row, column),
+            [Qt.BackgroundRole]
+        )
 
     def discard_invalid_cell(self, row, column):
         """Discard an invalid cell from the set."""
         self._invalid_cells.discard((row, column))
+        self.dataChanged.emit(
+            self.index(row, column),
+            self.index(row, column),
+            [Qt.BackgroundRole]
+        )
+
+    def update_invalid_cells(self, selected, mode: str = "rows"):
+        """Edits the invalid cells when values are deleted."""
+        old_invalid_cells = self._invalid_cells.copy()
+        new_invalid_cells = set()
+        sorted_to_del = sorted(selected)
+        for a, b in old_invalid_cells:
+            if mode == "rows":
+                to_be_change = a
+                not_changed = b
+            elif mode == "columns":
+                to_be_change = b
+                not_changed = a
+            if to_be_change in selected:
+                continue
+            smaller_count = sum(1 for x in sorted_to_del if x < to_be_change)
+            new_val = to_be_change - smaller_count
+            new_invalid_cells.add((new_val, not_changed))
+        self._invalid_cells = new_invalid_cells
 
     def notify_data_color_change(self, row, column):
         """Notify the view to change the color of some cells"""
@@ -293,11 +362,95 @@ class PandasTableModel(QAbstractTableModel):
         rows = set([index.row() for index in selected])
         return len(rows) > 1 and len(cols) == 1, selected
 
+    def reset_invalid_cells(self):
+        """Reset the invalid cells and update their background color."""
+        if not self._invalid_cells:
+            return
+
+        invalid_cells = list(self._invalid_cells)
+        self._invalid_cells.clear()  # Clear invalid cells set
+
+        for row, col in invalid_cells:
+            index = self.index(row, col)
+            self.dataChanged.emit(index, index, [Qt.BackgroundRole])
+
+    def mimeData(self, rectangle, start_index):
+        """Return the data to be copied to the clipboard.
+
+        Parameters
+        ----------
+        rectangle: np.ndarray
+            The rectangle of selected cells. Creates a minimum rectangle
+            around all selected cells and is True if the cell is selected.
+        start_index: (int, int)
+            The start index of the selection. Used to determine the location
+            of the copied data.
+        """
+        copied_data = ""
+        for row in range(rectangle.shape[0]):
+            for col in range(rectangle.shape[1]):
+                if rectangle[row, col]:
+                    copied_data += self.data(
+                        self.index(start_index[0] + row, start_index[1] + col),
+                        Qt.DisplayRole
+                    )
+                else:
+                    copied_data += "SKIP"
+                if col < rectangle.shape[1] - 1:
+                    copied_data += "\t"
+            copied_data += "\n"
+        mime_data = QMimeData()
+        mime_data.setText(copied_data.strip())
+        return mime_data
+
+    def setDataFromText(self, text, start_row, start_column):
+        """Set the data from text."""
+        # TODO: Does this need to be more flexible in the separator?
+        lines = text.split("\n")
+        self.maybe_add_rows(start_row, len(lines))
+        for row_offset, line in enumerate(lines):
+            values = line.split("\t")
+            for col_offset, value in enumerate(values):
+                if value == "SKIP":
+                    continue
+                self.setData(
+                    self.index(
+                        start_row + row_offset, start_column + col_offset
+                    ),
+                    value,
+                    Qt.EditRole
+                )
+
+    def maybe_add_rows(self, start_row, n_rows):
+        """Add rows if needed."""
+        if start_row + n_rows > self._data_frame.shape[0]:
+            self.insertRows(
+                self._data_frame.shape[0],
+                start_row + n_rows - self._data_frame.shape[0]
+            )
+            self.layoutChanged.emit()
+
+    def determine_background_color(self, row, column):
+        """Determine the background color of a cell.
+
+        1. If it is the first column and last row, return light green.
+        2. If it is an invalid cell, return red
+        3. If it is an even row return light blue
+        4. Otherwise return light green
+        """
+        if (row, column) == (self._data_frame.shape[0], 0):
+            return QColor(144, 238, 144, 150)
+        if (row, column) in self._invalid_cells:
+            return QColor(255, 100, 100, 150)
+        if row % 2 == 0:
+            return QColor(144, 190, 109, 102)
+        return QColor(177, 217, 231, 102)
 
 
 class IndexedPandasTableModel(PandasTableModel):
     """Table model for tables with named index."""
     condition_2be_renamed = Signal(str, str)  # Signal to mother controller
+
     def __init__(self, data_frame, allowed_columns, table_type, parent=None):
         super().__init__(
             data_frame=data_frame,
@@ -346,6 +499,7 @@ class MeasurementModel(PandasTableModel):
     """Table model for the measurement data."""
     possibly_new_condition = Signal(str)  # Signal for new condition
     possibly_new_observable = Signal(str)  # Signal for new observable
+
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
@@ -372,10 +526,7 @@ class MeasurementModel(PandasTableModel):
                 return ""
             return str(value)
         elif role == Qt.BackgroundRole:
-            if (row, column) in self._invalid_cells:
-                return QColor(Qt.red)
-            if (row, column) == (self._data_frame.shape[0], 0):
-                return QColor(144, 238, 144, 150)
+            return self.determine_background_color(row, column)
         return None
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
@@ -418,6 +569,7 @@ class MeasurementModel(PandasTableModel):
 
 class ObservableModel(IndexedPandasTableModel):
     """Table model for the observable data."""
+
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
@@ -510,6 +662,7 @@ class ObservableModel(IndexedPandasTableModel):
 
 class ParameterModel(IndexedPandasTableModel):
     """Table model for the parameter data."""
+
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
@@ -550,6 +703,7 @@ class ParameterModel(IndexedPandasTableModel):
 
 class ConditionModel(IndexedPandasTableModel):
     """Table model for the condition data."""
+
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
@@ -613,36 +767,34 @@ class PandasTableFilterProxy(QSortFilterProxyModel):
         super().__init__(parent)
         self.source_model = model
         self.setSourceModel(model)
-        self.column_filters = {}  # Store filters for multiple columns
-
-    def setFilterForColumn(self, column, pattern):
-        """Set filter pattern for a specific column."""
-        if pattern:
-            self.column_filters[column] = pattern  # Add or update filter for the column
-        else:
-            self.column_filters.pop(column, None)  # Remove filter if pattern is empty
-        self.invalidateFilter()  # Trigger the proxy to re-evaluate the filters
 
     def filterAcceptsRow(self, source_row, source_parent):
-        """Custom filtering logic to apply filters on multiple columns."""
+        """Custom filtering logic to apply global filtering across all columns."""
         source_model = self.sourceModel()
 
         # Always accept the last row (for "add new row")
         if source_row == source_model.rowCount() - 1:
             return True
 
-        # Apply all column filters
-        for column, pattern in self.column_filters.items():
-            index = source_model.index(source_row, column, source_parent)
-            value = source_model.data(index, Qt.DisplayRole)
-            if not self.valueMatchesFilter(value, pattern):
-                return False  # Reject the row if any column doesn't match its filter
+        regex = self.filterRegularExpression()
+        if regex.pattern() == "":
+            return True
 
-        return True  # Accept row if it matches all filters
+        for column in range(source_model.columnCount()):
+            index = source_model.index(source_row, column, QModelIndex())
+            data_str = str(source_model.data(index) or "")
+            if regex.match(data_str).hasMatch():
+                return True
+        return False  # No match found
 
-    def valueMatchesFilter(self, value, pattern):
-        """Check if the value matches the filter pattern."""
-        if pattern and pattern not in str(value):
-            return False
-        return True
+    def mimeData(self, rectangle, start_index):
+        """Return the data to be copied to the clipboard."""
+        return self.source_model.mimeData(rectangle, start_index)
 
+    def setDataFromText(self, text, start_row, start_column):
+        """Set the data from text."""
+        return self.source_model.setDataFromText(text, start_row, start_column)
+
+    @property
+    def _invalid_cells(self):
+        return self.source_model._invalid_cells
