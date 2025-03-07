@@ -586,11 +586,6 @@ class ObservableModel(IndexedPandasTableModel):
                 "strategy": "copy_column", "source_column": "observableId",
                 "default_value": ""
             },
-            # # Deactivate Formula DEfaults for now
-            # "observableFormula": {
-            #     "strategy": "copy_column", "source_column": "observableId",
-            #     "default_value": ""
-            # },
             "noiseFormula": {
                 "strategy": "default_value", "default_value": 1
             },
@@ -716,12 +711,7 @@ class ConditionModel(IndexedPandasTableModel):
             "conditionName": {
                 "strategy": "copy_column", "source_column": "conditionId",
                 "default_value": ""
-            },
-            "default_config": {
-                "strategy": "majority_vote",
-                "source_column": "source_column",  # Placeholder
-                "default_value": ""
-            },
+            }
         }
         self.default_handler = DefaultHandlerModel(self, self.config)
 

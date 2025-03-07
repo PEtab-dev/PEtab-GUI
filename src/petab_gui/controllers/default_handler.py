@@ -31,8 +31,6 @@ class DefaultHandlerModel:
             if "default_config" in self.config:
                 column_name = "default_config"
             else:
-                print(f"No configuration found for column '{column_name}' "
-                      f"and no default configuration. Returning \"\".")
                 return ""
 
         column_config = self.config[column_name]
