@@ -1,12 +1,11 @@
 """Main Window View."""
-from PySide6.QtWidgets import (QApplication, QMainWindow, QDockWidget,
-                               QTableView, QWidget, QVBoxLayout, QPushButton, QTabWidget)
-from PySide6.QtCore import Qt, Signal, QSettings
+from PySide6.QtWidgets import QMainWindow, QDockWidget, QTabWidget
+from PySide6.QtCore import Qt, QSettings
 from .sbml_view import SbmlViewer
 from .table_view import TableViewer
-from .task_bar import TaskBar
 from .logger import Logger
 from .measurement_plot import MeasuremenPlotter
+from ..settings_manager import settings_manager
 
 
 class MainWindow(QMainWindow):
@@ -112,7 +111,7 @@ class MainWindow(QMainWindow):
 
         self.tab_widget.currentChanged.connect(self.set_docks_visible)
 
-        self.load_settings()
+        settings_manager.load_ui_settings(self)
 
         # drag drop
         self.setAcceptDrops(True)
@@ -186,46 +185,7 @@ class MainWindow(QMainWindow):
         self.controller.maybe_close()
 
         if self.allow_close:
-            self.save_settings()
+            settings_manager.save_ui_settings(self)
             event.accept()
         else:
             event.ignore()
-
-
-    def load_settings(self):
-        """Load the settings from the QSettings object."""
-        settings = QSettings("petab", "petab_gui")
-
-        # Load the visibility of the dock widgets
-        for dock, _ in self.dock_visibility.items():
-            dock.setVisible(settings.value(f"docks/{dock.objectName()}", True, type=bool))
-                
-        # Load the geometry of the main window
-        self.restoreGeometry(settings.value("main_window/geometry"))
-
-        # Restore the positions of the dock widgets
-        self.restoreState(settings.value("main_window/state"))
-
-        # restore the settings of the data tab
-        self.data_tab.restoreGeometry(settings.value("data_tab/geometry"))
-        self.data_tab.restoreState(settings.value("data_tab/state"))
-
-
-    def save_settings(self):
-        """Save the settings to the QSettings object."""
-        settings = QSettings("petab", "petab_gui")
-
-        # Save the visibility of the dock widgets
-        for dock, _ in self.dock_visibility.items():
-            settings.setValue(f"docks/{dock.objectName()}", dock.isVisible())
-
-        # Save the geometry of the main window
-        settings.setValue("main_window/geometry", self.saveGeometry())
-
-        # Save the positions of the dock widgets
-        settings.setValue("main_window/state", self.saveState())
-
-        # save the settings of the data tab
-        settings.setValue("data_tab/geometry", self.data_tab.saveGeometry())
-        settings.setValue("data_tab/state", self.data_tab.saveState())
-
