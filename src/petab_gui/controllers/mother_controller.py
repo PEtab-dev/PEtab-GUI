@@ -21,6 +21,7 @@ from .logger_controller import LoggerController
 from ..views import TaskBar
 from .utils import prompt_overwrite_or_append, RecentFilesManager
 from functools import partial
+from ..settings_manager import SettingsDialog, settings_manager
 
 
 class MainController:
@@ -185,6 +186,10 @@ class MainController:
         # Recent Files
         self.recent_files_manager.open_file.connect(
             partial(self.open_file, mode="overwrite")
+        )
+        # Settings logging
+        settings_manager.new_log_message.connect(
+            self.logger.log_message
         )
 
     def setup_actions(self):
@@ -360,6 +365,12 @@ class MainController:
             "Clear Log", self.view
         )
         actions["clear_log"].triggered.connect(self.logger.clear_log)
+        # Settings
+        actions["settings"] = QAction(
+            qta.icon("mdi6.cog"),
+            "Settings", self.view
+        )
+        actions["settings"].triggered.connect(self.open_settings)
 
         return actions
 
@@ -731,3 +742,15 @@ class MainController:
         controller = self.active_controller()
         if controller:
             controller.paste_from_clipboard()
+
+    def open_settings(self):
+        """Opens the settings Dialogue."""
+        # retrieve all current columns from the tables
+        table_columns = {
+            "observable": self.observable_controller.get_columns(),
+            "parameter": self.parameter_controller.get_columns(),
+            "measurement": self.measurement_controller.get_columns(),
+            "condition": self.condition_controller.get_columns(),
+        }
+        settings_dialog = SettingsDialog(table_columns, self.view)
+        settings_dialog.exec()

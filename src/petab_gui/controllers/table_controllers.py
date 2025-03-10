@@ -8,6 +8,7 @@ from PySide6.QtCore import Signal, QObject, QModelIndex, Qt
 from pathlib import Path
 from ..models.pandas_table_model import PandasTableModel, \
     PandasTableFilterProxy
+from ..settings_manager import settings_manager
 from ..views.table_view import TableViewer, SingleSuggestionDelegate, \
     ColumnSuggestionDelegate, ComboBoxDelegate, ParameterIdSuggestionDelegate
 from ..utils import get_selected, process_file, ConditionInputDialog
@@ -86,6 +87,9 @@ class TableController(QObject):
         )
         self.model.fill_defaults.connect(
             self.model.get_default_values, Qt.QueuedConnection
+        )
+        settings_manager.settings_changed.connect(
+            self.update_defaults
         )
 
     def validate_changed_cell(self, row, column):
@@ -307,10 +311,31 @@ class TableController(QObject):
                 f"PEtab linter failed after copying: {str(e)}",
                 color="red"
             )
+
     def check_petab_lint(self, row_data):
         """Check a single row of the model with petablint."""
         raise NotImplementedError(
             "This method must be implemented in child classes."
+        )
+
+    def get_columns(self):
+        """Get the columns of the table."""
+        df = self.model.get_df()
+        # if it is a named index, add it to the columns
+        if df.index.name:
+            return [df.index.name] + df.columns.tolist()
+        return df.columns.tolist()
+
+    def update_defaults(self, settings_changed):
+        """Update the default values of the model."""
+        # if the signal is not "table_defaults/table_name" return
+        if not settings_changed.startswith("table_defaults"):
+            return
+        table_name = settings_changed.split("/")[1]
+        if table_name != self.model.table_type:
+            return
+        self.model.default_handler.config = (
+            settings_manager.get_table_defaults(self.model.table_type)
         )
 
 

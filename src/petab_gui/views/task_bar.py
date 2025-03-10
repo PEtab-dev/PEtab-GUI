@@ -78,6 +78,10 @@ class EditMenu(BasicMenu):
         self.menu.addAction(actions["delete_row"])
         # Reset Model
         self.menu.addAction(actions["reset_model"])
+        self.menu.addSeparator()
+        # Settings
+        self.menu.addAction(actions["settings"])
+        self.menu.addSeparator()
 
 
 class ViewMenu(BasicMenu):
