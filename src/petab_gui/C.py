@@ -60,3 +60,56 @@ CONFIG = {
 ROW = 'row'
 COLUMN = 'column'
 INDEX = 'index'
+
+# Default Configurations of Default Values
+DEFAULT_OBS_CONFIG = {
+    "observableId": {
+        "strategy": "copy_column", "source_column": "observableFormula",
+        "prefix": "obs_", "default_value": ""
+    },
+    "observableName": {
+        "strategy": "copy_column", "source_column": "observableId",
+        "default_value": ""
+    },
+    "noiseFormula": {
+        "strategy": "default_value", "default_value": 1
+    },
+    "observableTransformation": {
+        "strategy": "default_value",
+        "default_value": "lin"
+    },
+    "noiseDistribution": {
+        "strategy": "default_value",
+        "default_value": "normal"
+    }
+}
+DEFAULT_PAR_CONFIG = {
+    "parameterName": {
+        "strategy": "copy_column", "source_column": "parameterId", "default_value": ""
+    },
+    "parameterScale": {
+        "strategy": "default_value", "default_value": "log10"
+    },
+    "lowerBound": {
+        "strategy": "min_column", "min_cap": 1e-8, "default_value": 1e-8
+    },
+    "upperBound": {
+        "strategy": "max_column", "max_cap": 1e8, "default_value": 1e8
+    },
+    "estimate": {
+        "strategy": "default_value", "default_value": 1
+    },
+}
+DEFAULT_COND_CONFIG = {
+    "conditionName": {
+        "strategy": "copy_column", "source_column": "conditionId",
+        "default_value": ""
+    }
+}
+DEFAULT_MEAS_CONFIG = {}
+DEFAULT_CONFIGS = {
+    "observable": DEFAULT_OBS_CONFIG,
+    "parameter": DEFAULT_PAR_CONFIG,
+    "condition": DEFAULT_COND_CONFIG,
+    "measurement": DEFAULT_MEAS_CONFIG
+}

@@ -1,12 +1,13 @@
 import pandas as pd
 from PySide6.QtCore import (Qt, QAbstractTableModel, QModelIndex, Signal,
-                            QSortFilterProxyModel, QPersistentModelIndex, QMimeData)
+                            QSortFilterProxyModel, QMimeData)
 from PySide6.QtGui import QColor
 
 from ..C import COLUMNS
 from ..utils import validate_value, create_empty_dataframe, is_invalid, \
     get_selected
 from ..controllers.default_handler import DefaultHandlerModel
+from ..settings_manager import settings_manager
 
 
 class PandasTableModel(QAbstractTableModel):
@@ -30,6 +31,9 @@ class PandasTableModel(QAbstractTableModel):
         self._data_frame = data_frame
         # add a view here, access is needed for selectionModels
         self.view = None
+        # default values setup
+        self.config = settings_manager.get_table_defaults(table_type)
+        self.default_handler = DefaultHandlerModel(self, self.config)
 
     def rowCount(self, parent=QModelIndex()):
         return self._data_frame.shape[0] + 1  # empty row at the end
@@ -577,30 +581,6 @@ class ObservableModel(IndexedPandasTableModel):
             table_type="observable",
             parent=parent
         )
-        self.config = {
-            "observableId": {
-                "strategy": "copy_column", "source_column": "observableFormula",
-                "prefix": "obs_", "default_value": ""
-            },
-            "observableName": {
-                "strategy": "copy_column", "source_column": "observableId",
-                "default_value": ""
-            },
-            "noiseFormula": {
-                "strategy": "default_value", "default_value": 1
-            },
-            "observableTransformation": {
-                "strategy": "majority_vote",
-                "source_column": "source_column",  # Placeholder
-                "default_value": ""
-            },
-            "noiseDistribution": {
-                "strategy": "majority_vote",
-                "source_column": "source_column",  # Placeholder
-                "default_value": ""
-            }
-        }
-        self.default_handler = DefaultHandlerModel(self, self.config)
 
     def get_default_values(self, index):
         """Return the default values for a the row in a new index."""
@@ -665,24 +645,6 @@ class ParameterModel(IndexedPandasTableModel):
             table_type="parameter",
             parent=parent
         )
-        self.config = {
-            "parameterName": {
-                "strategy": "copy_column", "source_column": "parameterId", "default_value": ""
-            },
-            "parameterScale": {
-                "strategy": "default_value", "default_value": "log10"
-            },
-            "lowerBound": {
-                "strategy": "min_column", "min_cap": 1e-8, "default_value": 1e-8
-            },
-            "upperBound": {
-                "strategy": "max_column", "max_cap": 1e8, "default_value": 1e8
-            },
-            "estimate": {
-                "strategy": "default_value", "default_value": 1
-            },
-        }
-        self.default_handler = DefaultHandlerModel(self, self.config)
 
     def get_default_values(self, index):
         """Return the default values for a the row in a new index."""
@@ -707,13 +669,6 @@ class ConditionModel(IndexedPandasTableModel):
             parent=parent
         )
         self._allowed_columns.pop("conditionId")
-        self.config = {
-            "conditionName": {
-                "strategy": "copy_column", "source_column": "conditionId",
-                "default_value": ""
-            }
-        }
-        self.default_handler = DefaultHandlerModel(self, self.config)
 
     def get_default_values(self, index):
         """Return the default values for a the row in a new index."""

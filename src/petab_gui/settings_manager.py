@@ -3,6 +3,7 @@ persistent storage.
 
 Creates a single instance that will be imported and used."""
 from PySide6.QtCore import QSettings, QObject, Signal
+from .C import DEFAULT_CONFIGS
 
 
 class SettingsManager(QObject):
@@ -62,6 +63,18 @@ class SettingsManager(QObject):
         self.set_value(
             "data_tab/state", main_window.data_tab.saveState()
         )
+
+    def get_table_defaults(self, table_name):
+        """Retrieve default configuration for a specific table."""
+        return self.settings.value(
+            f"table_defaults/{table_name}",
+            DEFAULT_CONFIGS.get(table_name, {})
+        )
+
+    def set_table_defaults(self, table_name, config):
+        """Update default configuration for a specific table."""
+        self.settings.setValue(f"table_defaults/{table_name}", config)
+        self.settings_changed.emit(f"table_defaults/{table_name}")
 
 
 # Create a single instance of the SettingsManager to be imported and used
