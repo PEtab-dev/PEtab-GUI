@@ -1,7 +1,8 @@
-from PySide6.QtWidgets import QDockWidget, QVBoxLayout, QTableView, QWidget,\
-    QCompleter, QLineEdit, QStyledItemDelegate, QComboBox
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtWidgets import (QDockWidget, QHeaderView, QTableView,
+                               QCompleter, QLineEdit, QStyledItemDelegate,
+                               QComboBox)
+from PySide6.QtCore import Qt, QPropertyAnimation, QRect
+from PySide6.QtGui import QGuiApplication, QColor
 
 from ..utils import get_selected, get_selected_rectangles
 from ..C import INDEX
@@ -15,13 +16,9 @@ class TableViewer(QDockWidget):
         self.setAllowedAreas(
             Qt.AllDockWidgetAreas
         )
-        widget = QWidget()
-        self.setWidget(widget)
-        layout = QVBoxLayout(widget)
-
         # Create the QTableView for the table content
-        self.table_view = QTableView()
-        layout.addWidget(self.table_view)
+        self.table_view = CustomTableView()
+        self.setWidget(self.table_view)
         # Dictionary to store column-specific completers
         self.completers = {}
         self.table_view.setAlternatingRowColors(True)
@@ -48,7 +45,8 @@ class TableViewer(QDockWidget):
         model = self.table_view.model()
         row_start, col_start = start_index.row(), start_index.column()
         # identify which invalid cells are being pasted into
-        pasted_data = [line.split("\t") for line in text.split("\n") if line.strip()]
+        pasted_data = [line.split("\t") for line in text.split("\n") if
+                       line.strip()]
         num_rows = len(pasted_data)
         num_cols = max([len(line) for line in pasted_data])
         overridden_cells = {
@@ -85,6 +83,7 @@ class ComboBoxDelegate(QStyledItemDelegate):
 class SingleSuggestionDelegate(QStyledItemDelegate):
     """Suggest a single option based the current row and the value in
     `column_name`."""
+
     def __init__(self, model, suggestions_column, afix=None, parent=None):
         super().__init__(parent)
         self.model = model  # The main model to retrieve data from
@@ -109,6 +108,7 @@ class SingleSuggestionDelegate(QStyledItemDelegate):
         editor.setCompleter(completer)
 
         return editor
+
 
 class ColumnSuggestionDelegate(QStyledItemDelegate):
     """Suggest options based on all unique values in the specified column."""
@@ -171,3 +171,95 @@ class ParameterIdSuggestionDelegate(QStyledItemDelegate):
         editor.setCompleter(completer)
 
         return editor
+
+
+class CustomTableView(QTableView):
+    """Custom Table View to Handle Copy Paste events, resizing policies etc."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setSizeAdjustPolicy(QTableView.AdjustToContents)
+        self.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeToContents
+        )
+        self.horizontalHeader().setStretchLastSection(
+            False
+        )  # Prevent last column from stretching
+
+        self.horizontalHeader().sectionDoubleClicked.connect(
+            self.autofit_column
+        )
+
+    def setModel(self, model):
+        """Ensures selection model exists before connecting signals"""
+        super().setModel(model)
+        if self.selectionModel():
+            self.selectionModel().currentColumnChanged.connect(self.highlight_active_column)
+
+    def reset_column_sizes(self):
+        """Resets column sizes with refinements"""
+        header = self.horizontalHeader()
+        total_width = self.viewport().width()
+        max_width = total_width // 4  # 1/4th of total table width
+
+        header.setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.resizeColumnsToContents()
+        header.setSectionResizeMode(QHeaderView.Interactive)
+
+        # Enforce max width but allow expanding into empty neighbors
+        for col in range(self.model().columnCount()):
+            optimal_width = self.columnWidth(col)
+            if optimal_width > max_width:
+                self.setColumnWidth(col, max_width)
+            else:
+                self.setColumnWidth(col, optimal_width)
+
+        # self.adjust_for_empty_neighbors()
+        self.collapse_empty_columns()
+        self.updateGeometry()
+
+    def adjust_for_empty_neighbors(self):
+        """Expands column if adjacent columns are empty"""
+        model = self.model()
+        for col in range(model.columnCount()):
+            if self.columnWidth(col) == self.viewport().width() // 4:  # If maxed out
+                next_col = col + 1
+                if next_col < model.columnCount():
+                    if all(model.index(row, next_col).data() in [None, ""] for row in range(model.rowCount())):
+                        new_width = self.columnWidth(
+                            col) + self.columnWidth(next_col)
+                        self.setColumnWidth(col, new_width)
+                        self.setColumnWidth(next_col, 0)  # Hide empty column
+
+    def collapse_empty_columns(self):
+        """Collapses columns that only contain empty values"""
+        model = self.model()
+        for col in range(model.columnCount()):
+            if all(model.index(row, col).data() in [None, "", " "] for row in
+                   range(model.rowCount())):
+                self.setColumnWidth(col, 10)  # Minimal width
+
+    def autofit_column(self, col):
+        """Expands column width on double-click"""
+        self.horizontalHeader().setSectionResizeMode(col,
+                                                     QHeaderView.ResizeToContents)
+        self.resizeColumnToContents(col)
+        self.horizontalHeader().setSectionResizeMode(col,
+                                                     QHeaderView.Interactive)
+
+    def highlight_active_column(self, index):
+        """Highlights the active column"""
+        for row in range(self.model().rowCount()):
+            self.model().setData(self.model().index(row, index.column()),
+                                 QColor("#cce6ff"), Qt.BackgroundRole)
+
+    def animate_column_resize(self, col, new_width):
+        """Smoothly animates column resizing"""
+        anim = QPropertyAnimation(self, b"geometry")
+        anim.setDuration(200)
+        anim.setStartValue(QRect(self.columnViewportPosition(col), 0,
+                                 self.columnWidth(col), self.height()))
+        anim.setEndValue(
+            QRect(self.columnViewportPosition(col), 0, new_width,
+                  self.height()))
+        anim.start()
