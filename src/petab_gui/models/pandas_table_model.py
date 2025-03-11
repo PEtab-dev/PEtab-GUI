@@ -6,7 +6,7 @@ from PySide6.QtGui import QColor
 from ..C import COLUMNS
 from ..utils import validate_value, create_empty_dataframe, is_invalid, \
     get_selected
-from ..commands import AddColumnCommand
+from ..commands import ModifyColumnCommand
 
 
 class PandasTableModel(QAbstractTableModel):
@@ -132,12 +132,10 @@ class PandasTableModel(QAbstractTableModel):
             )
 
         if self.undo_stack:
-            print(f"Before push: {self.undo_stack.count()}")  # Debugging line
-            self.undo_stack.push(AddColumnCommand(self, column_name))
-            print(f"After push: {self.undo_stack.count()}")
+            self.undo_stack.push(ModifyColumnCommand(self, column_name))
         else:
             # Fallback if undo stack isn't used
-            command = AddColumnCommand(self, column_name)
+            command = ModifyColumnCommand(self, column_name)
             command.redo()
 
         return True
@@ -349,9 +347,12 @@ class PandasTableModel(QAbstractTableModel):
     def delete_column(self, column_index):
         """Delete a column from the DataFrame."""
         column_name = self._data_frame.columns[column_index - self.column_offset]
-        self.beginRemoveColumns(QModelIndex(), column_index, column_index)
-        self._data_frame.drop(columns=[column_name], inplace=True)
-        self.endRemoveColumns()
+        if self.undo_stack:
+            self.undo_stack.push(ModifyColumnCommand(self, column_name, False))
+        else:
+            # Fallback if undo stack isn't used
+            command = ModifyColumnCommand(self, column_name, False)
+            command.redo()
 
     def clear_table(self):
         """Clear the table."""

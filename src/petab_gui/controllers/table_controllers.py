@@ -253,7 +253,7 @@ class TableController(QObject):
                 self.logger.log_message(
                     f"Cannot delete column {column_name}, as it is a "
                     f"required column!",
-                    color = "red"
+                    color="red"
                 )
                 continue
             if column_name in self.completers:
