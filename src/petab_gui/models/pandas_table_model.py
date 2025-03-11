@@ -6,6 +6,7 @@ from PySide6.QtGui import QColor
 from ..C import COLUMNS
 from ..utils import validate_value, create_empty_dataframe, is_invalid, \
     get_selected
+from ..commands import AddColumnCommand
 
 
 class PandasTableModel(QAbstractTableModel):
@@ -17,7 +18,8 @@ class PandasTableModel(QAbstractTableModel):
     something_changed = Signal(bool)
     inserted_row = Signal(QModelIndex)
 
-    def __init__(self, data_frame, allowed_columns, table_type, parent=None):
+    def __init__(self, data_frame, allowed_columns, table_type,
+                 undo_stack = None, parent=None):
         super().__init__(parent)
         self._allowed_columns = allowed_columns
         self.table_type = table_type
@@ -31,6 +33,7 @@ class PandasTableModel(QAbstractTableModel):
         # offset for row and column to get from the data_frame to the view
         self.row_index_offset = 0
         self.column_offset = 0
+        self.undo_stack = undo_stack
 
     def rowCount(self, parent=QModelIndex()):
         return self._data_frame.shape[0] + 1  # empty row at the end
@@ -112,21 +115,30 @@ class PandasTableModel(QAbstractTableModel):
         Override insertColumn to always add the column at the right (end) of the table,
         and do so in-place on the DataFrame.
         """
+        if column_name in self._data_frame.columns:
+            self.new_log_message.emit(
+                f"Column '{column_name}' already exists",
+                "red"
+            )
+            return False
         if not (
             column_name in self._allowed_columns or
             self.table_type == "condition"
         ):  # empty dict means all columns allowed
             self.new_log_message.emit(
-                f"Column '{column_name}' not allowed in {self.table_type} table",
+                f"Column '{column_name}' will be ignored for the petab "
+                f"problem but may still be used to store relevant information",
                 "orange"
             )
-        position = self._data_frame.shape[1]
-        self.beginInsertColumns(QModelIndex(), position, position)
-        column_type = \
-        self._allowed_columns.get(column_name, {"type": "STRING"})["type"]
-        default_value = "" if column_type == "STRING" else 0
-        self._data_frame[column_name] = default_value
-        self.endInsertColumns()
+
+        if self.undo_stack:
+            print(f"Before push: {self.undo_stack.count()}")  # Debugging line
+            self.undo_stack.push(AddColumnCommand(self, column_name))
+            print(f"After push: {self.undo_stack.count()}")
+        else:
+            # Fallback if undo stack isn't used
+            command = AddColumnCommand(self, column_name)
+            command.redo()
 
         return True
 

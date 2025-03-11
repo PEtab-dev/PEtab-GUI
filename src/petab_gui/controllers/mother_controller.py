@@ -2,7 +2,7 @@ from functools import partial
 
 from PySide6.QtWidgets import QMessageBox, QFileDialog, QLineEdit, QWidget, \
     QHBoxLayout, QToolButton, QTableView
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QUndoStack
 import zipfile
 import tempfile
 import os
@@ -41,6 +41,7 @@ class MainController:
         model: PEtabModel
             The PEtab model.
         """
+        self.undo_stack = QUndoStack()
         self.task_bar = None
         self.view = view
         self.model = model
@@ -50,24 +51,28 @@ class MainController:
             self.view.measurement_dock,
             self.model.measurement,
             self.logger,
+            self.undo_stack,
             self
         )
         self.observable_controller = ObservableController(
             self.view.observable_dock,
             self.model.observable,
             self.logger,
+            self.undo_stack,
             self
         )
         self.parameter_controller = ParameterController(
             self.view.parameter_dock,
             self.model.parameter,
             self.logger,
+            self.undo_stack,
             self
         )
         self.condition_controller = ConditionController(
             self.view.condition_dock,
             self.model.condition,
             self.logger,
+            self.undo_stack,
             self
         )
         self.sbml_controller = SbmlController(
@@ -361,6 +366,13 @@ class MainController:
         )
         actions["clear_log"].triggered.connect(self.logger.clear_log)
 
+        # Undo / Redo
+        actions["undo"] = QAction(
+            qta.icon("mdi6.undo"),
+            "&Undo", self.view
+        )
+        actions["undo"].setShortcut("Ctrl+Z")
+        actions["undo"].triggered.connect(self.undo_stack.undo)
         return actions
 
     def save_model(self):

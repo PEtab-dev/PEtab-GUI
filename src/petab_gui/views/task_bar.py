@@ -67,9 +67,13 @@ class EditMenu(BasicMenu):
 
         # Find and Replace
         self.find_replace_action = self.add_action_or_menu("Find/Replace")
+        self.menu.addSeparator()
         # Copy, Paste
         self.menu.addAction(actions["copy"])
         self.menu.addAction(actions["paste"])
+        self.menu.addSeparator()
+        # Undo, Redo
+        self.menu.addAction(actions["undo"])
         # Add Columns
         self.menu.addAction(actions["add_column"])
         self.menu.addAction(actions["delete_column"])

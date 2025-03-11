@@ -24,6 +24,7 @@ class TableController(QObject):
         view: TableViewer,
         model: PandasTableModel,
         logger,
+        undo_stack,
         mother_controller
     ):
         """Initialize the table controller.
@@ -46,6 +47,8 @@ class TableController(QObject):
         self.model.view = self.view.table_view
         self.proxy_model = PandasTableFilterProxy(model)
         self.logger = logger
+        self.undo_stack = undo_stack
+        self.model.undo_stack = undo_stack
         self.check_petab_lint_mode = True
         self.mother_controller = mother_controller
         self.view.table_view.setModel(self.proxy_model)
