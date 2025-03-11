@@ -504,6 +504,7 @@ class PlotWidget(FigureCanvas):
         self.axes = fig.add_subplot(111)
         super(PlotWidget, self).__init__(fig)
 
+
 class SignalForwarder(QObject):
     """Forward signals from one object to another."""
     forwarded_signal = Signal()
