@@ -168,10 +168,10 @@ class TableController(QObject):
             f"Overwrote the {self.model.table_type} table with new data.",
             color="green"
         )
-        # change default sizing
-        self.view.table_view.reset_column_sizes()
         # test: overwrite the new model as source model
         self.proxy_model.setSourceModel(self.model)
+        # change default sizing
+        self.view.table_view.reset_column_sizes()
         self.overwritten_df.emit()
 
     def append_df(self, new_df: pd.DataFrame):
