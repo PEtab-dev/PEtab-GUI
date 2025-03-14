@@ -4,8 +4,9 @@ from PySide6.QtWidgets import (QDockWidget, QHeaderView, QTableView,
 from PySide6.QtCore import Qt, QPropertyAnimation, QRect
 from PySide6.QtGui import QGuiApplication, QColor
 
-from ..utils import get_selected, get_selected_rectangles
-from ..C import INDEX
+from ..utils import get_selected_rectangles
+import re
+import pandas as pd
 
 
 class TableViewer(QDockWidget):

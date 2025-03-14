@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QDockWidget,
 from PySide6.QtCore import Qt, Signal, QSettings
 from .sbml_view import SbmlViewer
 from .table_view import TableViewer
-from .task_bar import TaskBar
+from ..utils import FindReplaceBar
 from .logger import Logger
 from .measurement_plot import MeasuremenPlotter
 
@@ -116,7 +116,8 @@ class MainWindow(QMainWindow):
 
         # drag drop
         self.setAcceptDrops(True)
-        # self.dumpObjectTree()
+
+        self.find_replace_bar = None
 
 
     def dragEnterEvent(self, event):
@@ -228,4 +229,13 @@ class MainWindow(QMainWindow):
         # save the settings of the data tab
         settings.setValue("data_tab/geometry", self.data_tab.saveGeometry())
         settings.setValue("data_tab/state", self.data_tab.saveState())
+
+    def create_find_replace_bar(self):
+        self.find_replace_bar = FindReplaceBar(self.controller, self)
+        self.setMenuWidget(self.find_replace_bar)
+        self.find_replace_bar.setVisible(False)
+
+    def toggle_find_replace(self):
+        """Toggles the find Replace Bar"""
+        self.find_replace_bar.setVisible(not self.find_replace_bar.isVisible())
 

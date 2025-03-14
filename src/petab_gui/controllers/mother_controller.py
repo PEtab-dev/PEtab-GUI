@@ -235,7 +235,8 @@ class MainController:
         )
         actions["find+replace"].setShortcut("Ctrl+R")
         actions["find+replace"].triggered.connect(
-            self.open_find_replace_dialog)
+            self.find_replace_bar
+        )
         # Copy / Paste
         actions["copy"] = QAction(
             qta.icon("mdi6.content-copy"),
@@ -731,3 +732,9 @@ class MainController:
         controller = self.active_controller()
         if controller:
             controller.paste_from_clipboard()
+
+    def find_replace_bar(self):
+        """Create a find replace bar if it is non existent."""
+        if self.view.find_replace_bar is None:
+            self.view.create_find_replace_bar()
+        self.view.toggle_find_replace()
