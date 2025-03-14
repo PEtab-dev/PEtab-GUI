@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, \
     QLineEdit, QPushButton, QCompleter, QCheckBox, QGridLayout, QTableView,
-                               QWidget, QToolButton)
-from PySide6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor
+                               QWidget, QToolButton, QMenu)
+from PySide6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QAction
 from PySide6.QtCore import QObject, Signal, Qt
 import re
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -694,6 +694,13 @@ class FindReplaceBar(QWidget):
     def __init__(self, controller, parent=None):
         super().__init__(parent)
         self.controller = controller
+        self.controller_map = {
+            "Observable Table": self.controller.observable_controller,
+            "Condition Table": self.controller.condition_controller,
+            "Parameter Table": self.controller.parameter_controller,
+            "Measurement Table": self.controller.measurement_controller,
+        }
+        self.selected_controllers = set()
 
         # 🔍 Find Input with options
         self.find_input = QLineEdit()
@@ -740,12 +747,28 @@ class FindReplaceBar(QWidget):
         self.filter_button = QPushButton()
         self.filter_button.setIcon(qta.icon("mdi6.filter"))
         self.close_button = QPushButton()
+        self.filter_button.clicked.connect(self.show_filter_menu)
+        self.filter_menu = QMenu(self)  # Dropdown menu
+        self.filter_actions = {}
+        action = QAction("All", self.filter_menu)
+        action.setCheckable(True)
+        action.setChecked(True)
+        action.triggered.connect(self.update_selected_controllers)
+        self.filter_menu.addAction(action)
+        self.filter_actions["All"] = action
+        for table_name in self.controller_map.keys():
+            action = QAction(table_name, self.filter_menu)
+            action.setCheckable(True)
+            action.triggered.connect(self.update_selected_controllers)
+            self.filter_menu.addAction(action)
+            self.filter_actions[table_name] = action
         self.close_button.setIcon(qta.icon("mdi6.close"))
         self.close_button.clicked.connect(self.hide)
 
         self.replace_button = QPushButton("Replace")
         self.replace_button.clicked.connect(self.replace_current_match)
         self.replace_all_button = QPushButton("Replace All")
+        self.replace_all_button.clicked.connect(self.replace_all)
 
         find_controls_layout = QHBoxLayout()
         find_controls_layout.addWidget(self.results_label)
@@ -780,24 +803,33 @@ class FindReplaceBar(QWidget):
         regex = self.regex_button.isChecked()
         whole_cell = self.word_match_button.isChecked()
 
-        self.matches = self.controller.observable_controller.find_text(
-            search_text, case_sensitive, regex, whole_cell
-        )
-        self.current_match_ind = 0 if self.matches else -1
+        self.matches = []
+        self.current_match_ind = -1
 
-        match_count = len(self.matches)
+        for controller in [
+            self.controller.observable_controller,
+            self.controller.condition_controller,
+            self.controller.parameter_controller,
+            self.controller.measurement_controller,
+        ]:
+            matches = controller.find_text(search_text, case_sensitive, regex, whole_cell)
+            self.matches.extend([(match[0], match[1], controller) for match in matches])  # Extend match with controller
+
+        if self.matches:
+            self.current_match_ind = 0
+            self.focus_match(self.matches[self.current_match_ind])
+
         self.update_result_label()
-        match = self.matches[self.current_match_ind] if self.matches else None
-        if match_count > 0:
-            self.controller.observable_controller.focus_match(match)
 
     def find_next(self):
         """Move to the next match."""
         if not self.matches:
             return
-
+        __, _, controller = self.matches[self.current_match_ind]
+        controller.focus_match(None)
         self.current_match_ind = (self.current_match_ind + 1) % len(self.matches)
-        self.controller.observable_controller.focus_match(self.matches[self.current_match_ind])
+        row, col, controller = self.matches[self.current_match_ind]
+        controller.focus_match((row, col))
         self.update_result_label()
 
     def find_previous(self):
@@ -826,14 +858,70 @@ class FindReplaceBar(QWidget):
         if not replace_text:
             return
 
-        # Get the current match and replace it
-        row, col = self.matches[self.current_match_ind]
-        self.controller.observable_controller.replace_text(row, col, replace_text)
+        row, col, controller = self.matches[self.current_match_ind]  # Extract controller from match
+
+        controller.replace_text(
+            row=row,
+            col=col,
+            replace_text=replace_text,
+            search_text=self.find_input.text(),
+            case_sensitive=self.case_sensitive_button.isChecked(),
+            regex=self.regex_button.isChecked(),
+        )
         # drop the current match and update the result label
         self.matches.pop(self.current_match_ind)
         self.update_result_label()
         match = self.matches[self.current_match_ind] if self.matches else None
-        self.controller.observable_controller.focus_match(match)
+        self.focus_match(match)
+
+    def replace_all(self):
+        """Replace all matches with the given text."""
+        if not self.matches:
+            return
+
+        replace_text = self.replace_input.text()
+        search_text = self.find_input.text()
+        case_sensitive = self.case_sensitive_button.isChecked()
+        regex = self.regex_button.isChecked()
+
+        controllers = set(match[2] for match in self.matches)  # Get unique controllers
+
+        for controller in controllers:
+            controller.replace_all(
+                search_text, replace_text, case_sensitive, regex
+            )
+        # emit dataChanged emit for each match
+        for row, col, controller in self.matches:
+            controller.model.dataChanged.emit(
+                controller.model.index(row, col),
+                controller.model.index(row, col)
+            )
+            controller.cleanse_highlighted_cells()
+        self.run_find()
+
+    def focus_match(self, match):
+        """Focus the match in the correct table."""
+        if not match:
+            return
+        row, col, controller = match
+        controller.focus_match((row, col))
+
+    def show_filter_menu(self):
+        """Show the filter selection dropdown below the filter button."""
+        self.filter_menu.exec_(self.filter_button.mapToGlobal(
+            self.filter_button.rect().bottomLeft()))
+
+    def update_selected_controllers(self):
+        """Update which tables are included in the search based on selection."""
+        if self.filter_actions["All"].isChecked():
+            self.selected_controllers = set(self.controller_map.values())
+        else:
+            self.selected_controllers = {
+                self.controller_map[table_name]
+                for table_name, action in self.filter_actions.items() if
+                action.isChecked() & (table_name != "All")
+            }
+        self.run_find()
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
@@ -844,10 +932,20 @@ class FindReplaceBar(QWidget):
 
     def hideEvent(self, event):
         """Reset highlights when the Find/Replace bar is hidden."""
-        self.controller.observable_controller.cleanse_highlighted_cells()
+        for controller in self.selected_controllers:
+            controller.cleanse_highlighted_cells()
         super().hideEvent(event)
 
     def showEvent(self, event):
         """Reset highlights when the Find/Replace bar is shown."""
-        self.controller.observable_controller.highlight_text(self.matches)
+        # group matches by controller
+        if not self.matches:
+            super().showEvent(event)
+            return
+        for controller in [match[2] for match in self.matches]:
+            matches = [
+                (match[0], match[1]) for match in self.matches
+                if match[2] == controller
+            ]
+            controller.highlight_text(matches)
         super().showEvent(event)

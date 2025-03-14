@@ -1,11 +1,10 @@
 """Classes for the controllers of the tables in the GUI."""
 from PySide6.QtWidgets import QInputDialog, QMessageBox, QFileDialog, \
-    QCompleter
+    QCompleter, QAbstractItemView
 import numpy as np
 import pandas as pd
 import petab.v1 as petab
-from PySide6.QtCore import Signal, QObject, QModelIndex, Qt
-from PySide6.QtGui import QBrush, QColor
+from PySide6.QtCore import Signal, QObject, QModelIndex, Qt, QTimer
 from pathlib import Path
 from ..models.pandas_table_model import PandasTableModel, \
     PandasTableFilterProxy
@@ -279,13 +278,6 @@ class TableController(QObject):
                 return
         self.model.insertColumn(column_name)
 
-    def replace_text(self, row, col, replace_text):
-        """Replace the text in the given cell and update highlights."""
-        index = self.model.index(row, col)
-        self.model.setData(index, replace_text, Qt.EditRole)
-        self.model.highlighted_cells.discard((row, col))
-        self.model.dataChanged.emit(index, index, [Qt.DisplayRole])
-
     def set_index_on_new_row(self, index: QModelIndex):
         """Set the index of the model when a new row is added."""
         self.view.table_view.setCurrentIndex(index)
@@ -384,8 +376,74 @@ class TableController(QObject):
             return
         row, col = match
         index = self.model.index(row, col)
-        self.view.table_view.setCurrentIndex(index)
-        self.view.table_view.scrollTo(index)
+        if not index.isValid():
+            return
+        proxy_index = self.view.table_view.model().mapFromSource(index)
+        if not proxy_index.isValid():
+            return
+
+        self.view.table_view.setCurrentIndex(proxy_index)
+        self.view.table_view.setCurrentIndex(proxy_index)
+        self.view.table_view.scrollTo(
+                proxy_index, QAbstractItemView.EnsureVisible
+        )
+
+    def replace_text(self, row, col, replace_text, search_text, case_sensitive, regex):
+        """Replace the text in the given cell and update highlights."""
+        index = self.model.index(row, col)
+        original_text = self.model.data(index, Qt.DisplayRole)
+
+        if not original_text:
+            return
+
+        if regex:
+            pattern = re.compile(search_text, 0 if case_sensitive else re.IGNORECASE)
+            new_text = pattern.sub(replace_text, original_text)
+        else:
+            if not case_sensitive:
+                search_text = re.escape(search_text.lower())
+                new_text = re.sub(search_text, replace_text, original_text, flags=re.IGNORECASE)
+            else:
+                new_text = original_text.replace(search_text, replace_text)
+
+        if new_text != original_text:
+            self.model.setData(index, new_text, Qt.EditRole)
+            self.model.highlighted_cells.discard((row, col))
+            self.model.dataChanged.emit(index, index, [Qt.DisplayRole])
+
+    def replace_all(
+        self, search_text, replace_text, case_sensitive=False, regex=False
+    ):
+        """Replace all occurrences of the search term in the Model."""
+        if not search_text or not replace_text:
+            return
+
+        df = self.model._data_frame
+        if regex:
+            pattern = re.compile(search_text,
+                                 0 if case_sensitive else re.IGNORECASE)
+            df.replace(to_replace=pattern, value=replace_text, regex=True,
+                       inplace=True)
+        else:
+            if not case_sensitive:
+                df.replace(
+                    to_replace=re.escape(search_text),
+                    value=replace_text,
+                    regex=True,
+                    inplace=True
+                )
+            else:
+                df.replace(to_replace=search_text, value=replace_text,
+                           inplace=True)
+
+        # Replace in the index as well
+        if isinstance(df.index, pd.Index) and df.index.name:
+            index_map = {
+                idx: pattern.sub(replace_text, str(idx)) if regex else str(
+                    idx).replace(search_text, replace_text)
+                for idx in df.index if search_text in str(idx)}
+            if index_map:
+                df.rename(index=index_map, inplace=True)
 
 
 class MeasurementController(TableController):
