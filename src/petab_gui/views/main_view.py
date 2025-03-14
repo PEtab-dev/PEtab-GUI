@@ -7,6 +7,7 @@ from .table_view import TableViewer
 from ..utils import FindReplaceBar
 from .logger import Logger
 from .measurement_plot import MeasuremenPlotter
+import copy
 
 
 class MainWindow(QMainWindow):
@@ -148,7 +149,6 @@ class MainWindow(QMainWindow):
         tb.addAction(actions["add"])
         tb.addAction(actions["save"])
         tb.addAction(actions["check_petab"])
-        tb.addAction(actions["find+replace"])
         tb.addAction(actions["add_row"])
         tb.addAction(actions["delete_row"])
         tb.addAction(actions["add_column"])
@@ -176,7 +176,8 @@ class MainWindow(QMainWindow):
         self.dock_visibility[dock] = dock.isVisible()
 
     def set_docks_visible(self, index):
-        """Slot to set all QDockWidget instances to their previous visibility when the "Data Tables" tab is not selected"""
+        """Slot to set all QDockWidget instances to their previous visibility
+        when the "Data Tables" tab is not selected."""
         if index != 0:  # Another tab is selected
             for dock, visible in self.dock_visibility.items():
                 dock.setVisible(visible)
@@ -191,7 +192,6 @@ class MainWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
-
 
     def load_settings(self):
         """Load the settings from the QSettings object."""
@@ -231,11 +231,32 @@ class MainWindow(QMainWindow):
         settings.setValue("data_tab/state", self.data_tab.saveState())
 
     def create_find_replace_bar(self):
+        """Create the find/replace bar and add it without replacing the tab widget."""
         self.find_replace_bar = FindReplaceBar(self.controller, self)
-        self.setMenuWidget(self.find_replace_bar)
-        self.find_replace_bar.setVisible(False)
+        # manually create a copy of the dock visibility
+        dock_visibility_values = copy.deepcopy(
+            list(self.dock_visibility.values())
+        )
 
-    def toggle_find_replace(self):
-        """Toggles the find Replace Bar"""
-        self.find_replace_bar.setVisible(not self.find_replace_bar.isVisible())
+        # Create a layout to insert Find/Replace above the tabs
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)  # Remove extra spacing
+        layout.addWidget(self.find_replace_bar)
+        layout.addWidget(self.tab_widget)  # Keep tab_widget in the layout
 
+        self.setCentralWidget(container)
+        # Restore the visibility of the docks
+        for dock, visible in zip(self.dock_visibility.keys(), dock_visibility_values):
+            self.dock_visibility[dock] = visible
+            dock.setVisible(visible)
+
+    def toggle_find(self):
+        """Toggles the find-part of the Find.Replace Bar."""
+        # self.find_replace_bar.toggle_find()
+        self.find_replace_bar.toggle_find()
+
+    def toggle_replace(self):
+        """Toggles the replace-part of the Find.Replace Bar."""
+        # self.find_replace_bar.toggle_replace()
+        self.find_replace_bar.toggle_replace()

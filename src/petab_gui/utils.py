@@ -701,6 +701,8 @@ class FindReplaceBar(QWidget):
             "Measurement Table": self.controller.measurement_controller,
         }
         self.selected_controllers = set()
+        self.only_search = False
+        self.matches = None
 
         # 🔍 Find Input with options
         self.find_input = QLineEdit()
@@ -949,3 +951,35 @@ class FindReplaceBar(QWidget):
             ]
             controller.highlight_text(matches)
         super().showEvent(event)
+
+    def show_replace_parts(self, show: bool = False):
+        """Toggle the visibility of the replace parts."""
+        self.replace_input.setVisible(show)
+        self.replace_button.setVisible(show)
+        self.replace_all_button.setVisible(show)
+
+    def toggle_find(self):
+        """Toggle behaviour of the search bar."""
+        if not self.isVisible():
+            self.show()
+            self.show_replace_parts(False)
+            self.only_search = True
+            return
+        if not self.only_search:
+            self.show_replace_parts(False)
+            self.only_search = True
+            return
+        self.hide()
+
+    def toggle_replace(self):
+        """Toggle behaviour of the replace bar."""
+        if not self.isVisible():
+            self.show()
+            self.show_replace_parts(True)
+            self.only_search = False
+            return
+        if self.only_search:
+            self.show_replace_parts(True)
+            self.only_search = False
+            return
+        self.hide()
