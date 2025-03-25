@@ -314,6 +314,7 @@ class MainController:
             )
             tool_button.setIcon(icon)
             tool_button.setCheckable(True)
+            tool_button.setChecked(True)
             tool_button.setToolTip(f"Filter for {table_name}")
             filter_layout.addWidget(tool_button)
             self.filter_active[table_name] = tool_button
