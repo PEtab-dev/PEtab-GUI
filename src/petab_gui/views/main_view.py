@@ -1,7 +1,7 @@
 """Main Window View."""
-from PySide6.QtWidgets import (QApplication, QMainWindow, QDockWidget,
-                               QTableView, QWidget, QVBoxLayout, QPushButton, QTabWidget)
-from PySide6.QtCore import Qt, Signal, QSettings
+from PySide6.QtWidgets import (QMainWindow, QDockWidget,
+                               QWidget, QVBoxLayout, QTabWidget, QSizePolicy)
+from PySide6.QtCore import Qt, QSettings
 from .sbml_view import SbmlViewer
 from .table_view import TableViewer
 from ..utils import FindReplaceBar
@@ -142,7 +142,9 @@ class MainWindow(QMainWindow):
         tb = self.addToolBar("MainToolbar")
         tb.setObjectName("MainToolbar")
         self.setUnifiedTitleAndToolBarOnMac(True)
-
+        # spacer for later
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         # first the normal open / save operations
         tb.addAction(actions["new"])
         tb.addAction(actions["open"])
@@ -153,6 +155,7 @@ class MainWindow(QMainWindow):
         tb.addAction(actions["delete_row"])
         tb.addAction(actions["add_column"])
         tb.addAction(actions["delete_column"])
+        tb.addWidget(spacer)
         tb.addWidget(actions["filter_widget"])
 
     def add_menu_action(self, dock_widget, name):

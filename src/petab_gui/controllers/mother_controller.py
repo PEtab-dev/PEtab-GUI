@@ -298,7 +298,7 @@ class MainController:
         filter_layout.setContentsMargins(0, 0, 0, 0)
         filter_widget.setLayout(filter_layout)
         self.filter_input = QLineEdit()
-        self.filter_input.setPlaceholderText("Filter not functional yet ...")
+        self.filter_input.setPlaceholderText("Filter...")
         filter_layout.addWidget(self.filter_input)
         for table_n, table_name in zip(
             ["m", "p", "o", "c"],
@@ -314,7 +314,8 @@ class MainController:
             )
             tool_button.setIcon(icon)
             tool_button.setCheckable(True)
-            tool_button.setToolTip(f"Filter for {table_name}")
+            tool_button.setChecked(True)
+            tool_button.setToolTip(f"Filter for {table_name} table")
             filter_layout.addWidget(tool_button)
             self.filter_active[table_name] = tool_button
             self.filter_active[table_name].toggled.connect(
