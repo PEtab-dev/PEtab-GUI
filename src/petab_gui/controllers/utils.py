@@ -1,6 +1,8 @@
 from PySide6.QtWidgets import QMessageBox, QMenu
 from PySide6.QtCore import QObject, Signal, QSettings
 from PySide6.QtGui import QAction
+from collections import Counter
+from pathlib import Path
 
 
 def prompt_overwrite_or_append(controller):
@@ -55,13 +57,27 @@ class RecentFilesManager(QObject):
     def update_tool_bar_menu(self):
         """Create a menu for the tool bar."""
         self.tool_bar_menu.clear()
-        for idx, file_path in enumerate(self.recent_files):
-            action = QAction(file_path, self.tool_bar_menu)
-            action.triggered.connect(lambda: self.open_file.emit(file_path))
+
+        # Generate shortened names
+        def short_name(path):
+            p = Path(path)
+            if p.parent.name:
+                return f"{p.parent.name}/{p.name}"
+            return p.name
+
+        short_paths = [short_name(f) for f in self.recent_files]
+        counts = Counter(short_paths)
+
+        for full_path, short in zip(self.recent_files, short_paths):
+            display = full_path if counts[short] > 1 else short
+            action = QAction(display, self.tool_bar_menu)
+            action.triggered.connect(lambda _, p=full_path: self.open_file.emit(p))
             self.tool_bar_menu.addAction(action)
+
         self.tool_bar_menu.addSeparator()
         clear_action = QAction("Clear Recent Files", self.tool_bar_menu)
         clear_action.triggered.connect(self.clear_recent_files)
+        self.tool_bar_menu.addAction(clear_action)
 
     def clear_recent_files(self):
         """Clear the recent files list."""
