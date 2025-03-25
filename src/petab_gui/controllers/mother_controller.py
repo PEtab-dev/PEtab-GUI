@@ -229,13 +229,18 @@ class MainController:
         actions["save"].setShortcut("Ctrl+S")
         actions["save"].triggered.connect(self.save_model)
         # Find + Replace
+        actions["find"] = QAction(
+            qta.icon("mdi6.magnify"),
+            "Find", self.view
+        )
+        actions["find"].setShortcut("Ctrl+F")
+        actions["find"].triggered.connect(self.find)
         actions["find+replace"] = QAction(
             qta.icon("mdi6.find-replace"),
             "Find/Replace", self.view
         )
         actions["find+replace"].setShortcut("Ctrl+R")
-        actions["find+replace"].triggered.connect(
-            self.open_find_replace_dialog)
+        actions["find+replace"].triggered.connect(self.replace)
         # Copy / Paste
         actions["copy"] = QAction(
             qta.icon("mdi6.content-copy"),
@@ -731,3 +736,19 @@ class MainController:
         controller = self.active_controller()
         if controller:
             controller.paste_from_clipboard()
+
+    def set_docks_visible(self):
+        """Handles Visibility of docks."""
+        pass
+
+    def find(self):
+        """Create a find replace bar if it is non existent."""
+        if self.view.find_replace_bar is None:
+            self.view.create_find_replace_bar()
+        self.view.toggle_find()
+
+    def replace(self):
+        """Create a find replace bar if it is non existent."""
+        if self.view.find_replace_bar is None:
+            self.view.create_find_replace_bar()
+        self.view.toggle_replace()

@@ -1,10 +1,10 @@
 """Classes for the controllers of the tables in the GUI."""
 from PySide6.QtWidgets import QInputDialog, QMessageBox, QFileDialog, \
-    QCompleter
+    QCompleter, QAbstractItemView
 import numpy as np
 import pandas as pd
 import petab.v1 as petab
-from PySide6.QtCore import Signal, QObject, QModelIndex, Qt
+from PySide6.QtCore import Signal, QObject, QModelIndex, Qt, QTimer
 from pathlib import Path
 from ..models.pandas_table_model import PandasTableModel, \
     PandasTableFilterProxy
@@ -13,6 +13,7 @@ from ..views.table_view import TableViewer, SingleSuggestionDelegate, \
 from ..utils import get_selected, process_file
 from .utils import prompt_overwrite_or_append
 from ..C import COLUMN
+import re
 
 
 class TableController(QObject):
@@ -277,13 +278,6 @@ class TableController(QObject):
                 return
         self.model.insertColumn(column_name)
 
-    def replace_text(self, find_text, replace_text):
-        self.logger.log_message(
-            f"Replacing '{find_text}' with '{replace_text}' in selected tables",
-            color="green"
-        )
-        self.model.replace_text(find_text, replace_text)
-
     def set_index_on_new_row(self, index: QModelIndex):
         """Set the index of the model when a new row is added."""
         self.view.table_view.setCurrentIndex(index)
@@ -314,11 +308,142 @@ class TableController(QObject):
                 f"PEtab linter failed after copying: {str(e)}",
                 color="red"
             )
+
     def check_petab_lint(self, row_data):
         """Check a single row of the model with petablint."""
         raise NotImplementedError(
             "This method must be implemented in child classes."
         )
+
+    def find_text(
+        self, text, case_sensitive=False, regex=False, whole_cell=False
+    ):
+        """Efficiently find all matching cells."""
+        df = self.model.get_df()
+
+        # Search in the main DataFrame
+        if regex:
+            pattern = re.compile(text, 0 if case_sensitive else re.IGNORECASE)
+            mask = df.map(lambda cell: bool(pattern.fullmatch(str(cell))) if whole_cell else bool(pattern.search(str(cell))))
+        else:
+            text = text.lower() if not case_sensitive else text
+            mask = df.map(lambda cell: text == str(cell).lower() if whole_cell else text in str(cell).lower()) if not case_sensitive else \
+                   df.map(lambda cell: text == str(cell) if whole_cell else text in str(cell))
+
+        # Find matches
+        match_indices = list(zip(*mask.to_numpy().nonzero()))
+        table_matches = [(row, col + self.model.column_offset) for row, col in match_indices]
+
+        # Search in the index if it's named
+        index_matches = []
+        if isinstance(df.index, pd.Index) and df.index.name:
+            if regex:
+                index_mask = df.index.to_series().map(lambda idx: bool(pattern.fullmatch(str(idx))) if whole_cell else bool(pattern.search(str(idx))))
+            else:
+                index_mask = df.index.to_series().map(lambda idx: text == str(idx).lower() if whole_cell else text in str(idx).lower()) if not case_sensitive else \
+                             df.index.to_series().map(lambda idx: text == str(idx) if whole_cell else text in str(idx))
+
+            index_matches = [(df.index.get_loc(idx), 0) for idx in index_mask[index_mask].index]
+
+        all_matches = index_matches + table_matches
+
+        # 🔹 Highlight matched text
+        self.highlight_text(all_matches)
+        return all_matches
+
+    def highlight_text(self, matches):
+        """Color the text of all matched cells in yellow."""
+        self.model.highlighted_cells = set(matches)
+        top_left = self.model.index(0, 0)
+        bottom_right = self.model.index(self.model.rowCount() - 1,
+                                        self.model.columnCount() - 1)
+        self.model.dataChanged.emit(top_left, bottom_right,
+                                    [Qt.ForegroundRole])
+
+    def cleanse_highlighted_cells(self):
+        """Cleanses the highlighted cells."""
+        self.model.highlighted_cells = set()
+        top_left = self.model.index(0, 0)
+        bottom_right = self.model.index(self.model.rowCount() - 1,
+                                        self.model.columnCount() - 1)
+        self.model.dataChanged.emit(top_left, bottom_right,
+                                    [Qt.ForegroundRole])
+
+    def focus_match(self, match):
+        """Focus and select the given match in the table."""
+        if match is None:
+            self.view.table_view.clearSelection()
+            return
+        row, col = match
+        index = self.model.index(row, col)
+        if not index.isValid():
+            return
+        proxy_index = self.view.table_view.model().mapFromSource(index)
+        if not proxy_index.isValid():
+            return
+
+        self.view.table_view.setCurrentIndex(proxy_index)
+        self.view.table_view.setCurrentIndex(proxy_index)
+        self.view.table_view.scrollTo(
+                proxy_index, QAbstractItemView.EnsureVisible
+        )
+
+    def replace_text(self, row, col, replace_text, search_text, case_sensitive, regex):
+        """Replace the text in the given cell and update highlights."""
+        index = self.model.index(row, col)
+        original_text = self.model.data(index, Qt.DisplayRole)
+
+        if not original_text:
+            return
+
+        if regex:
+            pattern = re.compile(search_text, 0 if case_sensitive else re.IGNORECASE)
+            new_text = pattern.sub(replace_text, original_text)
+        else:
+            if not case_sensitive:
+                search_text = re.escape(search_text.lower())
+                new_text = re.sub(search_text, replace_text, original_text, flags=re.IGNORECASE)
+            else:
+                new_text = original_text.replace(search_text, replace_text)
+
+        if new_text != original_text:
+            self.model.setData(index, new_text, Qt.EditRole)
+            self.model.highlighted_cells.discard((row, col))
+            self.model.dataChanged.emit(index, index, [Qt.DisplayRole])
+
+    def replace_all(
+        self, search_text, replace_text, case_sensitive=False, regex=False
+    ):
+        """Replace all occurrences of the search term in the Model."""
+        if not search_text or not replace_text:
+            return
+
+        df = self.model._data_frame
+        if regex:
+            pattern = re.compile(search_text,
+                                 0 if case_sensitive else re.IGNORECASE)
+            df.replace(to_replace=pattern, value=replace_text, regex=True,
+                       inplace=True)
+        else:
+            if not case_sensitive:
+                df.replace(
+                    to_replace=re.escape(search_text),
+                    value=replace_text,
+                    regex=True,
+                    inplace=True
+                )
+            else:
+                df.replace(to_replace=search_text, value=replace_text,
+                           inplace=True)
+
+        # Replace in the index as well
+        if isinstance(df.index, pd.Index) and df.index.name:
+            index_map = {
+                idx: pattern.sub(replace_text, str(idx)) if regex else str(
+                    idx).replace(search_text, replace_text)
+                for idx in df.index if search_text in str(idx)}
+            if index_map:
+                df.rename(index=index_map, inplace=True)
 
 
 class MeasurementController(TableController):

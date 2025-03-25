@@ -1,7 +1,7 @@
 import pandas as pd
 from PySide6.QtCore import (Qt, QAbstractTableModel, QModelIndex, Signal,
                             QSortFilterProxyModel, QMimeData)
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QBrush
 
 from ..C import COLUMNS
 from ..utils import validate_value, create_empty_dataframe, is_invalid, \
@@ -22,6 +22,7 @@ class PandasTableModel(QAbstractTableModel):
         self._allowed_columns = allowed_columns
         self.table_type = table_type
         self._invalid_cells = set()
+        self.highlighted_cells = set()
         self._has_named_index = False
         if data_frame is None:
             data_frame = create_empty_dataframe(allowed_columns, table_type)
@@ -57,6 +58,11 @@ class PandasTableModel(QAbstractTableModel):
             return str(value)
         elif role == Qt.BackgroundRole:
             return self.determine_background_color(row, column)
+        elif role == Qt.ForegroundRole:
+            # Return yellow text if this cell is a match
+            if (row, column) in self.highlighted_cells:
+                return QBrush(QColor(255, 255, 0))  # Yellow color
+            return QBrush(QColor(0, 0, 0))  # Default black text
         return None
 
     def flags(self, index):
@@ -133,6 +139,10 @@ class PandasTableModel(QAbstractTableModel):
     def setData(self, index, value, role=Qt.EditRole):
         if not (index.isValid() and role == Qt.EditRole):
             return False
+
+        if role != Qt.EditRole:
+            return False
+
         if is_invalid(value) or value == "":
             value = None
         # check whether multiple rows but only one column is selected
