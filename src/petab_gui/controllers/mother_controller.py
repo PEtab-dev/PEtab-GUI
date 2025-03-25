@@ -298,7 +298,7 @@ class MainController:
         filter_layout.setContentsMargins(0, 0, 0, 0)
         filter_widget.setLayout(filter_layout)
         self.filter_input = QLineEdit()
-        self.filter_input.setPlaceholderText("Filter not functional yet ...")
+        self.filter_input.setPlaceholderText("Filter...")
         filter_layout.addWidget(self.filter_input)
         for table_n, table_name in zip(
             ["m", "p", "o", "c"],
