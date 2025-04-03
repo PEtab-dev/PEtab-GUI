@@ -4,6 +4,8 @@ import numpy as np
 import copy
 
 from collections import Counter
+from ..C import (COPY_FROM, USE_DEFAULT, NO_DEFAULT, MIN_COLUMN, MAX_COLUMN,
+                 MODE, DEFAULT_VALUE, SOURCE_COLUMN, STRATEGIES_DEFAULT)
 
 
 class DefaultHandlerModel:
@@ -34,41 +36,38 @@ class DefaultHandlerModel:
                 return ""
 
         column_config = self.config[column_name]
-        strategy = column_config.get("strategy", "default_value")
-        default_value = column_config.get("default_value", "")
+        strategy = column_config.get("strategy", NO_DEFAULT)
+        default_value = column_config.get(DEFAULT_VALUE, "")
 
-        if strategy == "default_value":
+        if strategy == USE_DEFAULT:
             return default_value
-        elif strategy == "min_column":
+        elif strategy == NO_DEFAULT:
+            return ""
+        elif strategy == MIN_COLUMN:
             return self._min_column(column_name, column_config)
-        elif strategy == "max_column":
+        elif strategy == MAX_COLUMN:
             return self._max_column(column_name, column_config)
-        elif strategy == "copy_column":
+        elif strategy == COPY_FROM:
             return self._copy_column(column_name, column_config, row_index)
-        elif strategy == "majority_vote":
-            column_config["source_column"] = source_column
+        elif strategy == MODE:
+            column_config[SOURCE_COLUMN] = source_column
             return self._majority_vote(column_name, column_config)
         else:
             raise ValueError(f"Unknown strategy '{strategy}' for column '{column_name}'.")
 
-    def _min_column(self, column_name, config):
-        min_cap = config.get("min_cap", None)
+    def _min_column(self, column_name):
         if column_name in self.model:
-            # we have to drop "" values, as they are not considered as NaN
             column_data = self.model[column_name].replace("", np.nan).dropna()
             if not column_data.empty:
-                min_value = column_data.min()
-                return max(min_value, min_cap) if min_cap is not None else min_value
-        return config.get("default_value", "")
+                return column_data.min()
+        return ""
 
-    def _max_column(self, column_name, config):
-        max_cap = config.get("max_cap", None)
+    def _max_column(self, column_name):
         if column_name in self.model:
             column_data = self.model[column_name].replace("", np.nan).dropna()
             if not column_data.empty:
-                max_value = column_data.max()
-                return min(max_value, max_cap) if max_cap is not None else max_value
-        return config.get("default_value", "")
+                return column_data.max()
+        return ""
 
     def _copy_column(self, column_name, config, row_index):
         source_column = config.get("source_column", None)
