@@ -106,6 +106,7 @@ class ViewMenu(BasicMenu):
         self.menu.addAction(actions["show_logger"])
         self.menu.addAction(actions["show_plot"])
         self.menu.addSeparator()
+        self.menu.addAction(actions["reset_view"])
         self.menu.addAction(actions["clear_log"])
 
 

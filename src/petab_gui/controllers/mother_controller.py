@@ -360,6 +360,13 @@ class MainController:
         actions["show_plot"].toggled.connect(
             lambda checked: self.view.plot_dock.setVisible(checked)
         )
+        actions["reset_view"] = QAction(
+            qta.icon("mdi6.view-grid-plus"),
+            "Reset View", self.view
+        )
+        actions["reset_view"].triggered.connect(
+            self.view.default_view
+        )
         # Clear Log
         actions["clear_log"] = QAction(
             qta.icon("mdi6.delete"),

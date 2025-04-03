@@ -46,38 +46,6 @@ class MainWindow(QMainWindow):
         self.logger_dock.setWidget(self.logger_views[1])
         self.plot_dock = MeasuremenPlotter(self)
 
-        # Add docks to the QMainWindow of the data tab
-        self.data_tab.addDockWidget(
-            Qt.TopDockWidgetArea,
-            self.measurement_dock
-        )
-        self.data_tab.splitDockWidget(
-            self.measurement_dock, self.parameter_dock, Qt.Orientation.Vertical
-        )
-        self.data_tab.addDockWidget(
-            Qt.TopDockWidgetArea,
-            self.observable_dock
-        )
-        self.data_tab.splitDockWidget(
-            self.observable_dock, self.condition_dock, Qt.Orientation.Vertical
-        )
-        self.data_tab.addDockWidget(
-            Qt.BottomDockWidgetArea,
-            self.logger_dock
-        )
-        self.data_tab.addDockWidget(
-            Qt.BottomDockWidgetArea,
-            self.plot_dock
-        )
-        self.data_tab.tabifyDockWidget(self.plot_dock, self.logger_dock)
-        # TODO: Needs better initial sizing. @Frank can you help?
-        self.data_tab.resizeDocks(
-            [self.logger_dock, self.measurement_dock],
-            [self.height() * 0.15, self.height() * 0.3],
-            Qt.Vertical
-        )
-
-
         # Connect the visibility changes of the QDockWidget instances to a slot that saves their visibility status
         self.dock_visibility = {
             self.condition_dock: self.condition_dock.isVisible(),
@@ -87,6 +55,7 @@ class MainWindow(QMainWindow):
             self.logger_dock: self.logger_dock.isVisible(),
             self.plot_dock: self.plot_dock.isVisible(),
         }
+        self.default_view()
         self.condition_dock.visibilityChanged.connect(
             self.save_dock_visibility
         )
@@ -120,6 +89,29 @@ class MainWindow(QMainWindow):
 
         self.find_replace_bar = None
 
+    def default_view(self):
+        """Reset the view to the default one."""
+        if hasattr(self, "dock_visibility"):
+            for dock in self.dock_visibility:
+                self.data_tab.removeDockWidget(dock)
+
+        # Column 1
+        self.data_tab.addDockWidget(Qt.LeftDockWidgetArea, self.measurement_dock)
+        self.data_tab.splitDockWidget(self.measurement_dock, self.parameter_dock, Qt.Vertical)
+        self.data_tab.splitDockWidget(self.parameter_dock, self.logger_dock, Qt.Vertical)
+
+        # Column 2
+        self.data_tab.addDockWidget(Qt.RightDockWidgetArea, self.observable_dock)
+        self.data_tab.splitDockWidget(self.observable_dock, self.condition_dock, Qt.Vertical)
+        self.data_tab.splitDockWidget(self.condition_dock, self.plot_dock, Qt.Vertical)
+
+        # Reset visibility to True
+        if hasattr(self, "dock_visibility"):
+            for dock in self.dock_visibility:
+                dock.setVisible(True)
+
+        # Optional: select the Data Tables tab
+        self.tab_widget.setCurrentIndex(0)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -213,7 +205,6 @@ class MainWindow(QMainWindow):
         # restore the settings of the data tab
         self.data_tab.restoreGeometry(settings.value("data_tab/geometry"))
         self.data_tab.restoreState(settings.value("data_tab/state"))
-
 
     def save_settings(self):
         """Save the settings to the QSettings object."""
