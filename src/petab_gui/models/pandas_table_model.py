@@ -538,6 +538,11 @@ class MeasurementModel(PandasTableModel):
             return str(value)
         elif role == Qt.BackgroundRole:
             return self.determine_background_color(row, column)
+        elif role == Qt.ForegroundRole:
+            # Return yellow text if this cell is a match
+            if (row, column) in self.highlighted_cells:
+                return QBrush(QColor(255, 255, 0))  # Yellow color
+            return QBrush(QColor(0, 0, 0))  # Default black text
         return None
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
