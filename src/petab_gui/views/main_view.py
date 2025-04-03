@@ -108,7 +108,7 @@ class MainWindow(QMainWindow):
 
         # Allow docking in multiple areas
         self.data_tab.setDockOptions(
-            QMainWindow.AllowNestedDocks | QMainWindow.AllowTabbedDocks
+            QMainWindow.AllowNestedDocks
         )
 
         self.tab_widget.currentChanged.connect(self.set_docks_visible)
