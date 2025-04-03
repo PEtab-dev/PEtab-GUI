@@ -838,9 +838,12 @@ class FindReplaceBar(QWidget):
         """Move to the previous match."""
         if not self.matches:
             return
-
-        self.current_match_ind = (self.current_match_ind - 1) % len(self.matches)
-        self.controller.observable_controller.focus_match(self.matches[self.current_match_ind])
+        __, _, controller = self.matches[self.current_match_ind]
+        controller.focus_match(None)
+        self.current_match_ind = (self.current_match_ind - 1) % len(
+            self.matches)
+        row, col, controller = self.matches[self.current_match_ind]
+        controller.focus_match((row, col))
         self.update_result_label()
 
     def update_result_label(self):
