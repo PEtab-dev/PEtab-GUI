@@ -831,7 +831,7 @@ class FindReplaceBar(QWidget):
         controller.focus_match(None)
         self.current_match_ind = (self.current_match_ind + 1) % len(self.matches)
         row, col, controller = self.matches[self.current_match_ind]
-        controller.focus_match((row, col))
+        controller.focus_match((row, col), with_focus=True)
         self.update_result_label()
 
     def find_previous(self):
@@ -843,7 +843,7 @@ class FindReplaceBar(QWidget):
         self.current_match_ind = (self.current_match_ind - 1) % len(
             self.matches)
         row, col, controller = self.matches[self.current_match_ind]
-        controller.focus_match((row, col))
+        controller.focus_match((row, col), with_focus=True)
         self.update_result_label()
 
     def update_result_label(self):
@@ -877,7 +877,7 @@ class FindReplaceBar(QWidget):
         self.matches.pop(self.current_match_ind)
         self.update_result_label()
         match = self.matches[self.current_match_ind] if self.matches else None
-        self.focus_match(match)
+        self.focus_match(match, with_focus=True)
 
     def replace_all(self):
         """Replace all matches with the given text."""
@@ -904,12 +904,12 @@ class FindReplaceBar(QWidget):
             controller.cleanse_highlighted_cells()
         self.run_find()
 
-    def focus_match(self, match):
+    def focus_match(self, match, with_focus: bool = False):
         """Focus the match in the correct table."""
         if not match:
             return
         row, col, controller = match
-        controller.focus_match((row, col))
+        controller.focus_match((row, col), with_focus)
 
     def show_filter_menu(self):
         """Show the filter selection dropdown below the filter button."""

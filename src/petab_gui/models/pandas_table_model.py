@@ -1,8 +1,8 @@
 import pandas as pd
 from PySide6.QtCore import (Qt, QAbstractTableModel, QModelIndex, Signal,
                             QSortFilterProxyModel, QMimeData)
-from PySide6.QtGui import QColor, QBrush
-
+from PySide6.QtGui import QColor, QBrush, QPalette
+from PySide6.QtWidgets import QApplication
 from ..C import COLUMNS
 from ..utils import validate_value, create_empty_dataframe, is_invalid, \
     get_selected
@@ -61,7 +61,7 @@ class PandasTableModel(QAbstractTableModel):
         elif role == Qt.ForegroundRole:
             # Return yellow text if this cell is a match
             if (row, column) in self.highlighted_cells:
-                return QBrush(QColor(255, 255, 0))  # Yellow color
+                return QApplication.palette().color(QPalette.HighlightedText)
             return QBrush(QColor(0, 0, 0))  # Default black text
         return None
 
@@ -444,6 +444,8 @@ class PandasTableModel(QAbstractTableModel):
         """
         if (row, column) == (self._data_frame.shape[0], 0):
             return QColor(144, 238, 144, 150)
+        if (row, column) in self.highlighted_cells:
+            return QApplication.palette().color(QPalette.Highlight)
         if (row, column) in self._invalid_cells:
             return QColor(255, 100, 100, 150)
         if row % 2 == 0:
@@ -541,7 +543,7 @@ class MeasurementModel(PandasTableModel):
         elif role == Qt.ForegroundRole:
             # Return yellow text if this cell is a match
             if (row, column) in self.highlighted_cells:
-                return QBrush(QColor(255, 255, 0))  # Yellow color
+                return QApplication.palette().color(QPalette.HighlightedText)
             return QBrush(QColor(0, 0, 0))  # Default black text
         return None
 
