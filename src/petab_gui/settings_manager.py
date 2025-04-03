@@ -89,20 +89,6 @@ class SettingsManager(QObject):
 settings_manager = SettingsManager()
 
 
-# ----- Settings Dialog -----
-class SciDoubleSpinBox(QDoubleSpinBox):
-    """Custom DoubleSpinBox that allows scientific notation."""
-
-    def textFromValue(self, value):
-        return f"{value:.6g}"  # Formats using scientific notation where needed
-
-    def valueFromText(self, text):
-        try:
-            return float(text)
-        except ValueError:
-            return 0.0
-
-
 class ColumnConfigWidget(QWidget):
     """Widget for editing a single column's configuration."""
 

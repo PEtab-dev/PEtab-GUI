@@ -70,7 +70,7 @@ class DefaultHandlerModel:
         return ""
 
     def _copy_column(self, column_name, config, row_index):
-        source_column = config.get("source_column", None)
+        source_column = config.get(SOURCE_COLUMN, column_name)
         source_column_valid = (
             source_column in self.model or source_column == self.model_index
         )
@@ -80,15 +80,15 @@ class DefaultHandlerModel:
                 if source_column == self.model_index:
                     return f"{prefix}{row_index}"
                 value = f"{prefix}{self.model.at[row_index, source_column]}"
-                return value if pd.notna(value) else config.get("default_value", "")
-        return config.get("default_value", "")
+                return value if pd.notna(value) else ""
+        return ""
 
     def _majority_vote(self, column_name, config):
         """Use the most frequent value in the column as the default.
 
         Defaults to last used value in case of a tie.
         """
-        source_column = config.get("source_column", None)
+        source_column = config.get(SOURCE_COLUMN, column_name)
         source_column_valid = (
             source_column in self.model or source_column == self.model_index
         )
@@ -96,7 +96,7 @@ class DefaultHandlerModel:
             valid_values = copy.deepcopy(self.model[source_column][:-1])
             valid_values = valid_values.iloc[::-1]
             if valid_values.empty:
-                return config.get("default_value", "")
+                return ""
             value_counts = Counter(valid_values)
             return value_counts.most_common(1)[0][0]
-        return config.get("default_value", "")
+        return ""

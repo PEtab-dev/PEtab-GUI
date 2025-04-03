@@ -83,7 +83,7 @@ DEFAULT_VALUE = "default_value"
 DEFAULT_OBS_CONFIG = {
     "observableId": {
         "strategy": COPY_FROM, SOURCE_COLUMN: "observableFormula",
-        "prefix": "obs_", DEFAULT_VALUE: "new_observable"
+        DEFAULT_VALUE: "new_observable"
     },
     "observableName": {
         "strategy": COPY_FROM, SOURCE_COLUMN: "observableId"
