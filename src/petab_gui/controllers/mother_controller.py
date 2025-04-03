@@ -162,26 +162,8 @@ class MainController:
         self.model.sbml.something_changed.connect(
             self.unsaved_changes_change
         )
-        # correctly update the visibility even when "x" is clicked in a dock
-        self.view.measurement_dock.visibilityChanged.connect(
-            lambda visible: self.actions["show_measurement"].setChecked(
-                visible)
-        )
-        self.view.observable_dock.visibilityChanged.connect(
-            lambda visible: self.actions["show_observable"].setChecked(visible)
-        )
-        self.view.parameter_dock.visibilityChanged.connect(
-            lambda visible: self.actions["show_parameter"].setChecked(visible)
-        )
-        self.view.condition_dock.visibilityChanged.connect(
-            lambda visible: self.actions["show_condition"].setChecked(visible)
-        )
-        self.view.logger_dock.visibilityChanged.connect(
-            lambda visible: self.actions["show_logger"].setChecked(visible)
-        )
-        self.view.plot_dock.visibilityChanged.connect(
-            lambda visible: self.actions["show_plot"].setChecked(visible)
-        )
+        # Visibility
+        self.sync_visibility_with_actions()
         # Recent Files
         self.recent_files_manager.open_file.connect(
             partial(self.open_file, mode="overwrite")
@@ -342,24 +324,6 @@ class MainController:
         actions["show_plot"].setCheckable(True)
         actions["show_plot"].setChecked(True)
         # connect actions
-        actions["show_measurement"].toggled.connect(
-            lambda checked: self.view.measurement_dock.setVisible(checked)
-        )
-        actions["show_observable"].toggled.connect(
-            lambda checked: self.view.observable_dock.setVisible(checked)
-        )
-        actions["show_parameter"].toggled.connect(
-            lambda checked: self.view.parameter_dock.setVisible(checked)
-        )
-        actions["show_condition"].toggled.connect(
-            lambda checked: self.view.condition_dock.setVisible(checked)
-        )
-        actions["show_logger"].toggled.connect(
-            lambda checked: self.view.logger_dock.setVisible(checked)
-        )
-        actions["show_plot"].toggled.connect(
-            lambda checked: self.view.plot_dock.setVisible(checked)
-        )
         actions["reset_view"] = QAction(
             qta.icon("mdi6.view-grid-plus"),
             "Reset View", self.view
@@ -375,6 +339,30 @@ class MainController:
         actions["clear_log"].triggered.connect(self.logger.clear_log)
 
         return actions
+
+    def sync_visibility_with_actions(self):
+        """Sync dock visibility and QAction states in both directions."""
+
+        dock_map = {
+            "measurement": self.view.measurement_dock,
+            "observable": self.view.observable_dock,
+            "parameter": self.view.parameter_dock,
+            "condition": self.view.condition_dock,
+            "logger": self.view.logger_dock,
+            "plot": self.view.plot_dock,
+        }
+
+        for key, dock in dock_map.items():
+            action = self.actions[f"show_{key}"]
+
+            # Initial sync: block signal to avoid triggering unwanted visibility changes
+            was_blocked = action.blockSignals(True)
+            action.setChecked(dock.isVisible())
+            action.blockSignals(was_blocked)
+
+            # Connect QAction ↔ DockWidget syncing
+            action.toggled.connect(dock.setVisible)
+            dock.visibilityChanged.connect(action.setChecked)
 
     def save_model(self):
         options = QFileDialog.Options()
