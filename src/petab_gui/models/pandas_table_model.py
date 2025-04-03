@@ -472,6 +472,12 @@ class PandasTableModel(QAbstractTableModel):
             return True, column_name
         return self._allowed_columns[column_name]["optional"], column_name
 
+    def endResetModel(self):
+        """Override endResetModel to reset the default handler."""
+        super().endResetModel()
+        self.config = settings_manager.get_table_defaults(self.table_type)
+        self.default_handler = DefaultHandlerModel(self, self.config)
+
 
 class IndexedPandasTableModel(PandasTableModel):
     """Table model for tables with named index."""
@@ -486,6 +492,33 @@ class IndexedPandasTableModel(PandasTableModel):
         )
         self._has_named_index = True
         self.column_offset = 1
+
+    def get_default_values(self, index):
+        """Return the default values for a the row in a new index."""
+        row = index.row()
+        if isinstance(row, int):
+            row = self._data_frame.index[row]
+        columns_with_index = (
+            [self._data_frame.index.name or "index"] +
+            list(self._data_frame.columns)
+        )
+        for colname in columns_with_index:
+            if colname == self._data_frame.index.name and not isinstance(row, int):
+                continue
+            if colname == self._data_frame.index.name and isinstance(row, int):
+                default_value = self.default_handler.get_default(colname, row)
+                if default_value == "":
+                    default_value = f"{self.table_type}_{row}"
+                self._data_frame.rename(
+                    index={self._data_frame.index[row]: default_value},
+                    inplace=True
+                )
+                row = default_value  # Update row to new index
+                continue
+            # if column is empty, fill with default value
+            if self._data_frame.loc[row, colname] == "":
+                default_value = self.default_handler.get_default(colname, row)
+                self._data_frame.loc[row, colname] = default_value
 
     def handle_named_index(self, index, value):
         """Handle the named index column."""
@@ -534,6 +567,20 @@ class MeasurementModel(PandasTableModel):
             table_type="measurement",
             parent=parent
         )
+
+    def get_default_values(self, index):
+        """Fill missing values in a row without modifying the index."""
+        row = index.row()
+        if isinstance(row, int):
+            row_key = self._data_frame.index[row]
+        else:
+            row_key = row
+
+        for colname in self._data_frame.columns:
+            if self._data_frame.at[row_key, colname] == "":
+                default_value = self.default_handler.get_default(colname,
+                                                                 row_key)
+                self._data_frame.at[row_key, colname] = default_value
 
     def data(self, index, role=Qt.DisplayRole):
         """Return the data at the given index and role for the View."""
@@ -602,32 +649,6 @@ class ObservableModel(IndexedPandasTableModel):
             parent=parent
         )
 
-    def get_default_values(self, index):
-        """Return the default values for a the row in a new index."""
-        row = index.row()
-        if isinstance(row, int):
-            row = self._data_frame.index[row]
-        columns_with_index = (
-            [self._data_frame.index.name or "index"] +
-            list(self._data_frame.columns)
-        )
-        for colname in columns_with_index:
-            if colname == self._data_frame.index.name and not isinstance(
-                row, int):
-                continue
-            if colname == self._data_frame.index.name and isinstance(row, int):
-                default_value = self.default_handler.get_default(colname, row)
-                self._data_frame.rename(
-                    index={self._data_frame.index[row]: default_value},
-                    inplace=True
-                )
-                row = default_value  # Update row to new index
-                continue
-            # if column is empty, fill with default value
-            if self._data_frame.loc[row, colname] == "":
-                default_value = self.default_handler.get_default(colname, row)
-                self._data_frame.loc[row, colname] = default_value
-
     def fill_row(self, row_position: int, data: dict):
         """Fill a row with data.
 
@@ -666,17 +687,6 @@ class ParameterModel(IndexedPandasTableModel):
             parent=parent
         )
 
-    def get_default_values(self, index):
-        """Return the default values for a the row in a new index."""
-        row = index.row()
-        if isinstance(row, int):
-            row = self._data_frame.index[row]
-        for colname in self._data_frame.columns:
-            # if column is empty, fill with default value
-            if self._data_frame.loc[row, colname] == "":
-                default_value = self.default_handler.get_default(colname, row)
-                self._data_frame.loc[row, colname] = default_value
-
 
 class ConditionModel(IndexedPandasTableModel):
     """Table model for the condition data."""
@@ -689,17 +699,6 @@ class ConditionModel(IndexedPandasTableModel):
             parent=parent
         )
         self._allowed_columns.pop("conditionId")
-
-    def get_default_values(self, index):
-        """Return the default values for a the row in a new index."""
-        row = index.row()
-        if isinstance(row, int):
-            row = self._data_frame.index[row]
-        for colname in self._data_frame.columns:
-            # if column is empty, fill with default value
-            if self._data_frame.loc[row, colname] == "":
-                default_value = self.default_handler.get_default(colname, row)
-                self._data_frame.loc[row, colname] = default_value
 
     def fill_row(self, row_position: int, data: dict):
         """Fill a row with data.

@@ -9,8 +9,9 @@ from PySide6.QtWidgets import (
     QScrollArea, QGroupBox, QSizePolicy, QSpacerItem, QPushButton
 )
 from .C import (DEFAULT_CONFIGS, COPY_FROM, USE_DEFAULT, NO_DEFAULT,
-                MIN_COLUMN, MAX_COLUMN, SOURCE_COLUMN, DEFAULT_VALUE,
-                STRATEGIES_DEFAULT, MODE, STRATEGY_TOOLTIP)
+                SOURCE_COLUMN, DEFAULT_VALUE, ALLOWED_STRATEGIES,
+                MODE, STRATEGY_TOOLTIP,
+                STRATEGIES_DEFAULT_ALL)
 
 
 class SettingsManager(QObject):
@@ -92,7 +93,8 @@ settings_manager = SettingsManager()
 class ColumnConfigWidget(QWidget):
     """Widget for editing a single column's configuration."""
 
-    def __init__(self, column_name, config, table_columns, parent=None):
+    def __init__(self, column_name, config, table_columns,
+                 strategies=None, parent=None):
         """
         :param column_name: Name of the column
         :param config: Dictionary containing settings for the column
@@ -119,7 +121,7 @@ class ColumnConfigWidget(QWidget):
 
         # Strategy Dropdown
         self.strategy_choice = QComboBox()
-        self.strategies = STRATEGIES_DEFAULT
+        self.strategies = strategies if strategies else STRATEGIES_DEFAULT_ALL
         self.strategy_choice.addItems(self.strategies)
         self.strategy_choice.setCurrentText(config.get("strategy", NO_DEFAULT))
         self.strategy_choice.setToolTip(
@@ -210,10 +212,14 @@ class TableDefaultsWidget(QWidget):
         group_layout = QVBoxLayout(group_box)
 
         self.column_widgets = {}
+        allowed_strats = ALLOWED_STRATEGIES.get(table_name, {})
         # Iterate over columns and create widgets
         for column_name in table_columns:
             column_settings = settings.get(column_name, self.default_col_config())
-            column_widget = ColumnConfigWidget(column_name, column_settings, table_columns)
+            strategies = allowed_strats.get(column_name, None)
+            column_widget = ColumnConfigWidget(
+                column_name, column_settings, table_columns, strategies
+            )
             column_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
             group_layout.addWidget(column_widget)
             self.column_widgets[column_name] = column_widget

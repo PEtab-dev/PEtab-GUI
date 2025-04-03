@@ -44,9 +44,9 @@ class DefaultHandlerModel:
         elif strategy == NO_DEFAULT:
             return ""
         elif strategy == MIN_COLUMN:
-            return self._min_column(column_name, column_config)
+            return self._min_column(column_name)
         elif strategy == MAX_COLUMN:
-            return self._max_column(column_name, column_config)
+            return self._max_column(column_name)
         elif strategy == COPY_FROM:
             return self._copy_column(column_name, column_config, row_index)
         elif strategy == MODE:
