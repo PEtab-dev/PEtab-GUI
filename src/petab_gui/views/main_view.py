@@ -105,12 +105,11 @@ class MainWindow(QMainWindow):
         self.data_tab.splitDockWidget(self.observable_dock, self.condition_dock, Qt.Vertical)
         self.data_tab.splitDockWidget(self.condition_dock, self.plot_dock, Qt.Vertical)
 
-        # Reset visibility to True
+        # Ensure visibility
         if hasattr(self, "dock_visibility"):
             for dock in self.dock_visibility:
                 dock.setVisible(True)
 
-        # Optional: select the Data Tables tab
         self.tab_widget.setCurrentIndex(0)
 
     def dragEnterEvent(self, event):
