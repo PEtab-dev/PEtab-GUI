@@ -8,7 +8,9 @@ from PySide6.QtWidgets import (
     QLabel, QGridLayout, QFormLayout, QComboBox, QDoubleSpinBox, QLineEdit,
     QScrollArea, QGroupBox, QSizePolicy, QSpacerItem, QPushButton
 )
-from .C import DEFAULT_CONFIGS
+from .C import (DEFAULT_CONFIGS, COPY_FROM, USE_DEFAULT, NO_DEFAULT,
+                MIN_COLUMN, MAX_COLUMN, SOURCE_COLUMN, DEFAULT_VALUE,
+                STRATEGIES_DEFAULT, MODE, STRATEGY_TOOLTIP)
 
 
 class SettingsManager(QObject):
@@ -126,31 +128,44 @@ class ColumnConfigWidget(QWidget):
 
         # Form layout for settings
         self.layout = QFormLayout()
+        self.layout.setLabelAlignment(Qt.AlignRight)
         main_layout.addLayout(self.layout)
 
         # Strategy Dropdown
         self.strategy_choice = QComboBox()
-        self.strategies = ["copy_column", "default_value", "majority_vote", "min_column", "max_column"]
+        self.strategies = STRATEGIES_DEFAULT
         self.strategy_choice.addItems(self.strategies)
-        self.strategy_choice.setCurrentText(config.get("strategy", "default_value"))
-        self.layout.addRow(QLabel("Strategy:"), self.strategy_choice)
-
+        self.strategy_choice.setCurrentText(config.get("strategy", NO_DEFAULT))
+        self.strategy_choice.setToolTip(
+            STRATEGY_TOOLTIP.get(self.strategy_choice.currentText(), "")
+        )
+        self.strategy_choice.currentTextChanged.connect(
+            lambda text: self.strategy_choice.setToolTip(
+                STRATEGY_TOOLTIP.get(text, "")
+            )
+        )
+        self.strategy_row = self.add_aligned_row(
+            "Strategy:", self.strategy_choice
+        )
         # Default Value Input
-        self.default_value = QLineEdit(str(config.get("default_value", "")))
-        self.layout.addRow(QLabel("Default Value:"), self.default_value)
-
+        self.default_value = QLineEdit(str(config.get(DEFAULT_VALUE, "")))
+        self.default_value_row = self.add_aligned_row(
+            "Default Value:", self.default_value
+        )
         # Source Column Dropdown (Only for "copy_column")
         self.source_column_dropdown = QComboBox()
         self.source_column_dropdown.addItems([""] + table_columns)
-        self.source_column_dropdown.setCurrentText(config.get("source_column", ""))
-        self.layout.addRow(QLabel("Source Column:"), self.source_column_dropdown)
+        self.source_column_dropdown.setCurrentText(
+            config.get(SOURCE_COLUMN, "")
+        )
+        self.source_column_row = self.add_aligned_row(
+            "Source Column:", self.source_column_dropdown
+        )
 
-        # Min/Max Cap Input (Only for "min_column" / "max_column")
-        self.cap_value = SciDoubleSpinBox()
-        self.cap_value.setMinimum(1e-10)
-        self.cap_value.setMaximum(1e10)
-        self.cap_value.setValue(config.get("min_cap", 1) if config.get("strategy") == "min_column" else config.get("max_cap", 1))
-        self.layout.addRow(QLabel("Cap Value:"), self.cap_value)
+        for widget in [self.strategy_choice, self.default_value,
+                       self.source_column_dropdown]:
+            widget.setFixedWidth(150)
+            widget.setMinimumHeight(24)
 
         # Connect strategy selection to update UI
         self.strategy_choice.currentTextChanged.connect(self.update_ui)
@@ -158,33 +173,35 @@ class ColumnConfigWidget(QWidget):
         # Apply initial visibility state
         self.update_ui(self.strategy_choice.currentText())
 
+    def add_aligned_row(self, label_text, widget):
+        """Add a row of constant size to the FormLayout."""
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addStretch()
+        layout.addWidget(widget)
+        self.layout.addRow(QLabel(label_text), container)
+        return container
+
     def update_ui(self, strategy):
         """Show/hide relevant fields based on selected strategy."""
         self.layout.setRowVisible(
-            self.source_column_dropdown, strategy == "copy_column"
+            self.source_column_row, strategy == COPY_FROM
         )
         self.layout.setRowVisible(
-            self.default_value, strategy not in ["copy_column", "majority_vote"]
-        )
-        self.layout.setRowVisible(
-            self.cap_value, strategy in ["min_column", "max_column"]
+            self.default_value_row, strategy == USE_DEFAULT
         )
 
     def get_current_config(self):
         """Return the current configuration from the UI."""
         config = {
             "strategy": self.strategy_choice.currentText(),
-            "default_value": self.default_value.text(),
+            DEFAULT_VALUE: self.default_value.text(),
         }
-        if config["strategy"] == "copy_column":
-            config["source_column"] = self.source_column_dropdown.currentText()
-        if config["strategy"] == "majority_vote":
-            config["source_column"] = "source_column"  # Placeholder
-        # Add min/max cap if applicable
-        if config["strategy"] == "min_column":
-            config["min_cap"] = self.cap_value.value()
-        elif config["strategy"] == "max_column":
-            config["max_cap"] = self.cap_value.value()
+        if config["strategy"] == COPY_FROM:
+            config[SOURCE_COLUMN] = self.source_column_dropdown.currentText()
+        if config["strategy"] == MODE:
+            config[SOURCE_COLUMN] = SOURCE_COLUMN  # Placeholder
 
         return config
 
@@ -211,7 +228,7 @@ class TableDefaultsWidget(QWidget):
         for column_name in table_columns:
             column_settings = settings.get(column_name, self.default_col_config())
             column_widget = ColumnConfigWidget(column_name, column_settings, table_columns)
-            column_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            column_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
             group_layout.addWidget(column_widget)
             self.column_widgets[column_name] = column_widget
 
@@ -233,11 +250,7 @@ class TableDefaultsWidget(QWidget):
     def default_col_config(self):
         """Return default config for new columns."""
         return {
-            "strategy": "default_value",
-            "default_value": "",
-            "source_column": "",
-            "min_cap": 1,
-            "max_cap": 1
+            "strategy": NO_DEFAULT
         }
 
 

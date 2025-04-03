@@ -61,49 +61,69 @@ ROW = 'row'
 COLUMN = 'column'
 INDEX = 'index'
 
+COPY_FROM = "copy from"
+USE_DEFAULT = "use default"
+NO_DEFAULT = "no default"
+MIN_COLUMN = "use column min"
+MAX_COLUMN = "use column max"
+MODE = "use most frequent"
+STRATEGIES_DEFAULT = [COPY_FROM, USE_DEFAULT, NO_DEFAULT, MIN_COLUMN,
+                      MAX_COLUMN, MODE]
+STRATEGY_TOOLTIP = {
+    COPY_FROM: "Copy from another column in the same row",
+    USE_DEFAULT: "Use default value",
+    NO_DEFAULT: "Do not set a value",
+    MIN_COLUMN: "Use the minimum value of the column",
+    MAX_COLUMN: "Use the maximum value of the column",
+}
+SOURCE_COLUMN = "source_column"
+DEFAULT_VALUE = "default_value"
+
 # Default Configurations of Default Values
 DEFAULT_OBS_CONFIG = {
     "observableId": {
-        "strategy": "copy_column", "source_column": "observableFormula",
-        "prefix": "obs_", "default_value": ""
+        "strategy": COPY_FROM, SOURCE_COLUMN: "observableFormula",
+        "prefix": "obs_", DEFAULT_VALUE: "new_observable"
     },
     "observableName": {
-        "strategy": "copy_column", "source_column": "observableId",
-        "default_value": ""
+        "strategy": COPY_FROM, SOURCE_COLUMN: "observableId"
     },
     "noiseFormula": {
-        "strategy": "default_value", "default_value": 1
+        "strategy": USE_DEFAULT, DEFAULT_VALUE: 1
     },
     "observableTransformation": {
-        "strategy": "default_value",
-        "default_value": "lin"
+        "strategy": USE_DEFAULT,
+        DEFAULT_VALUE: "lin"
     },
     "noiseDistribution": {
-        "strategy": "default_value",
-        "default_value": "normal"
+        "strategy": USE_DEFAULT,
+        DEFAULT_VALUE: "normal"
     }
 }
 DEFAULT_PAR_CONFIG = {
     "parameterName": {
-        "strategy": "copy_column", "source_column": "parameterId", "default_value": ""
+        "strategy": COPY_FROM, SOURCE_COLUMN: "parameterId",
+        DEFAULT_VALUE: "new_parameter"
     },
     "parameterScale": {
-        "strategy": "default_value", "default_value": "log10"
+        "strategy": USE_DEFAULT, DEFAULT_VALUE: "log10"
     },
     "lowerBound": {
-        "strategy": "min_column", "min_cap": 1e-8, "default_value": 1e-8
+        "strategy": MIN_COLUMN
     },
     "upperBound": {
-        "strategy": "max_column", "max_cap": 1e8, "default_value": 1e8
+        "strategy": MAX_COLUMN
     },
     "estimate": {
-        "strategy": "default_value", "default_value": 1
+        "strategy": USE_DEFAULT, DEFAULT_VALUE: 1
     },
 }
 DEFAULT_COND_CONFIG = {
+    "conditionId": {
+        "strategy": USE_DEFAULT, DEFAULT_VALUE: "new_condition"
+    },
     "conditionName": {
-        "strategy": "copy_column", "source_column": "conditionId",
-        "default_value": ""
+        "strategy": COPY_FROM, SOURCE_COLUMN: "conditionId"
     }
 }
 DEFAULT_MEAS_CONFIG = {}
