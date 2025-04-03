@@ -170,7 +170,7 @@ class TableController(QObject):
         self.proxy_model.setSourceModel(None)
         self.model.beginResetModel()
         self.model._data_frame = new_df
-        self.model.beginResetModel()
+        self.model.endResetModel()
         self.logger.log_message(
             f"Overwrote the {self.model.table_type} table with new data.",
             color="green"
