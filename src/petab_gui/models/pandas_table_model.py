@@ -1,7 +1,7 @@
 import pandas as pd
 from PySide6.QtCore import (Qt, QAbstractTableModel, QModelIndex, Signal,
                             QSortFilterProxyModel, QMimeData)
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QBrush
 
 from ..C import COLUMNS
 from ..utils import validate_value, create_empty_dataframe, is_invalid, \
@@ -25,12 +25,16 @@ class PandasTableModel(QAbstractTableModel):
         self._allowed_columns = allowed_columns
         self.table_type = table_type
         self._invalid_cells = set()
+        self.highlighted_cells = set()
         self._has_named_index = False
         if data_frame is None:
             data_frame = create_empty_dataframe(allowed_columns, table_type)
         self._data_frame = data_frame
         # add a view here, access is needed for selectionModels
         self.view = None
+        # offset for row and column to get from the data_frame to the view
+        self.row_index_offset = 0
+        self.column_offset = 0
         # default values setup
         self.config = settings_manager.get_table_defaults(table_type)
         self.default_handler = DefaultHandlerModel(self, self.config)
@@ -39,7 +43,7 @@ class PandasTableModel(QAbstractTableModel):
         return self._data_frame.shape[0] + 1  # empty row at the end
 
     def columnCount(self, parent=QModelIndex()):
-        return self._data_frame.shape[1] + 1  # measurement needs other
+        return self._data_frame.shape[1] + self.column_offset
 
     def data(self, index, role=Qt.DisplayRole):
         """Return the data at the given index and role for the View."""
@@ -60,6 +64,11 @@ class PandasTableModel(QAbstractTableModel):
             return str(value)
         elif role == Qt.BackgroundRole:
             return self.determine_background_color(row, column)
+        elif role == Qt.ForegroundRole:
+            # Return yellow text if this cell is a match
+            if (row, column) in self.highlighted_cells:
+                return QBrush(QColor(255, 255, 0))  # Yellow color
+            return QBrush(QColor(0, 0, 0))  # Default black text
         return None
 
     def flags(self, index):
@@ -136,6 +145,10 @@ class PandasTableModel(QAbstractTableModel):
     def setData(self, index, value, role=Qt.EditRole):
         if not (index.isValid() and role == Qt.EditRole):
             return False
+
+        if role != Qt.EditRole:
+            return False
+
         if is_invalid(value) or value == "":
             value = None
         # check whether multiple rows but only one column is selected
@@ -288,6 +301,8 @@ class PandasTableModel(QAbstractTableModel):
 
     def update_invalid_cells(self, selected, mode: str = "rows"):
         """Edits the invalid cells when values are deleted."""
+        if not selected:
+            return
         old_invalid_cells = self._invalid_cells.copy()
         new_invalid_cells = set()
         sorted_to_del = sorted(selected)
@@ -325,10 +340,8 @@ class PandasTableModel(QAbstractTableModel):
         return ""
 
     def return_column_index(self, column_name):
-        """Return the index of a column."""
-        if column_name in self._data_frame.columns:
-            return self._data_frame.columns.get_loc(column_name) + 1
-        return -1
+        """Return the index of a column. Defined in Subclasses"""
+        pass
 
     def unique_values(self, column_name):
         """Return the unique values in a column."""
@@ -346,8 +359,8 @@ class PandasTableModel(QAbstractTableModel):
 
     def delete_column(self, column_index):
         """Delete a column from the DataFrame."""
+        column_name = self._data_frame.columns[column_index - self.column_offset]
         self.beginRemoveColumns(QModelIndex(), column_index, column_index)
-        column_name = self._data_frame.columns[column_index]
         self._data_frame.drop(columns=[column_name], inplace=True)
         self.endRemoveColumns()
 
@@ -450,6 +463,15 @@ class PandasTableModel(QAbstractTableModel):
             return QColor(144, 190, 109, 102)
         return QColor(177, 217, 231, 102)
 
+    def allow_column_deletion(self, column: int) -> bool:
+        """Checks whether the column can safely be deleted"""
+        if column == 0 and self._has_named_index:
+            return False, self._data_frame.index.name
+        column_name = self._data_frame.columns[column-self.column_offset]
+        if column_name not in self._allowed_columns.keys():
+            return True, column_name
+        return self._allowed_columns[column_name]["optional"], column_name
+
 
 class IndexedPandasTableModel(PandasTableModel):
     """Table model for tables with named index."""
@@ -463,6 +485,7 @@ class IndexedPandasTableModel(PandasTableModel):
             parent=parent
         )
         self._has_named_index = True
+        self.column_offset = 1
 
     def handle_named_index(self, index, value):
         """Handle the named index column."""
@@ -511,9 +534,6 @@ class MeasurementModel(PandasTableModel):
             table_type="measurement",
             parent=parent
         )
-
-    def columnCount(self, parent=QModelIndex()):
-        return self._data_frame.shape[1]
 
     def data(self, index, role=Qt.DisplayRole):
         """Return the data at the given index and role for the View."""

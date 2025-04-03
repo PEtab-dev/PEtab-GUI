@@ -234,13 +234,18 @@ class MainController:
         actions["save"].setShortcut("Ctrl+S")
         actions["save"].triggered.connect(self.save_model)
         # Find + Replace
+        actions["find"] = QAction(
+            qta.icon("mdi6.magnify"),
+            "Find", self.view
+        )
+        actions["find"].setShortcut("Ctrl+F")
+        actions["find"].triggered.connect(self.find)
         actions["find+replace"] = QAction(
             qta.icon("mdi6.find-replace"),
             "Find/Replace", self.view
         )
         actions["find+replace"].setShortcut("Ctrl+R")
-        actions["find+replace"].triggered.connect(
-            self.open_find_replace_dialog)
+        actions["find+replace"].triggered.connect(self.replace)
         # Copy / Paste
         actions["copy"] = QAction(
             qta.icon("mdi6.content-copy"),
@@ -298,7 +303,7 @@ class MainController:
         filter_layout.setContentsMargins(0, 0, 0, 0)
         filter_widget.setLayout(filter_layout)
         self.filter_input = QLineEdit()
-        self.filter_input.setPlaceholderText("Filter not functional yet ...")
+        self.filter_input.setPlaceholderText("Filter...")
         filter_layout.addWidget(self.filter_input)
         for table_n, table_name in zip(
             ["m", "p", "o", "c"],
@@ -314,7 +319,8 @@ class MainController:
             )
             tool_button.setIcon(icon)
             tool_button.setCheckable(True)
-            tool_button.setToolTip(f"Filter for {table_name}")
+            tool_button.setChecked(True)
+            tool_button.setToolTip(f"Filter for {table_name} table")
             filter_layout.addWidget(tool_button)
             self.filter_active[table_name] = tool_button
             self.filter_active[table_name].toggled.connect(
@@ -754,3 +760,19 @@ class MainController:
         }
         settings_dialog = SettingsDialog(table_columns, self.view)
         settings_dialog.exec()
+
+    def set_docks_visible(self):
+        """Handles Visibility of docks."""
+        pass
+
+    def find(self):
+        """Create a find replace bar if it is non existent."""
+        if self.view.find_replace_bar is None:
+            self.view.create_find_replace_bar()
+        self.view.toggle_find()
+
+    def replace(self):
+        """Create a find replace bar if it is non existent."""
+        if self.view.find_replace_bar is None:
+            self.view.create_find_replace_bar()
+        self.view.toggle_replace()
