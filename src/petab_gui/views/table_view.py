@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt, QPropertyAnimation, QRect
 from PySide6.QtGui import QGuiApplication, QColor
 
 from ..utils import get_selected_rectangles
+from .context_menu_mananger import ContextMenuManager
 import re
 import pandas as pd
 
@@ -189,6 +190,16 @@ class CustomTableView(QTableView):
 
         self.horizontalHeader().sectionDoubleClicked.connect(
             self.autofit_column
+        )
+
+    def setup_context_menu(self, actions):
+        """Setup the context menu for the table view."""
+        self.context_menu_manager = ContextMenuManager(
+            actions, self, self.parent
+        )
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(
+            self.context_menu_manager.create_context_menu
         )
 
     def setModel(self, model):

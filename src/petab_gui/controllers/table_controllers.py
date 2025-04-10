@@ -93,6 +93,11 @@ class TableController(QObject):
             self.update_defaults
         )
 
+    def setup_context_menu(self, actions):
+        """Setup context menu for this table."""
+        view = self.view.table_view
+        view.setup_context_menu(actions)
+
     def validate_changed_cell(self, row, column):
         """Validate the changed cell and whether its linting is correct."""
         if not self.check_petab_lint_mode:

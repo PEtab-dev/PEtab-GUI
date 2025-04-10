@@ -105,6 +105,14 @@ class MainController:
 
         self.setup_connections()
         self.setup_task_bar()
+        self.setup_context_menu()
+
+    def setup_context_menu(self):
+        """Sets up context menus for the tables."""
+        self.measurement_controller.setup_context_menu(self.actions)
+        self.observable_controller.setup_context_menu(self.actions)
+        self.parameter_controller.setup_context_menu(self.actions)
+        self.condition_controller.setup_context_menu(self.actions)
 
     def setup_task_bar(self):
         """Create shortcuts for the main window."""

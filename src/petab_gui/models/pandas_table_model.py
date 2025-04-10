@@ -445,7 +445,6 @@ class PandasTableModel(QAbstractTableModel):
                 self._data_frame.shape[0],
                 start_row + n_rows - self._data_frame.shape[0]
             )
-            self.layoutChanged.emit()
 
     def determine_background_color(self, row, column):
         """Determine the background color of a cell.
