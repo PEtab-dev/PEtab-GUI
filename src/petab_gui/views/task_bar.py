@@ -109,6 +109,19 @@ class ViewMenu(BasicMenu):
         self.menu.addAction(actions["clear_log"])
 
 
+class HelpMenu(BasicMenu):
+    """Help Menu of the TaskBar."""
+    def menu_name(self):
+        return "&Help"
+
+    def __init__(self, parent, actions):
+        super().__init__(parent, actions)
+
+        # Add actions to the menu for re-adding tables
+        self.menu.addAction(actions["open_documentation"])
+
+
+
 class TaskBar:
     """TaskBar of the PEtab Editor."""
     def add_menu(self, menu_class, actions):
@@ -123,3 +136,4 @@ class TaskBar:
         self.file_menu = self.add_menu(FileMenu, actions)
         self.edit_menu = self.add_menu(EditMenu, actions)
         self.view_menu = self.add_menu(ViewMenu, actions)
+        self.help_menu = self.add_menu(HelpMenu, actions)
