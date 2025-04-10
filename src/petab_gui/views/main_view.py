@@ -90,27 +90,48 @@ class MainWindow(QMainWindow):
         self.find_replace_bar = None
 
     def default_view(self):
-        """Reset the view to the default one."""
+        """Reset the view to a fixed 3x2 grid using manual geometry."""
         if hasattr(self, "dock_visibility"):
             for dock in self.dock_visibility:
-                self.data_tab.removeDockWidget(dock)
+                dock.setParent(None)  # fully remove from layout
 
-        # Column 1
-        self.data_tab.addDockWidget(Qt.LeftDockWidgetArea, self.measurement_dock)
-        self.data_tab.splitDockWidget(self.measurement_dock, self.parameter_dock, Qt.Vertical)
-        self.data_tab.splitDockWidget(self.parameter_dock, self.logger_dock, Qt.Vertical)
+        self.tab_widget.setCurrentIndex(0)
+        self.data_tab.updateGeometry()
+        self.data_tab.repaint()
 
-        # Column 2
-        self.data_tab.addDockWidget(Qt.RightDockWidgetArea, self.observable_dock)
-        self.data_tab.splitDockWidget(self.observable_dock, self.condition_dock, Qt.Vertical)
-        self.data_tab.splitDockWidget(self.condition_dock, self.plot_dock, Qt.Vertical)
+        # Get available geometry
+        available_rect = self.data_tab.contentsRect()
+        width = available_rect.width() // 2
+        height = available_rect.height() // 3
+        x_left = available_rect.left()
+        x_right = x_left + width
+        y_positions = [available_rect.top() + i * height for i in range(3)]
 
-        # Ensure visibility
+        # Define dock + positions
+        layout = [
+            (self.measurement_dock, x_left, y_positions[0]),
+            (self.parameter_dock, x_left, y_positions[1]),
+            (self.logger_dock, x_left, y_positions[2]),
+            (self.observable_dock, x_right, self.measurement_dock),
+            (self.condition_dock, x_right, self.parameter_dock),
+            (self.plot_dock, x_right, self.logger_dock),
+        ]
+
+        for dock, x, y in layout:
+            area = Qt.LeftDockWidgetArea
+            if x == x_left:
+                self.data_tab.addDockWidget(area, dock)
+                dock.setFloating(True)
+                dock.setGeometry(x, y, width, height)
+                dock.setFloating(False)
+            if x == x_right:
+                self.data_tab.splitDockWidget(
+                    y, dock, Qt.Horizontal
+                )
+
         if hasattr(self, "dock_visibility"):
             for dock in self.dock_visibility:
                 dock.setVisible(True)
-
-        self.tab_widget.setCurrentIndex(0)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
