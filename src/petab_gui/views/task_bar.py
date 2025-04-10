@@ -66,16 +66,20 @@ class EditMenu(BasicMenu):
         super().__init__(parent, actions)
 
         # Find and Replace
-        self.find_replace_action = self.add_action_or_menu("Find/Replace")
+        self.menu.addAction(actions["find"])
+        self.menu.addAction(actions["find+replace"])
+        self.menu.addSeparator()
         # Copy, Paste
         self.menu.addAction(actions["copy"])
         self.menu.addAction(actions["paste"])
+        self.menu.addSeparator()
         # Add Columns
         self.menu.addAction(actions["add_column"])
         self.menu.addAction(actions["delete_column"])
         # Add Rows
         self.menu.addAction(actions["add_row"])
         self.menu.addAction(actions["delete_row"])
+        self.menu.addSeparator()
         # Reset Model
         self.menu.addAction(actions["reset_model"])
 
@@ -105,6 +109,19 @@ class ViewMenu(BasicMenu):
         self.menu.addAction(actions["clear_log"])
 
 
+class HelpMenu(BasicMenu):
+    """Help Menu of the TaskBar."""
+    def menu_name(self):
+        return "&Help"
+
+    def __init__(self, parent, actions):
+        super().__init__(parent, actions)
+
+        # Add actions to the menu for re-adding tables
+        self.menu.addAction(actions["open_documentation"])
+
+
+
 class TaskBar:
     """TaskBar of the PEtab Editor."""
     def add_menu(self, menu_class, actions):
@@ -119,3 +136,4 @@ class TaskBar:
         self.file_menu = self.add_menu(FileMenu, actions)
         self.edit_menu = self.add_menu(EditMenu, actions)
         self.view_menu = self.add_menu(ViewMenu, actions)
+        self.help_menu = self.add_menu(HelpMenu, actions)

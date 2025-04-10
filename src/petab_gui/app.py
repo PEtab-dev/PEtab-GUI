@@ -26,7 +26,7 @@ class PEtabGuiApp(QApplication):
         super().__init__(sys.argv)
 
         # Load the styleshee
-        self.apply_stylesheet()
+        # self.apply_stylesheet()
         self.model = PEtabModel()
         self.view = MainWindow()
         self.controller = MainController(self.view, self.model)

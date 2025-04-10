@@ -1,12 +1,13 @@
 """Main Window View."""
-from PySide6.QtWidgets import (QApplication, QMainWindow, QDockWidget,
-                               QTableView, QWidget, QVBoxLayout, QPushButton, QTabWidget)
-from PySide6.QtCore import Qt, Signal, QSettings
+from PySide6.QtWidgets import (QMainWindow, QDockWidget,
+                               QWidget, QVBoxLayout, QTabWidget, QSizePolicy)
+from PySide6.QtCore import Qt, QSettings
 from .sbml_view import SbmlViewer
 from .table_view import TableViewer
-from .task_bar import TaskBar
+from ..utils import FindReplaceBar
 from .logger import Logger
 from .measurement_plot import MeasuremenPlotter
+import copy
 
 
 class MainWindow(QMainWindow):
@@ -107,7 +108,7 @@ class MainWindow(QMainWindow):
 
         # Allow docking in multiple areas
         self.data_tab.setDockOptions(
-            QMainWindow.AllowNestedDocks | QMainWindow.AllowTabbedDocks
+            QMainWindow.AllowNestedDocks
         )
 
         self.tab_widget.currentChanged.connect(self.set_docks_visible)
@@ -116,7 +117,8 @@ class MainWindow(QMainWindow):
 
         # drag drop
         self.setAcceptDrops(True)
-        # self.dumpObjectTree()
+
+        self.find_replace_bar = None
 
 
     def dragEnterEvent(self, event):
@@ -140,18 +142,20 @@ class MainWindow(QMainWindow):
         tb = self.addToolBar("MainToolbar")
         tb.setObjectName("MainToolbar")
         self.setUnifiedTitleAndToolBarOnMac(True)
-
+        # spacer for later
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         # first the normal open / save operations
         tb.addAction(actions["new"])
         tb.addAction(actions["open"])
         tb.addAction(actions["add"])
         tb.addAction(actions["save"])
         tb.addAction(actions["check_petab"])
-        tb.addAction(actions["find+replace"])
         tb.addAction(actions["add_row"])
         tb.addAction(actions["delete_row"])
         tb.addAction(actions["add_column"])
         tb.addAction(actions["delete_column"])
+        tb.addWidget(spacer)
         tb.addWidget(actions["filter_widget"])
 
     def add_menu_action(self, dock_widget, name):
@@ -175,7 +179,8 @@ class MainWindow(QMainWindow):
         self.dock_visibility[dock] = dock.isVisible()
 
     def set_docks_visible(self, index):
-        """Slot to set all QDockWidget instances to their previous visibility when the "Data Tables" tab is not selected"""
+        """Slot to set all QDockWidget instances to their previous visibility
+        when the "Data Tables" tab is not selected."""
         if index != 0:  # Another tab is selected
             for dock, visible in self.dock_visibility.items():
                 dock.setVisible(visible)
@@ -190,7 +195,6 @@ class MainWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
-
 
     def load_settings(self):
         """Load the settings from the QSettings object."""
@@ -229,3 +233,33 @@ class MainWindow(QMainWindow):
         settings.setValue("data_tab/geometry", self.data_tab.saveGeometry())
         settings.setValue("data_tab/state", self.data_tab.saveState())
 
+    def create_find_replace_bar(self):
+        """Create the find/replace bar and add it without replacing the tab widget."""
+        self.find_replace_bar = FindReplaceBar(self.controller, self)
+        # manually create a copy of the dock visibility
+        dock_visibility_values = copy.deepcopy(
+            list(self.dock_visibility.values())
+        )
+
+        # Create a layout to insert Find/Replace above the tabs
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)  # Remove extra spacing
+        layout.addWidget(self.find_replace_bar)
+        layout.addWidget(self.tab_widget)  # Keep tab_widget in the layout
+
+        self.setCentralWidget(container)
+        # Restore the visibility of the docks
+        for dock, visible in zip(self.dock_visibility.keys(), dock_visibility_values):
+            self.dock_visibility[dock] = visible
+            dock.setVisible(visible)
+
+    def toggle_find(self):
+        """Toggles the find-part of the Find.Replace Bar."""
+        # self.find_replace_bar.toggle_find()
+        self.find_replace_bar.toggle_find()
+
+    def toggle_replace(self):
+        """Toggles the replace-part of the Find.Replace Bar."""
+        # self.find_replace_bar.toggle_replace()
+        self.find_replace_bar.toggle_replace()
