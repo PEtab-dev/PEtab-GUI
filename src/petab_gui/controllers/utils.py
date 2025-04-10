@@ -1,8 +1,10 @@
 from PySide6.QtWidgets import QMessageBox, QMenu
-from PySide6.QtCore import QObject, Signal, QSettings
+from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QAction
 from collections import Counter
 from pathlib import Path
+
+from ..settings_manager import settings_manager
 
 
 def prompt_overwrite_or_append(controller):
@@ -31,8 +33,6 @@ class RecentFilesManager(QObject):
     def __init__(self, max_files=10):
         super().__init__()
         self.max_files = max_files
-        # TODO: link together with other settings, i.e. move settings to mc
-        self.settings = QSettings("PEtab_GUI", "PEtab_GUI")
         self.recent_files = self.load_recent_files()
         self.tool_bar_menu = QMenu("Recent Files")
         self.update_tool_bar_menu()
@@ -46,16 +46,17 @@ class RecentFilesManager(QObject):
         self.save_recent_files()
         self.update_tool_bar_menu()
 
-    def load_recent_files(self):
+    @staticmethod
+    def load_recent_files():
         """Load recent files from settings."""
-        return self.settings.value("recent_files", [])
+        return settings_manager.get_value("recent_files", [])
 
     def save_recent_files(self):
         """Save recent files to settings."""
-        self.settings.setValue("recent_files", self.recent_files)
+        settings_manager.set_value("recent_files", self.recent_files)
 
     def update_tool_bar_menu(self):
-        """Create a menu for the tool bar."""
+        """Update the recent files menu."""
         self.tool_bar_menu.clear()
 
         # Generate shortened names
@@ -73,11 +74,9 @@ class RecentFilesManager(QObject):
             action = QAction(display, self.tool_bar_menu)
             action.triggered.connect(lambda _, p=full_path: self.open_file.emit(p))
             self.tool_bar_menu.addAction(action)
-
         self.tool_bar_menu.addSeparator()
         clear_action = QAction("Clear Recent Files", self.tool_bar_menu)
         clear_action.triggered.connect(self.clear_recent_files)
-        self.tool_bar_menu.addAction(clear_action)
 
     def clear_recent_files(self):
         """Clear the recent files list."""

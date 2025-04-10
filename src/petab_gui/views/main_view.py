@@ -7,6 +7,7 @@ from .table_view import TableViewer
 from ..utils import FindReplaceBar
 from .logger import Logger
 from .measurement_plot import MeasuremenPlotter
+from ..settings_manager import settings_manager
 import copy
 
 
@@ -82,7 +83,7 @@ class MainWindow(QMainWindow):
 
         self.tab_widget.currentChanged.connect(self.set_docks_visible)
 
-        self.load_settings()
+        settings_manager.load_ui_settings(self)
 
         # drag drop
         self.setAcceptDrops(True)
@@ -203,7 +204,7 @@ class MainWindow(QMainWindow):
         self.controller.maybe_close()
 
         if self.allow_close:
-            self.save_settings()
+            settings_manager.save_ui_settings(self)
             event.accept()
         else:
             event.ignore()
@@ -215,7 +216,7 @@ class MainWindow(QMainWindow):
         # Load the visibility of the dock widgets
         for dock, _ in self.dock_visibility.items():
             dock.setVisible(settings.value(f"docks/{dock.objectName()}", True, type=bool))
-                
+
         # Load the geometry of the main window
         self.restoreGeometry(settings.value("main_window/geometry"))
 

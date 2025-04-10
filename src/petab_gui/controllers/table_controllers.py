@@ -8,6 +8,7 @@ from PySide6.QtCore import Signal, QObject, QModelIndex, Qt, QTimer
 from pathlib import Path
 from ..models.pandas_table_model import PandasTableModel, \
     PandasTableFilterProxy
+from ..settings_manager import settings_manager
 from ..views.table_view import TableViewer, SingleSuggestionDelegate, \
     ColumnSuggestionDelegate, ComboBoxDelegate, ParameterIdSuggestionDelegate
 from ..utils import get_selected, process_file
@@ -84,6 +85,12 @@ class TableController(QObject):
         )
         self.model.inserted_row.connect(
             self.set_index_on_new_row
+        )
+        self.model.fill_defaults.connect(
+            self.model.get_default_values, Qt.QueuedConnection
+        )
+        settings_manager.settings_changed.connect(
+            self.update_defaults
         )
 
     def validate_changed_cell(self, row, column):
@@ -164,7 +171,7 @@ class TableController(QObject):
         self.proxy_model.setSourceModel(None)
         self.model.beginResetModel()
         self.model._data_frame = new_df
-        self.model.beginResetModel()
+        self.model.endResetModel()
         self.logger.log_message(
             f"Overwrote the {self.model.table_type} table with new data.",
             color="green"
@@ -446,6 +453,26 @@ class TableController(QObject):
             if index_map:
                 df.rename(index=index_map, inplace=True)
 
+    def get_columns(self):
+        """Get the columns of the table."""
+        df = self.model.get_df()
+        # if it is a named index, add it to the columns
+        if df.index.name:
+            return [df.index.name] + df.columns.tolist()
+        return df.columns.tolist()
+
+    def update_defaults(self, settings_changed):
+        """Update the default values of the model."""
+        # if the signal is not "table_defaults/table_name" return
+        if not settings_changed.startswith("table_defaults"):
+            return
+        table_name = settings_changed.split("/")[1]
+        if table_name != self.model.table_type:
+            return
+        self.model.default_handler.config = (
+            settings_manager.get_table_defaults(self.model.table_type)
+        )
+
 
 class MeasurementController(TableController):
     """Controller of the Measurement table."""
@@ -547,7 +574,7 @@ class MeasurementController(TableController):
             "CSV Files (*.csv);;TSV Files (*.tsv)"
         )
         if file_name:
-            self.process_data_matrix_file(file_name)
+            self.process_data_matrix_file(file_name, "append")
 
     def process_data_matrix_file(self, file_name, mode, separator=None):
         """Process the data matrix file.
@@ -560,10 +587,16 @@ class MeasurementController(TableController):
             if data_matrix is None or data_matrix.empty:
                 return
 
-            condition_id = "cond1"  # Does this need adjustment?
+            cond_dialog = ConditionInputDialog()
+            if cond_dialog.exec():
+                conditions = cond_dialog.get_condition_id()
+                condition_id = conditions.get("conditionId", "")
+                preeq_id = conditions.get("preeq_id", "")
             if mode == "overwrite":
                 self.model.clear_table()
-            self.populate_tables_from_data_matrix(data_matrix, condition_id)
+            self.populate_tables_from_data_matrix(
+                data_matrix, condition_id, preeq_id
+            )
             self.model.something_changed.emit(True)
 
         except Exception as e:
@@ -591,21 +624,33 @@ class MeasurementController(TableController):
         )
         return data_matrix.rename(columns={time_column: "time"})
 
-    def populate_tables_from_data_matrix(self, data_matrix, condition_id):
+    def populate_tables_from_data_matrix(
+        self, data_matrix, condition_id, preeq_id: str = ""
+    ):
         """Populate the measurement table from the data matrix."""
         for col in data_matrix.columns:
             if col == "time":
                 continue
             observable_id = col
-            self.model.possibly_new_condition.emit(observable_id)
-            self.model.possibly_new_observable.emit(condition_id)
+            self.model.relevant_id_changed.emit(
+                observable_id, "", "observable"
+            )
+            self.model.relevant_id_changed.emit(condition_id, "", "condition")
+            if preeq_id:
+                self.model.relevant_id_changed.emit(preeq_id, "", "condition")
             self.add_measurement_rows(
                 data_matrix[["time", observable_id]],
                 observable_id,
-                condition_id
+                condition_id,
+                preeq_id
             )
 
-    def add_measurement_rows(self, data_matrix, observable_id, condition_id):
+    def add_measurement_rows(
+        self, data_matrix,
+        observable_id,
+        condition_id: str = "",
+        preeq_id: str = ""
+    ):
         """Adds multiple rows to the measurement table."""
         # check number of rows and signal row insertion
         rows = data_matrix.shape[0]
@@ -622,6 +667,7 @@ class MeasurementController(TableController):
                     "time": row["time"],
                     "measurement": row[observable_id],
                     "simulationConditionId": condition_id,
+                    "preequilibrationConditionId": preeq_id
                 }
             )
         bottom, right = (x - 1 for x in self.model.get_df().shape)
@@ -688,6 +734,10 @@ class ConditionController(TableController):
     """Controller of the Condition table."""
     condition_2be_renamed = Signal(str, str)  # Signal to mother controller
 
+    def update_handler_model(self):
+        """Update the handler model."""
+        self.model.default_handler.model = self.model._data_frame
+
     def setup_connections_specific(self):
         """Setup connections specific to the condition controller.
 
@@ -695,6 +745,9 @@ class ConditionController(TableController):
         """
         self.model.relevant_id_changed.connect(
             self.maybe_rename_condition
+        )
+        self.overwritten_df.connect(
+            self.update_handler_model
         )
 
     def check_petab_lint(self, row_data: pd.DataFrame = None):
@@ -782,6 +835,10 @@ class ObservableController(TableController):
     """Controller of the Observable table."""
     observable_2be_renamed = Signal(str, str)  # Signal to mother controller
 
+    def update_handler_model(self):
+        """Update the handler model."""
+        self.model.default_handler.model = self.model._data_frame
+
     def setup_completers(self):
         """Set completers for the observable table."""
         table_view = self.view.table_view
@@ -836,6 +893,9 @@ class ObservableController(TableController):
         """
         self.model.relevant_id_changed.connect(
             self.maybe_rename_observable
+        )
+        self.overwritten_df.connect(
+            self.update_handler_model
         )
 
     def check_petab_lint(self, row_data: pd.DataFrame = None):
@@ -893,6 +953,16 @@ class ObservableController(TableController):
 
 class ParameterController(TableController):
     """Controller of the Parameter table."""
+
+    def setup_connections_specific(self):
+        """Connect signals specific to the parameter controller."""
+        self.overwritten_df.connect(
+            self.update_handler_model
+        )
+
+    def update_handler_model(self):
+        """Update the handler model."""
+        self.model.default_handler.model = self.model._data_frame
 
     def setup_completers(self):
         """Set completers for the parameter table."""

@@ -6,6 +6,8 @@ from PySide6.QtWidgets import QApplication
 from ..C import COLUMNS
 from ..utils import validate_value, create_empty_dataframe, is_invalid, \
     get_selected
+from ..controllers.default_handler import DefaultHandlerModel
+from ..settings_manager import settings_manager
 
 
 class PandasTableModel(QAbstractTableModel):
@@ -16,6 +18,7 @@ class PandasTableModel(QAbstractTableModel):
     cell_needs_validation = Signal(int, int)  # row, column
     something_changed = Signal(bool)
     inserted_row = Signal(QModelIndex)
+    fill_defaults = Signal(QModelIndex)
 
     def __init__(self, data_frame, allowed_columns, table_type, parent=None):
         super().__init__(parent)
@@ -32,6 +35,9 @@ class PandasTableModel(QAbstractTableModel):
         # offset for row and column to get from the data_frame to the view
         self.row_index_offset = 0
         self.column_offset = 0
+        # default values setup
+        self.config = settings_manager.get_table_defaults(table_type)
+        self.default_handler = DefaultHandlerModel(self, self.config)
 
     def rowCount(self, parent=QModelIndex()):
         return self._data_frame.shape[0] + 1  # empty row at the end
@@ -163,6 +169,8 @@ class PandasTableModel(QAbstractTableModel):
         if index.row() == self._data_frame.shape[0]:
             # empty row at the end
             self.insertRows(index.row(), 1)
+            self.fill_defaults.emit(index)
+            # self.get_default_values(index)
             next_index = self.index(index.row(), 0)
             self.inserted_row.emit(next_index)
         if index.column() == 0 and self._has_named_index:
@@ -201,8 +209,9 @@ class PandasTableModel(QAbstractTableModel):
             return True
 
         # Validate data based on expected type
-        expected_type = self._allowed_columns.get(column_name)["type"]
+        expected_type = self._allowed_columns.get(column_name, None)
         if expected_type:
+            expected_type = expected_type["type"]
             tried_value = value
             value, error_message = validate_value(
                 value, expected_type
@@ -225,6 +234,10 @@ class PandasTableModel(QAbstractTableModel):
 
     def handle_named_index(self, index, value):
         """Handle the named index column."""
+        pass
+
+    def get_default_values(self, index):
+        """Return the default values for a the row in a new index."""
         pass
 
     def replace_text(self, old_text: str, new_text: str):
@@ -461,6 +474,12 @@ class PandasTableModel(QAbstractTableModel):
             return True, column_name
         return self._allowed_columns[column_name]["optional"], column_name
 
+    def endResetModel(self):
+        """Override endResetModel to reset the default handler."""
+        super().endResetModel()
+        self.config = settings_manager.get_table_defaults(self.table_type)
+        self.default_handler = DefaultHandlerModel(self, self.config)
+
 
 class IndexedPandasTableModel(PandasTableModel):
     """Table model for tables with named index."""
@@ -475,6 +494,33 @@ class IndexedPandasTableModel(PandasTableModel):
         )
         self._has_named_index = True
         self.column_offset = 1
+
+    def get_default_values(self, index):
+        """Return the default values for a the row in a new index."""
+        row = index.row()
+        if isinstance(row, int):
+            row = self._data_frame.index[row]
+        columns_with_index = (
+            [self._data_frame.index.name or "index"] +
+            list(self._data_frame.columns)
+        )
+        for colname in columns_with_index:
+            if colname == self._data_frame.index.name and not isinstance(row, int):
+                continue
+            if colname == self._data_frame.index.name and isinstance(row, int):
+                default_value = self.default_handler.get_default(colname, row)
+                if default_value == "":
+                    default_value = f"{self.table_type}_{row}"
+                self._data_frame.rename(
+                    index={self._data_frame.index[row]: default_value},
+                    inplace=True
+                )
+                row = default_value  # Update row to new index
+                continue
+            # if column is empty, fill with default value
+            if self._data_frame.loc[row, colname] == "":
+                default_value = self.default_handler.get_default(colname, row)
+                self._data_frame.loc[row, colname] = default_value
 
     def handle_named_index(self, index, value):
         """Handle the named index column."""
@@ -524,6 +570,20 @@ class MeasurementModel(PandasTableModel):
             parent=parent
         )
 
+    def get_default_values(self, index):
+        """Fill missing values in a row without modifying the index."""
+        row = index.row()
+        if isinstance(row, int):
+            row_key = self._data_frame.index[row]
+        else:
+            row_key = row
+
+        for colname in self._data_frame.columns:
+            if self._data_frame.at[row_key, colname] == "":
+                default_value = self.default_handler.get_default(colname,
+                                                                 row_key)
+                self._data_frame.at[row_key, colname] = default_value
+
     def data(self, index, role=Qt.DisplayRole):
         """Return the data at the given index and role for the View."""
         if not index.isValid():
@@ -571,6 +631,9 @@ class MeasurementModel(PandasTableModel):
         data_to_add = {
             column_name: "" for column_name in self._data_frame.columns
         }
+        # remove preequilibrationConditionId if not in columns
+        if "preequilibrationConditionId" not in self._data_frame.columns:
+            data.pop("preequilibrationConditionId", None)
         data_to_add.update(data)
         # Maybe add default values for missing columns
         self._data_frame.iloc[row_position] = data_to_add
@@ -615,6 +678,9 @@ class ObservableModel(IndexedPandasTableModel):
         )
         self._data_frame.index = pd.Index(new_index, name=index_name)
         self._data_frame.iloc[row_position] = data_to_add
+        # make a QModelIndex for the new row
+        new_index = self.index(row_position, 0)
+        self.fill_defaults.emit(new_index)
 
 
 class ParameterModel(IndexedPandasTableModel):
@@ -662,6 +728,9 @@ class ConditionModel(IndexedPandasTableModel):
         )
         self._data_frame.index = pd.Index(new_index, name=index_name)
         self._data_frame.iloc[row_position] = data_to_add
+        # make a QModelIndex for the new row
+        new_index = self.index(row_position, 0)
+        self.fill_defaults.emit(new_index)
 
 
 class PandasTableFilterProxy(QSortFilterProxyModel):
