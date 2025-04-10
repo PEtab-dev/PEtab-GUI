@@ -5,11 +5,11 @@ readme = "README.md"
 requires-python = ">=3.11"
 authors = [
     {name = "Paul Jonas Jost", email = "jost.pauljonas@gmail.com"},
-    {name = "Frank Bergmann", email = "jfrank.bergmann@bioquant.uni-heidelberg.de"}
+    {name = "Frank T. Bergmann", email = "frank.thomas.bergmann@gmail.com"}
 ]
 maintainers = [
     {name = "Paul Jonas Jost", email = "jost.pauljonas@gmail.com"},
-    {name = "Frank Bergmann", email = "jfrank.bergmann@bioquant.uni-heidelberg.de"}
+    {name = "Frank T. Bergmann", email = "frank.thomas.bergmann@gmail.com"}
 ]
 description = "Graphical user interface for the PEtab format"
 license = "BSD-3-Clause"
@@ -36,7 +36,8 @@ requires = [
     "antimony",
     "python-libsbml",
     "matplotlib",
-    "petab"
+    "petab",
+    "qtawesome"
 ]
 
 [project.urls]
