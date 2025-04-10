@@ -369,7 +369,7 @@ class TableController(QObject):
         self.model.dataChanged.emit(top_left, bottom_right,
                                     [Qt.ForegroundRole])
 
-    def focus_match(self, match):
+    def focus_match(self, match, with_focus: bool = False):
         """Focus and select the given match in the table."""
         if match is None:
             self.view.table_view.clearSelection()
@@ -383,10 +383,11 @@ class TableController(QObject):
             return
 
         self.view.table_view.setCurrentIndex(proxy_index)
-        self.view.table_view.setCurrentIndex(proxy_index)
         self.view.table_view.scrollTo(
                 proxy_index, QAbstractItemView.EnsureVisible
         )
+        if with_focus:
+            self.view.table_view.setFocus()
 
     def replace_text(self, row, col, replace_text, search_text, case_sensitive, regex):
         """Replace the text in the given cell and update highlights."""
