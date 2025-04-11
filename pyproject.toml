@@ -12,8 +12,9 @@ maintainers = [
     {name = "Frank T. Bergmann", email = "frank.thomas.bergmann@gmail.com"}
 ]
 description = "Graphical user interface for the PEtab format"
-license = "BSD-3-Clause"
-license-file = "LICENSE"
+
+[project.license]
+file = "LICENSE"
 
 
 dependencies = [
