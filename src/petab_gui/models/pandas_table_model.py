@@ -317,7 +317,10 @@ class PandasTableModel(QAbstractTableModel):
                 continue
             smaller_count = sum(1 for x in sorted_to_del if x < to_be_change)
             new_val = to_be_change - smaller_count
-            new_invalid_cells.add((new_val, not_changed))
+            if mode == "rows":
+                new_invalid_cells.add((new_val, not_changed))
+            if mode == "columns":
+                new_invalid_cells.add((not_changed, new_val))
         self._invalid_cells = new_invalid_cells
 
     def notify_data_color_change(self, row, column):
