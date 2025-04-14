@@ -225,10 +225,11 @@ class TableController(QObject):
         for row in sorted(selected_rows, reverse=True):
             if row >= self.model.rowCount() - 1:
                 continue
+            row_info = self.model.get_df().iloc[row].to_dict()
             self.model.delete_row(row)
             self.logger.log_message(
                 f"Deleted row {row} from {self.model.table_type} table."
-                f" Data: {self.model.get_df().iloc[row].to_dict()}",
+                f" Data: {row_info}",
                 color="orange"
             )
         self.model.something_changed.emit(True)
