@@ -38,7 +38,7 @@ COLUMNS = {
         "conditionId": {"type": np.object_, "optional": False},
         "conditionName": {"type": np.object_, "optional": False},
     }
-    }
+}
 
 CONFIG = {
     'window_title': 'My Application',

@@ -488,12 +488,10 @@ class SyntaxHighlighter(QSyntaxHighlighter):
 
 def validate_value(value, expected_type):
     try:
-        if expected_type == "STRING":
+        if expected_type == np.object_:
             value = str(value)
-        elif expected_type == "NUMERIC":
+        elif expected_type == np.float64:
             value = float(value)
-        elif expected_type == "BOOLEAN":
-            value = bool(value)
     except ValueError as e:
         return None, str(e)
     return value, None
