@@ -189,7 +189,6 @@ class PandasTableModel(QAbstractTableModel):
             return True
         if expected_type:
             expected_type = expected_type["type"]
-            tried_value = value
             value, error_message = validate_value(value, expected_type)
             if error_message:
                 self.new_log_message.emit(
