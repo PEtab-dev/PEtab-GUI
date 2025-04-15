@@ -599,6 +599,12 @@ def get_selected_rectangles(table_view: QTableView) -> np.array:
     selected = get_selected(table_view, mode=INDEX)
     if not selected:
         return None
+
+    model = table_view.model()
+    if hasattr(model, "mapToSource"):
+        # map all indices to source
+        selected = [model.mapToSource(index) for index in selected]
+
     rows = [index.row() for index in selected]
     cols = [index.column() for index in selected]
     min_row, max_row = min(rows), max(rows)
@@ -609,6 +615,7 @@ def get_selected_rectangles(table_view: QTableView) -> np.array:
     )
     for index in selected:
         selected_rect[index.row() - min_row, index.column() - min_col] = True
+
     return selected_rect, rect_start
 
 
