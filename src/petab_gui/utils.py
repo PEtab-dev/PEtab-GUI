@@ -488,12 +488,10 @@ class SyntaxHighlighter(QSyntaxHighlighter):
 
 def validate_value(value, expected_type):
     try:
-        if expected_type == "STRING":
+        if expected_type == np.object_:
             value = str(value)
-        elif expected_type == "NUMERIC":
+        elif expected_type == np.float64:
             value = float(value)
-        elif expected_type == "BOOLEAN":
-            value = bool(value)
     except ValueError as e:
         return None, str(e)
     return value, None
@@ -599,6 +597,12 @@ def get_selected_rectangles(table_view: QTableView) -> np.array:
     selected = get_selected(table_view, mode=INDEX)
     if not selected:
         return None
+
+    model = table_view.model()
+    if hasattr(model, "mapToSource"):
+        # map all indices to source
+        selected = [model.mapToSource(index) for index in selected]
+
     rows = [index.row() for index in selected]
     cols = [index.column() for index in selected]
     min_row, max_row = min(rows), max(rows)
@@ -609,6 +613,7 @@ def get_selected_rectangles(table_view: QTableView) -> np.array:
     )
     for index in selected:
         selected_rect[index.row() - min_row, index.column() - min_col] = True
+
     return selected_rect, rect_start
 
 

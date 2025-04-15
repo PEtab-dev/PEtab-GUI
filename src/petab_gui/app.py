@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QFileOpenEvent
+from PySide6.QtGui import QFileOpenEvent, QIcon
 from PySide6.QtCore import QEvent
+from importlib.resources import files
 import sys
 import os
 import petab.v1 as petab
@@ -21,6 +22,15 @@ def find_example(path: Path) -> Path:
     raise FileNotFoundError("Could not find examples directory")
 
 
+def get_icon() -> QIcon:
+    """Get the Icon for the Window"""
+    icon_path = files("petab_gui.assets").joinpath("PEtab.png")
+    if not icon_path.is_file():
+        raise FileNotFoundError(f"Icon file not found: {icon_path}")
+    icon = QIcon(str(icon_path))
+    return icon
+
+
 class PEtabGuiApp(QApplication):
     def __init__(self):
         super().__init__(sys.argv)
@@ -29,6 +39,7 @@ class PEtabGuiApp(QApplication):
         # self.apply_stylesheet()
         self.model = PEtabModel()
         self.view = MainWindow()
+        self.view.setWindowIcon(get_icon())
         self.controller = MainController(self.view, self.model)
 
         # hack to be discussed

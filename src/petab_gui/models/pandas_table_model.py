@@ -180,10 +180,17 @@ class PandasTableModel(QAbstractTableModel):
         column_name = self._data_frame.columns[column - col_setoff]
         old_value = self._data_frame.iloc[row, column - col_setoff]
         # cast to numeric if necessary
-        if not self._data_frame[column_name].dtype == "object":
-            try:
-                value = float(value)
-            except ValueError:
+        expected_type = self._allowed_columns.get(column_name, None)
+        if is_invalid(value):
+            if not expected_type["optional"]:
+                return False
+            self._data_frame.iloc[row, column - col_setoff] = None
+            self.dataChanged.emit(index, index, [Qt.DisplayRole])
+            return True
+        if expected_type:
+            expected_type = expected_type["type"]
+            value, error_message = validate_value(value, expected_type)
+            if error_message:
                 self.new_log_message.emit(
                     f"Column '{column_name}' expects a numeric value",
                     "red"
