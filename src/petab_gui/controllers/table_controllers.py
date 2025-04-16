@@ -1,18 +1,20 @@
 """Classes for the controllers of the tables in the GUI."""
 from PySide6.QtWidgets import QInputDialog, QMessageBox, QFileDialog, \
-    QCompleter
+    QCompleter, QAbstractItemView
 import numpy as np
 import pandas as pd
 import petab.v1 as petab
-from PySide6.QtCore import Signal, QObject, QModelIndex, Qt
+from PySide6.QtCore import Signal, QObject, QModelIndex, Qt, QTimer
 from pathlib import Path
 from ..models.pandas_table_model import PandasTableModel, \
     PandasTableFilterProxy
+from ..settings_manager import settings_manager
 from ..views.table_view import TableViewer, SingleSuggestionDelegate, \
     ColumnSuggestionDelegate, ComboBoxDelegate, ParameterIdSuggestionDelegate
 from ..utils import get_selected, process_file
 from .utils import prompt_overwrite_or_append
 from ..C import COLUMN
+import re
 
 
 class TableController(QObject):
@@ -87,6 +89,17 @@ class TableController(QObject):
         self.model.inserted_row.connect(
             self.set_index_on_new_row
         )
+        self.model.fill_defaults.connect(
+            self.model.get_default_values, Qt.QueuedConnection
+        )
+        settings_manager.settings_changed.connect(
+            self.update_defaults
+        )
+
+    def setup_context_menu(self, actions):
+        """Setup context menu for this table."""
+        view = self.view.table_view
+        view.setup_context_menu(actions)
 
     def validate_changed_cell(self, row, column):
         """Validate the changed cell and whether its linting is correct."""
@@ -166,7 +179,7 @@ class TableController(QObject):
         self.proxy_model.setSourceModel(None)
         self.model.beginResetModel()
         self.model._data_frame = new_df
-        self.model.beginResetModel()
+        self.model.endResetModel()
         self.logger.log_message(
             f"Overwrote the {self.model.table_type} table with new data.",
             color="green"
@@ -215,10 +228,11 @@ class TableController(QObject):
         for row in sorted(selected_rows, reverse=True):
             if row >= self.model.rowCount() - 1:
                 continue
+            row_info = self.model.get_df().iloc[row].to_dict()
             self.model.delete_row(row)
             self.logger.log_message(
                 f"Deleted row {row} from {self.model.table_type} table."
-                f" Data: {self.model.get_df().iloc[row].to_dict()}",
+                f" Data: {row_info}",
                 color="orange"
             )
         self.model.something_changed.emit(True)
@@ -280,13 +294,6 @@ class TableController(QObject):
                 return
         self.model.insertColumn(column_name)
 
-    def replace_text(self, find_text, replace_text):
-        self.logger.log_message(
-            f"Replacing '{find_text}' with '{replace_text}' in selected tables",
-            color="green"
-        )
-        self.model.replace_text(find_text, replace_text)
-
     def set_index_on_new_row(self, index: QModelIndex):
         """Set the index of the model when a new row is added."""
         self.view.table_view.setCurrentIndex(index)
@@ -317,10 +324,162 @@ class TableController(QObject):
                 f"PEtab linter failed after copying: {str(e)}",
                 color="red"
             )
+
     def check_petab_lint(self, row_data):
         """Check a single row of the model with petablint."""
         raise NotImplementedError(
             "This method must be implemented in child classes."
+        )
+
+    def find_text(
+        self, text, case_sensitive=False, regex=False, whole_cell=False
+    ):
+        """Efficiently find all matching cells."""
+        df = self.model.get_df()
+
+        # Search in the main DataFrame
+        if regex:
+            pattern = re.compile(text, 0 if case_sensitive else re.IGNORECASE)
+            mask = df.map(lambda cell: bool(pattern.fullmatch(str(cell))) if whole_cell else bool(pattern.search(str(cell))))
+        else:
+            text = text.lower() if not case_sensitive else text
+            mask = df.map(lambda cell: text == str(cell).lower() if whole_cell else text in str(cell).lower()) if not case_sensitive else \
+                   df.map(lambda cell: text == str(cell) if whole_cell else text in str(cell))
+
+        # Find matches
+        match_indices = list(zip(*mask.to_numpy().nonzero()))
+        table_matches = [(row, col + self.model.column_offset) for row, col in match_indices]
+
+        # Search in the index if it's named
+        index_matches = []
+        if isinstance(df.index, pd.Index) and df.index.name:
+            if regex:
+                index_mask = df.index.to_series().map(lambda idx: bool(pattern.fullmatch(str(idx))) if whole_cell else bool(pattern.search(str(idx))))
+            else:
+                index_mask = df.index.to_series().map(lambda idx: text == str(idx).lower() if whole_cell else text in str(idx).lower()) if not case_sensitive else \
+                             df.index.to_series().map(lambda idx: text == str(idx) if whole_cell else text in str(idx))
+
+            index_matches = [(df.index.get_loc(idx), 0) for idx in index_mask[index_mask].index]
+
+        all_matches = index_matches + table_matches
+
+        # 🔹 Highlight matched text
+        self.highlight_text(all_matches)
+        return all_matches
+
+    def highlight_text(self, matches):
+        """Color the text of all matched cells in yellow."""
+        self.model.highlighted_cells = set(matches)
+        top_left = self.model.index(0, 0)
+        bottom_right = self.model.index(self.model.rowCount() - 1,
+                                        self.model.columnCount() - 1)
+        self.model.dataChanged.emit(top_left, bottom_right,
+                                    [Qt.ForegroundRole])
+
+    def cleanse_highlighted_cells(self):
+        """Cleanses the highlighted cells."""
+        self.model.highlighted_cells = set()
+        top_left = self.model.index(0, 0)
+        bottom_right = self.model.index(self.model.rowCount() - 1,
+                                        self.model.columnCount() - 1)
+        self.model.dataChanged.emit(top_left, bottom_right,
+                                    [Qt.ForegroundRole])
+
+    def focus_match(self, match, with_focus: bool = False):
+        """Focus and select the given match in the table."""
+        if match is None:
+            self.view.table_view.clearSelection()
+            return
+        row, col = match
+        index = self.model.index(row, col)
+        if not index.isValid():
+            return
+        proxy_index = self.view.table_view.model().mapFromSource(index)
+        if not proxy_index.isValid():
+            return
+
+        self.view.table_view.setCurrentIndex(proxy_index)
+        self.view.table_view.scrollTo(
+                proxy_index, QAbstractItemView.EnsureVisible
+        )
+        if with_focus:
+            self.view.table_view.setFocus()
+
+    def replace_text(self, row, col, replace_text, search_text, case_sensitive, regex):
+        """Replace the text in the given cell and update highlights."""
+        index = self.model.index(row, col)
+        original_text = self.model.data(index, Qt.DisplayRole)
+
+        if not original_text:
+            return
+
+        if regex:
+            pattern = re.compile(search_text, 0 if case_sensitive else re.IGNORECASE)
+            new_text = pattern.sub(replace_text, original_text)
+        else:
+            if not case_sensitive:
+                search_text = re.escape(search_text.lower())
+                new_text = re.sub(search_text, replace_text, original_text, flags=re.IGNORECASE)
+            else:
+                new_text = original_text.replace(search_text, replace_text)
+
+        if new_text != original_text:
+            self.model.setData(index, new_text, Qt.EditRole)
+            self.model.highlighted_cells.discard((row, col))
+            self.model.dataChanged.emit(index, index, [Qt.DisplayRole])
+
+    def replace_all(
+        self, search_text, replace_text, case_sensitive=False, regex=False
+    ):
+        """Replace all occurrences of the search term in the Model."""
+        if not search_text or not replace_text:
+            return
+
+        df = self.model._data_frame
+        if regex:
+            pattern = re.compile(search_text,
+                                 0 if case_sensitive else re.IGNORECASE)
+            df.replace(to_replace=pattern, value=replace_text, regex=True,
+                       inplace=True)
+        else:
+            if not case_sensitive:
+                df.replace(
+                    to_replace=re.escape(search_text),
+                    value=replace_text,
+                    regex=True,
+                    inplace=True
+                )
+            else:
+                df.replace(to_replace=search_text, value=replace_text,
+                           inplace=True)
+
+        # Replace in the index as well
+        if isinstance(df.index, pd.Index) and df.index.name:
+            index_map = {
+                idx: pattern.sub(replace_text, str(idx)) if regex else str(
+                    idx).replace(search_text, replace_text)
+                for idx in df.index if search_text in str(idx)}
+            if index_map:
+                df.rename(index=index_map, inplace=True)
+
+    def get_columns(self):
+        """Get the columns of the table."""
+        df = self.model.get_df()
+        # if it is a named index, add it to the columns
+        if df.index.name:
+            return [df.index.name] + df.columns.tolist()
+        return df.columns.tolist()
+
+    def update_defaults(self, settings_changed):
+        """Update the default values of the model."""
+        # if the signal is not "table_defaults/table_name" return
+        if not settings_changed.startswith("table_defaults"):
+            return
+        table_name = settings_changed.split("/")[1]
+        if table_name != self.model.table_type:
+            return
+        self.model.default_handler.config = (
+            settings_manager.get_table_defaults(self.model.table_type)
         )
 
 
@@ -424,7 +583,7 @@ class MeasurementController(TableController):
             "CSV Files (*.csv);;TSV Files (*.tsv)"
         )
         if file_name:
-            self.process_data_matrix_file(file_name)
+            self.process_data_matrix_file(file_name, "append")
 
     def process_data_matrix_file(self, file_name, mode, separator=None):
         """Process the data matrix file.
@@ -437,10 +596,16 @@ class MeasurementController(TableController):
             if data_matrix is None or data_matrix.empty:
                 return
 
-            condition_id = "cond1"  # Does this need adjustment?
+            cond_dialog = ConditionInputDialog()
+            if cond_dialog.exec():
+                conditions = cond_dialog.get_condition_id()
+                condition_id = conditions.get("conditionId", "")
+                preeq_id = conditions.get("preeq_id", "")
             if mode == "overwrite":
                 self.model.clear_table()
-            self.populate_tables_from_data_matrix(data_matrix, condition_id)
+            self.populate_tables_from_data_matrix(
+                data_matrix, condition_id, preeq_id
+            )
             self.model.something_changed.emit(True)
 
         except Exception as e:
@@ -468,21 +633,33 @@ class MeasurementController(TableController):
         )
         return data_matrix.rename(columns={time_column: "time"})
 
-    def populate_tables_from_data_matrix(self, data_matrix, condition_id):
+    def populate_tables_from_data_matrix(
+        self, data_matrix, condition_id, preeq_id: str = ""
+    ):
         """Populate the measurement table from the data matrix."""
         for col in data_matrix.columns:
             if col == "time":
                 continue
             observable_id = col
-            self.model.possibly_new_condition.emit(observable_id)
-            self.model.possibly_new_observable.emit(condition_id)
+            self.model.relevant_id_changed.emit(
+                observable_id, "", "observable"
+            )
+            self.model.relevant_id_changed.emit(condition_id, "", "condition")
+            if preeq_id:
+                self.model.relevant_id_changed.emit(preeq_id, "", "condition")
             self.add_measurement_rows(
                 data_matrix[["time", observable_id]],
                 observable_id,
-                condition_id
+                condition_id,
+                preeq_id
             )
 
-    def add_measurement_rows(self, data_matrix, observable_id, condition_id):
+    def add_measurement_rows(
+        self, data_matrix,
+        observable_id,
+        condition_id: str = "",
+        preeq_id: str = ""
+    ):
         """Adds multiple rows to the measurement table."""
         # check number of rows and signal row insertion
         rows = data_matrix.shape[0]
@@ -499,6 +676,7 @@ class MeasurementController(TableController):
                     "time": row["time"],
                     "measurement": row[observable_id],
                     "simulationConditionId": condition_id,
+                    "preequilibrationConditionId": preeq_id
                 }
             )
         bottom, right = (x - 1 for x in self.model.get_df().shape)
@@ -565,6 +743,10 @@ class ConditionController(TableController):
     """Controller of the Condition table."""
     condition_2be_renamed = Signal(str, str)  # Signal to mother controller
 
+    def update_handler_model(self):
+        """Update the handler model."""
+        self.model.default_handler.model = self.model._data_frame
+
     def setup_connections_specific(self):
         """Setup connections specific to the condition controller.
 
@@ -572,6 +754,9 @@ class ConditionController(TableController):
         """
         self.model.relevant_id_changed.connect(
             self.maybe_rename_condition
+        )
+        self.overwritten_df.connect(
+            self.update_handler_model
         )
 
     def check_petab_lint(self, row_data: pd.DataFrame = None):
@@ -659,6 +844,10 @@ class ObservableController(TableController):
     """Controller of the Observable table."""
     observable_2be_renamed = Signal(str, str)  # Signal to mother controller
 
+    def update_handler_model(self):
+        """Update the handler model."""
+        self.model.default_handler.model = self.model._data_frame
+
     def setup_completers(self):
         """Set completers for the observable table."""
         table_view = self.view.table_view
@@ -713,6 +902,9 @@ class ObservableController(TableController):
         """
         self.model.relevant_id_changed.connect(
             self.maybe_rename_observable
+        )
+        self.overwritten_df.connect(
+            self.update_handler_model
         )
 
     def check_petab_lint(self, row_data: pd.DataFrame = None):
@@ -770,6 +962,16 @@ class ObservableController(TableController):
 
 class ParameterController(TableController):
     """Controller of the Parameter table."""
+
+    def setup_connections_specific(self):
+        """Connect signals specific to the parameter controller."""
+        self.overwritten_df.connect(
+            self.update_handler_model
+        )
+
+    def update_handler_model(self):
+        """Update the handler model."""
+        self.model.default_handler.model = self.model._data_frame
 
     def setup_completers(self):
         """Set completers for the parameter table."""

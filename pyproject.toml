@@ -2,6 +2,20 @@
 name = 'PEtab-GUI'
 dynamic = ["version"]
 readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    {name = "Paul Jonas Jost", email = "jost.pauljonas@gmail.com"},
+    {name = "Frank T. Bergmann", email = "frank.thomas.bergmann@gmail.com"}
+]
+maintainers = [
+    {name = "Paul Jonas Jost", email = "jost.pauljonas@gmail.com"},
+    {name = "Frank T. Bergmann", email = "frank.thomas.bergmann@gmail.com"}
+]
+description = "Graphical user interface for the PEtab format"
+
+[project.license]
+file = "LICENSE"
+
 
 dependencies = [
     "wheel",
@@ -23,15 +37,22 @@ requires = [
     "antimony",
     "python-libsbml",
     "matplotlib",
-    "petab"
+    "petab",
+    "qtawesome"
 ]
 
 [project.urls]
-Repository = "https://github.com/PaulJonasJost/pyPESTO_GUI"
-Issues = "https://github.com/PaulJonasJost/pyPESTO_GUI/issues"
+Repository = "https://github.com/PaulJonasJost/PEtab_GUI"
+Issues = "https://github.com/PaulJonasJost/PEtab_GUI/issues"
 
 [project.gui-scripts]
-PEtab_gui="petab_gui:main"
+petab_gui="petab_gui:main"
 
 [project.scripts]
-PEtab_gui_cli="petab_gui:main"
+petab_gui_cli="petab_gui:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"petab_gui.assets" = ["PEtab.png"]

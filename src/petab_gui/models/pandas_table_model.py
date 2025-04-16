@@ -1,11 +1,13 @@
 import pandas as pd
 from PySide6.QtCore import (Qt, QAbstractTableModel, QModelIndex, Signal,
                             QSortFilterProxyModel, QMimeData)
-from PySide6.QtGui import QColor
-
+from PySide6.QtGui import QColor, QBrush, QPalette
+from PySide6.QtWidgets import QApplication
 from ..C import COLUMNS
 from ..utils import validate_value, create_empty_dataframe, is_invalid, \
     get_selected
+from ..controllers.default_handler import DefaultHandlerModel
+from ..settings_manager import settings_manager
 from ..commands import ModifyColumnCommand
 
 
@@ -17,6 +19,7 @@ class PandasTableModel(QAbstractTableModel):
     cell_needs_validation = Signal(int, int)  # row, column
     something_changed = Signal(bool)
     inserted_row = Signal(QModelIndex)
+    fill_defaults = Signal(QModelIndex)
 
     def __init__(self, data_frame, allowed_columns, table_type,
                  undo_stack = None, parent=None):
@@ -24,6 +27,7 @@ class PandasTableModel(QAbstractTableModel):
         self._allowed_columns = allowed_columns
         self.table_type = table_type
         self._invalid_cells = set()
+        self.highlighted_cells = set()
         self._has_named_index = False
         if data_frame is None:
             data_frame = create_empty_dataframe(allowed_columns, table_type)
@@ -33,6 +37,9 @@ class PandasTableModel(QAbstractTableModel):
         # offset for row and column to get from the data_frame to the view
         self.row_index_offset = 0
         self.column_offset = 0
+        # default values setup
+        self.config = settings_manager.get_table_defaults(table_type)
+        self.default_handler = DefaultHandlerModel(self, self.config)
         self.undo_stack = undo_stack
 
     def rowCount(self, parent=QModelIndex()):
@@ -60,6 +67,11 @@ class PandasTableModel(QAbstractTableModel):
             return str(value)
         elif role == Qt.BackgroundRole:
             return self.determine_background_color(row, column)
+        elif role == Qt.ForegroundRole:
+            # Return yellow text if this cell is a match
+            if (row, column) in self.highlighted_cells:
+                return QApplication.palette().color(QPalette.HighlightedText)
+            return QBrush(QColor(0, 0, 0))  # Default black text
         return None
 
     def flags(self, index):
@@ -143,6 +155,10 @@ class PandasTableModel(QAbstractTableModel):
     def setData(self, index, value, role=Qt.EditRole):
         if not (index.isValid() and role == Qt.EditRole):
             return False
+
+        if role != Qt.EditRole:
+            return False
+
         if is_invalid(value) or value == "":
             value = None
         # check whether multiple rows but only one column is selected
@@ -163,6 +179,8 @@ class PandasTableModel(QAbstractTableModel):
         if index.row() == self._data_frame.shape[0]:
             # empty row at the end
             self.insertRows(index.row(), 1)
+            self.fill_defaults.emit(index)
+            # self.get_default_values(index)
             next_index = self.index(index.row(), 0)
             self.inserted_row.emit(next_index)
         if index.column() == 0 and self._has_named_index:
@@ -172,10 +190,17 @@ class PandasTableModel(QAbstractTableModel):
         column_name = self._data_frame.columns[column - col_setoff]
         old_value = self._data_frame.iloc[row, column - col_setoff]
         # cast to numeric if necessary
-        if not self._data_frame[column_name].dtype == "object":
-            try:
-                value = float(value)
-            except ValueError:
+        expected_type = self._allowed_columns.get(column_name, None)
+        if is_invalid(value):
+            if not expected_type["optional"]:
+                return False
+            self._data_frame.iloc[row, column - col_setoff] = None
+            self.dataChanged.emit(index, index, [Qt.DisplayRole])
+            return True
+        if expected_type:
+            expected_type = expected_type["type"]
+            value, error_message = validate_value(value, expected_type)
+            if error_message:
                 self.new_log_message.emit(
                     f"Column '{column_name}' expects a numeric value",
                     "red"
@@ -201,8 +226,9 @@ class PandasTableModel(QAbstractTableModel):
             return True
 
         # Validate data based on expected type
-        expected_type = self._allowed_columns.get(column_name)["type"]
+        expected_type = self._allowed_columns.get(column_name, None)
         if expected_type:
+            expected_type = expected_type["type"]
             tried_value = value
             value, error_message = validate_value(
                 value, expected_type
@@ -225,6 +251,10 @@ class PandasTableModel(QAbstractTableModel):
 
     def handle_named_index(self, index, value):
         """Handle the named index column."""
+        pass
+
+    def get_default_values(self, index):
+        """Return the default values for a the row in a new index."""
         pass
 
     def replace_text(self, old_text: str, new_text: str):
@@ -304,7 +334,10 @@ class PandasTableModel(QAbstractTableModel):
                 continue
             smaller_count = sum(1 for x in sorted_to_del if x < to_be_change)
             new_val = to_be_change - smaller_count
-            new_invalid_cells.add((new_val, not_changed))
+            if mode == "rows":
+                new_invalid_cells.add((new_val, not_changed))
+            if mode == "columns":
+                new_invalid_cells.add((not_changed, new_val))
         self._invalid_cells = new_invalid_cells
 
     def notify_data_color_change(self, row, column):
@@ -435,7 +468,6 @@ class PandasTableModel(QAbstractTableModel):
                 self._data_frame.shape[0],
                 start_row + n_rows - self._data_frame.shape[0]
             )
-            self.layoutChanged.emit()
 
     def determine_background_color(self, row, column):
         """Determine the background color of a cell.
@@ -447,6 +479,8 @@ class PandasTableModel(QAbstractTableModel):
         """
         if (row, column) == (self._data_frame.shape[0], 0):
             return QColor(144, 238, 144, 150)
+        if (row, column) in self.highlighted_cells:
+            return QApplication.palette().color(QPalette.Highlight)
         if (row, column) in self._invalid_cells:
             return QColor(255, 100, 100, 150)
         if row % 2 == 0:
@@ -462,6 +496,12 @@ class PandasTableModel(QAbstractTableModel):
             return True, column_name
         return self._allowed_columns[column_name]["optional"], column_name
 
+    def endResetModel(self):
+        """Override endResetModel to reset the default handler."""
+        super().endResetModel()
+        self.config = settings_manager.get_table_defaults(self.table_type)
+        self.default_handler = DefaultHandlerModel(self, self.config)
+
 
 class IndexedPandasTableModel(PandasTableModel):
     """Table model for tables with named index."""
@@ -476,6 +516,33 @@ class IndexedPandasTableModel(PandasTableModel):
         )
         self._has_named_index = True
         self.column_offset = 1
+
+    def get_default_values(self, index):
+        """Return the default values for a the row in a new index."""
+        row = index.row()
+        if isinstance(row, int):
+            row = self._data_frame.index[row]
+        columns_with_index = (
+            [self._data_frame.index.name or "index"] +
+            list(self._data_frame.columns)
+        )
+        for colname in columns_with_index:
+            if colname == self._data_frame.index.name and not isinstance(row, int):
+                continue
+            if colname == self._data_frame.index.name and isinstance(row, int):
+                default_value = self.default_handler.get_default(colname, row)
+                if default_value == "":
+                    default_value = f"{self.table_type}_{row}"
+                self._data_frame.rename(
+                    index={self._data_frame.index[row]: default_value},
+                    inplace=True
+                )
+                row = default_value  # Update row to new index
+                continue
+            # if column is empty, fill with default value
+            if self._data_frame.loc[row, colname] == "":
+                default_value = self.default_handler.get_default(colname, row)
+                self._data_frame.loc[row, colname] = default_value
 
     def handle_named_index(self, index, value):
         """Handle the named index column."""
@@ -525,6 +592,20 @@ class MeasurementModel(PandasTableModel):
             parent=parent
         )
 
+    def get_default_values(self, index):
+        """Fill missing values in a row without modifying the index."""
+        row = index.row()
+        if isinstance(row, int):
+            row_key = self._data_frame.index[row]
+        else:
+            row_key = row
+
+        for colname in self._data_frame.columns:
+            if self._data_frame.at[row_key, colname] == "":
+                default_value = self.default_handler.get_default(colname,
+                                                                 row_key)
+                self._data_frame.at[row_key, colname] = default_value
+
     def data(self, index, role=Qt.DisplayRole):
         """Return the data at the given index and role for the View."""
         if not index.isValid():
@@ -541,6 +622,11 @@ class MeasurementModel(PandasTableModel):
             return str(value)
         elif role == Qt.BackgroundRole:
             return self.determine_background_color(row, column)
+        elif role == Qt.ForegroundRole:
+            # Return yellow text if this cell is a match
+            if (row, column) in self.highlighted_cells:
+                return QApplication.palette().color(QPalette.HighlightedText)
+            return QBrush(QColor(0, 0, 0))  # Default black text
         return None
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
@@ -567,6 +653,9 @@ class MeasurementModel(PandasTableModel):
         data_to_add = {
             column_name: "" for column_name in self._data_frame.columns
         }
+        # remove preequilibrationConditionId if not in columns
+        if "preequilibrationConditionId" not in self._data_frame.columns:
+            data.pop("preequilibrationConditionId", None)
         data_to_add.update(data)
         # Maybe add default values for missing columns
         self._data_frame.iloc[row_position] = data_to_add
@@ -611,6 +700,9 @@ class ObservableModel(IndexedPandasTableModel):
         )
         self._data_frame.index = pd.Index(new_index, name=index_name)
         self._data_frame.iloc[row_position] = data_to_add
+        # make a QModelIndex for the new row
+        new_index = self.index(row_position, 0)
+        self.fill_defaults.emit(new_index)
 
 
 class ParameterModel(IndexedPandasTableModel):
@@ -658,6 +750,9 @@ class ConditionModel(IndexedPandasTableModel):
         )
         self._data_frame.index = pd.Index(new_index, name=index_name)
         self._data_frame.iloc[row_position] = data_to_add
+        # make a QModelIndex for the new row
+        new_index = self.index(row_position, 0)
+        self.fill_defaults.emit(new_index)
 
 
 class PandasTableFilterProxy(QSortFilterProxyModel):

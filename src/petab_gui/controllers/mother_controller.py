@@ -2,7 +2,7 @@ from functools import partial
 
 from PySide6.QtWidgets import QMessageBox, QFileDialog, QLineEdit, QWidget, \
     QHBoxLayout, QToolButton, QTableView
-from PySide6.QtGui import QAction, QUndoStack
+from PySide6.QtGui import QAction, QDesktopServices, QUndoStack
 import zipfile
 import tempfile
 import os
@@ -11,7 +11,7 @@ import logging
 import yaml
 import qtawesome as qta
 from ..utils import FindReplaceDialog, CaptureLogHandler, process_file
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QUrl
 from pathlib import Path
 from ..models import PEtabModel
 from .sbml_controller import SbmlController
@@ -21,6 +21,7 @@ from .logger_controller import LoggerController
 from ..views import TaskBar
 from .utils import prompt_overwrite_or_append, RecentFilesManager
 from functools import partial
+from ..settings_manager import SettingsDialog, settings_manager
 
 
 class MainController:
@@ -109,6 +110,14 @@ class MainController:
 
         self.setup_connections()
         self.setup_task_bar()
+        self.setup_context_menu()
+
+    def setup_context_menu(self):
+        """Sets up context menus for the tables."""
+        self.measurement_controller.setup_context_menu(self.actions)
+        self.observable_controller.setup_context_menu(self.actions)
+        self.parameter_controller.setup_context_menu(self.actions)
+        self.condition_controller.setup_context_menu(self.actions)
 
     def setup_task_bar(self):
         """Create shortcuts for the main window."""
@@ -167,29 +176,15 @@ class MainController:
         self.model.sbml.something_changed.connect(
             self.unsaved_changes_change
         )
-        # correctly update the visibility even when "x" is clicked in a dock
-        self.view.measurement_dock.visibilityChanged.connect(
-            lambda visible: self.actions["show_measurement"].setChecked(
-                visible)
-        )
-        self.view.observable_dock.visibilityChanged.connect(
-            lambda visible: self.actions["show_observable"].setChecked(visible)
-        )
-        self.view.parameter_dock.visibilityChanged.connect(
-            lambda visible: self.actions["show_parameter"].setChecked(visible)
-        )
-        self.view.condition_dock.visibilityChanged.connect(
-            lambda visible: self.actions["show_condition"].setChecked(visible)
-        )
-        self.view.logger_dock.visibilityChanged.connect(
-            lambda visible: self.actions["show_logger"].setChecked(visible)
-        )
-        self.view.plot_dock.visibilityChanged.connect(
-            lambda visible: self.actions["show_plot"].setChecked(visible)
-        )
+        # Visibility
+        self.sync_visibility_with_actions()
         # Recent Files
         self.recent_files_manager.open_file.connect(
             partial(self.open_file, mode="overwrite")
+        )
+        # Settings logging
+        settings_manager.new_log_message.connect(
+            self.logger.log_message
         )
 
     def setup_actions(self):
@@ -234,13 +229,18 @@ class MainController:
         actions["save"].setShortcut("Ctrl+S")
         actions["save"].triggered.connect(self.save_model)
         # Find + Replace
+        actions["find"] = QAction(
+            qta.icon("mdi6.magnify"),
+            "Find", self.view
+        )
+        actions["find"].setShortcut("Ctrl+F")
+        actions["find"].triggered.connect(self.find)
         actions["find+replace"] = QAction(
             qta.icon("mdi6.find-replace"),
             "Find/Replace", self.view
         )
         actions["find+replace"].setShortcut("Ctrl+R")
-        actions["find+replace"].triggered.connect(
-            self.open_find_replace_dialog)
+        actions["find+replace"].triggered.connect(self.replace)
         # Copy / Paste
         actions["copy"] = QAction(
             qta.icon("mdi6.content-copy"),
@@ -298,7 +298,7 @@ class MainController:
         filter_layout.setContentsMargins(0, 0, 0, 0)
         filter_widget.setLayout(filter_layout)
         self.filter_input = QLineEdit()
-        self.filter_input.setPlaceholderText("Filter not functional yet ...")
+        self.filter_input.setPlaceholderText("Filter...")
         filter_layout.addWidget(self.filter_input)
         for table_n, table_name in zip(
             ["m", "p", "o", "c"],
@@ -314,7 +314,8 @@ class MainController:
             )
             tool_button.setIcon(icon)
             tool_button.setCheckable(True)
-            tool_button.setToolTip(f"Filter for {table_name}")
+            tool_button.setChecked(True)
+            tool_button.setToolTip(f"Filter for {table_name} table")
             filter_layout.addWidget(tool_button)
             self.filter_active[table_name] = tool_button
             self.filter_active[table_name].toggled.connect(
@@ -341,23 +342,12 @@ class MainController:
         actions["show_plot"].setCheckable(True)
         actions["show_plot"].setChecked(True)
         # connect actions
-        actions["show_measurement"].toggled.connect(
-            lambda checked: self.view.measurement_dock.setVisible(checked)
+        actions["reset_view"] = QAction(
+            qta.icon("mdi6.view-grid-plus"),
+            "Reset View", self.view
         )
-        actions["show_observable"].toggled.connect(
-            lambda checked: self.view.observable_dock.setVisible(checked)
-        )
-        actions["show_parameter"].toggled.connect(
-            lambda checked: self.view.parameter_dock.setVisible(checked)
-        )
-        actions["show_condition"].toggled.connect(
-            lambda checked: self.view.condition_dock.setVisible(checked)
-        )
-        actions["show_logger"].toggled.connect(
-            lambda checked: self.view.logger_dock.setVisible(checked)
-        )
-        actions["show_plot"].toggled.connect(
-            lambda checked: self.view.plot_dock.setVisible(checked)
+        actions["reset_view"].triggered.connect(
+            self.view.default_view
         )
         # Clear Log
         actions["clear_log"] = QAction(
@@ -365,6 +355,24 @@ class MainController:
             "Clear Log", self.view
         )
         actions["clear_log"].triggered.connect(self.logger.clear_log)
+        # Settings
+        actions["settings"] = QAction(
+            qta.icon("mdi6.cog"),
+            "Settings", self.view
+        )
+        actions["settings"].triggered.connect(self.open_settings)
+
+        # Opening the PEtab documentation
+        actions["open_documentation"] = QAction(
+            qta.icon("mdi6.web"),
+            "View PEtab Documentation", self.view
+        )
+        actions["open_documentation"].triggered.connect(
+            lambda: QDesktopServices.openUrl(QUrl(
+                "https://petab.readthedocs.io/en/latest/v1/"
+                "documentation_data_format.html"
+            ))
+        )
 
         # Undo / Redo
         actions["undo"] = QAction(
@@ -374,6 +382,30 @@ class MainController:
         actions["undo"].setShortcut("Ctrl+Z")
         actions["undo"].triggered.connect(self.undo_stack.undo)
         return actions
+
+    def sync_visibility_with_actions(self):
+        """Sync dock visibility and QAction states in both directions."""
+
+        dock_map = {
+            "measurement": self.view.measurement_dock,
+            "observable": self.view.observable_dock,
+            "parameter": self.view.parameter_dock,
+            "condition": self.view.condition_dock,
+            "logger": self.view.logger_dock,
+            "plot": self.view.plot_dock,
+        }
+
+        for key, dock in dock_map.items():
+            action = self.actions[f"show_{key}"]
+
+            # Initial sync: block signal to avoid triggering unwanted visibility changes
+            was_blocked = action.blockSignals(True)
+            action.setChecked(dock.isVisible())
+            action.blockSignals(was_blocked)
+
+            # Connect QAction ↔ DockWidget syncing
+            action.toggled.connect(dock.setVisible)
+            dock.visibilityChanged.connect(action.setChecked)
 
     def save_model(self):
         options = QFileDialog.Options()
@@ -542,7 +574,7 @@ class MainController:
             )
         elif actionable == "data_matrix":
             self.measurement_controller.process_data_matrix_file(
-                file_path, sep, mode
+                file_path, mode, sep
             )
 
     def open_yaml_and_load_files(self, yaml_path=None, mode="overwrite"):
@@ -743,3 +775,31 @@ class MainController:
         controller = self.active_controller()
         if controller:
             controller.paste_from_clipboard()
+
+    def open_settings(self):
+        """Opens the settings Dialogue."""
+        # retrieve all current columns from the tables
+        table_columns = {
+            "observable": self.observable_controller.get_columns(),
+            "parameter": self.parameter_controller.get_columns(),
+            "measurement": self.measurement_controller.get_columns(),
+            "condition": self.condition_controller.get_columns(),
+        }
+        settings_dialog = SettingsDialog(table_columns, self.view)
+        settings_dialog.exec()
+
+    def set_docks_visible(self):
+        """Handles Visibility of docks."""
+        pass
+
+    def find(self):
+        """Create a find replace bar if it is non existent."""
+        if self.view.find_replace_bar is None:
+            self.view.create_find_replace_bar()
+        self.view.toggle_find()
+
+    def replace(self):
+        """Create a find replace bar if it is non existent."""
+        if self.view.find_replace_bar is None:
+            self.view.create_find_replace_bar()
+        self.view.toggle_replace()

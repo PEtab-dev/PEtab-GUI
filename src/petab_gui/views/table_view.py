@@ -4,8 +4,10 @@ from PySide6.QtWidgets import (QDockWidget, QHeaderView, QTableView,
 from PySide6.QtCore import Qt, QPropertyAnimation, QRect
 from PySide6.QtGui import QGuiApplication, QColor
 
-from ..utils import get_selected, get_selected_rectangles
-from ..C import INDEX
+from ..utils import get_selected_rectangles
+from .context_menu_mananger import ContextMenuManager
+import re
+import pandas as pd
 
 
 class TableViewer(QDockWidget):
@@ -39,33 +41,43 @@ class TableViewer(QDockWidget):
         text = clipboard.text()
         if not text:
             return
+
+        # Get the proxy and source models
+        proxy_model = self.table_view.model()
+        source_model = proxy_model.sourceModel()
+
+        # Get the start index from the current selection
         start_index = self.table_view.selectionModel().currentIndex()
         if not start_index.isValid():
             return
-        model = self.table_view.model()
-        row_start, col_start = start_index.row(), start_index.column()
-        # identify which invalid cells are being pasted into
+
+        # Map the start index to the source model
+        source_index = proxy_model.mapToSource(start_index)
+        row_start, col_start = source_index.row(), source_index.column()
+
+        # Parse clipboard data
         pasted_data = [line.split("\t") for line in text.split("\n") if
                        line.strip()]
         num_rows = len(pasted_data)
-        num_cols = max([len(line) for line in pasted_data])
+        num_cols = max(len(line) for line in pasted_data)
+
+        # Identify which cells are being overridden
         overridden_cells = {
             (row_start + r, col_start + c)
             for r in range(num_rows)
             for c in range(num_cols)
-            if model.index(row_start + r, col_start + c).isValid()
+            if source_model.index(row_start + r, col_start + c).isValid()
         }
-        invalid_overridden_cells = overridden_cells.intersection(
-            model._invalid_cells
-        )
-        if invalid_overridden_cells:
-            for row_invalid, col_invalid in invalid_overridden_cells:
-                model.discard_invalid_cell(row_invalid, col_invalid)
 
-        model.setDataFromText(
-            text, start_index.row(),
-            start_index.column()
-        )
+        # Handle invalid cells
+        if hasattr(source_model, "_invalid_cells"):
+            invalid_overridden_cells = overridden_cells.intersection(
+                source_model._invalid_cells)
+            for row_invalid, col_invalid in invalid_overridden_cells:
+                source_model.discard_invalid_cell(row_invalid, col_invalid)
+
+        # Paste the data into the source model
+        source_model.setDataFromText(text, row_start, col_start)
 
 
 class ComboBoxDelegate(QStyledItemDelegate):
@@ -188,6 +200,16 @@ class CustomTableView(QTableView):
 
         self.horizontalHeader().sectionDoubleClicked.connect(
             self.autofit_column
+        )
+
+    def setup_context_menu(self, actions):
+        """Setup the context menu for the table view."""
+        self.context_menu_manager = ContextMenuManager(
+            actions, self, self.parent
+        )
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(
+            self.context_menu_manager.create_context_menu
         )
 
     def setModel(self, model):
