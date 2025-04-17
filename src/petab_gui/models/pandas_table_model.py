@@ -8,7 +8,7 @@ from ..utils import validate_value, create_empty_dataframe, is_invalid, \
     get_selected
 from ..controllers.default_handler import DefaultHandlerModel
 from ..settings_manager import settings_manager
-from ..commands import ModifyColumnCommand
+from ..commands import ModifyColumnCommand, ModifyRowCommand
 
 
 class PandasTableModel(QAbstractTableModel):
@@ -109,17 +109,12 @@ class PandasTableModel(QAbstractTableModel):
         --------
         bool: True if rows were added successfully.
         """
-        end_position = len(self._data_frame)
-        self.beginInsertRows(
-            QModelIndex(), end_position, end_position + rows - 1
-        )
-
-        # In-place row addition using loc
-        for i in range(rows):
-            # Append an empty row or row with default values using loc
-            self._data_frame.loc[end_position + i] = \
-                [""] * self._data_frame.shape[1]
-        self.endInsertRows()
+        if self.undo_stack:
+            self.undo_stack.push(ModifyRowCommand(self, rows))
+        else:
+            # Fallback if undo stack isn't used
+            command = ModifyRowCommand(self, rows)
+            command.redo()
         return True
 
     def insertColumn(self, column_name: str):
@@ -373,9 +368,12 @@ class PandasTableModel(QAbstractTableModel):
 
     def delete_row(self, row):
         """Delete a row from the table."""
-        self.beginRemoveRows(QModelIndex(), row, row)
-        self._data_frame.drop(self._data_frame.index[row], inplace=True)
-        self.endRemoveRows()
+        if self.undo_stack:
+            self.undo_stack.push(ModifyRowCommand(self, row, False))
+        else:
+            # Fallback if undo stack isn't used
+            command = ModifyRowCommand(self, row, False)
+            command.redo()
 
     def delete_column(self, column_index):
         """Delete a column from the DataFrame."""
