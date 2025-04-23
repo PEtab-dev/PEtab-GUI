@@ -19,7 +19,7 @@ from .table_controllers import MeasurementController, ObservableController, \
     ConditionController, ParameterController
 from .logger_controller import LoggerController
 from ..views import TaskBar
-from .utils import prompt_overwrite_or_append, RecentFilesManager
+from .utils import prompt_overwrite_or_append, RecentFilesManager, filtered_error
 from functools import partial
 from ..settings_manager import SettingsDialog, settings_manager
 
@@ -692,6 +692,9 @@ class MainController:
                     model.reset_invalid_cells()
             else:
                 self.logger.log_message("Model is inconsistent.", color="red")
+        except Exception as e:
+            msg = f"PEtab linter failed at some point: {filtered_error(e)}"
+            self.logger.log_message(msg, color="red")
         finally:
             # Always remove the capture handler
             logger.removeHandler(capture_handler)

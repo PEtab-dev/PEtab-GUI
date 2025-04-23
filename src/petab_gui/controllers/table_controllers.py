@@ -111,7 +111,10 @@ class TableController(QObject):
         row_data = row_data.to_frame().T
         row_data.index.name = index_name
         row_name = row_data.index[0]
-        col_name = df.columns[column]
+        if column == 0 and self.model._has_named_index:
+            col_name = index_name
+        else:
+            col_name = df.columns[column - self.model.column_offset]
         is_valid = self.check_petab_lint(row_data, row_name, col_name)
         if is_valid:
             for col in range(self.model.columnCount()):

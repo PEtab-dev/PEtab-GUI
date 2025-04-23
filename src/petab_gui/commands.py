@@ -2,6 +2,10 @@
 from PySide6.QtGui import QUndoCommand
 from PySide6.QtCore import QModelIndex, Qt
 import pandas as pd
+import numpy as np
+
+
+pd.set_option('future.no_silent_downcasting', True)
 
 
 class ModifyColumnCommand(QUndoCommand):
@@ -142,6 +146,7 @@ class ModifyDataFrameCommand(QUndoCommand):
     def _apply_changes(self, use_new: bool):
         df = self.model._data_frame
         col_offset = 1 if self.model._has_named_index else 0
+        original_dtypes = df.dtypes.copy()
 
         # Apply changes
         update_vals = {
@@ -149,9 +154,19 @@ class ModifyDataFrameCommand(QUndoCommand):
             for (row, col), val in self.changes.items()
         }
         update_df = pd.Series(update_vals).unstack()
+        for col in update_df.columns:
+            if col in df.columns:
+                df[col] = df[col].astype('object')
         update_df.replace({None: "Placeholder_temp"}, inplace=True)
         df.update(update_df)
         df.replace({"Placeholder_temp": ""}, inplace=True)
+        for col, dtype in original_dtypes.items():
+            if col not in update_df.columns:
+                continue
+            if np.issubdtype(dtype, np.number):
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+            else:
+                df[col] = df[col].astype(dtype)
 
         rows = [df.index.get_loc(row_key) for (row_key, _) in
                 self.changes.keys()]
