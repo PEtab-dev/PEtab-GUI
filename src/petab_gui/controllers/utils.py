@@ -3,8 +3,52 @@ from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QAction
 from collections import Counter
 from pathlib import Path
+import functools
+import pandas as pd
+import re
 
 from ..settings_manager import settings_manager
+from ..C import COMMON_ERRORS
+
+
+def linter_wrapper(_func=None):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, row_data: pd.DataFrame = None, row_name:
+                str = None, col_name: str = None, *args, **kwargs):
+            try:
+                result = func(
+                    self, row_data, row_name, col_name, *args, **kwargs
+                )
+                return True
+            except Exception as e:
+                if row_name is not None and col_name is not None:
+                    msg = f"PEtab linter failed at ({row_name}, {col_name}): {filtered_error(e)}"
+                else:
+                    msg = f"PEtab linter failed: {filtered_error(e)}"
+
+                self.logger.log_message(msg, color="red")
+                return False
+        return wrapper
+    if callable(_func):  # used without parentheses
+        return decorator(_func)
+    return decorator
+
+
+def filtered_error(error_message: BaseException) -> str:
+    """Filters know error message and reformulates them."""
+    all_errors = "|".join(
+        f"(?P<key{i}>{pattern})" for i, pattern in enumerate(COMMON_ERRORS)
+    )
+    regex = re.compile(all_errors)
+    replacement_values = list(COMMON_ERRORS.values())
+    # Replace function
+    def replacer(match):
+        for i, _ in enumerate(COMMON_ERRORS):
+            if match.group(f"key{i}"):
+                return replacement_values[i]
+        return match.group(0)
+    return regex.sub(replacer, str(error_message))
 
 
 def prompt_overwrite_or_append(controller):
