@@ -1,7 +1,7 @@
 """Store commands for the do/undo functionality."""
 from PySide6.QtGui import QUndoCommand
-from PySide6.QtCore import QModelIndex
-import numpy as np
+from PySide6.QtCore import QModelIndex, Qt
+import pandas as pd
 
 
 class ModifyColumnCommand(QUndoCommand):
@@ -85,6 +85,7 @@ class ModifyRowCommand(QUndoCommand):
             if idx not in existing:
                 indices.append(idx)
             base += 1
+        self.old_ind_names = indices
         return indices
 
     def redo(self):
@@ -124,3 +125,61 @@ class ModifyRowCommand(QUndoCommand):
                     key=lambda x: x.map(restore_index_order.get_loc)
                 )
             self.model.endInsertRows()
+
+
+class ModifyDataFrameCommand(QUndoCommand):
+    def __init__(self, model, changes: dict[tuple, tuple], description="Modify values"):
+        super().__init__(description)
+        self.model = model
+        self.changes = changes  # {(row_key, column_name): (old_val, new_val)}
+
+    def redo(self):
+        self._apply_changes(use_new=True)
+
+    def undo(self):
+        self._apply_changes(use_new=False)
+
+    def _apply_changes(self, use_new: bool):
+        df = self.model._data_frame
+        col_offset = 1 if self.model._has_named_index else 0
+
+        # Apply changes
+        update_vals = {
+            (row, col): val[1 if use_new else 0]
+            for (row, col), val in self.changes.items()
+        }
+        update_df = pd.Series(update_vals).unstack()
+        update_df.replace({None: "Placeholder_temp"}, inplace=True)
+        df.update(update_df)
+        df.replace({"Placeholder_temp": ""}, inplace=True)
+
+        rows = [df.index.get_loc(row_key) for (row_key, _) in
+                self.changes.keys()]
+        cols = [df.columns.get_loc(col) + col_offset for (_, col) in
+                self.changes.keys()]
+
+        top_left = self.model.index(min(rows), min(cols))
+        bottom_right = self.model.index(max(rows), max(cols))
+        self.model.dataChanged.emit(top_left, bottom_right, [Qt.DisplayRole])
+
+
+class RenameIndexCommand(QUndoCommand):
+    def __init__(self, model, old_index, new_index, model_index):
+        super().__init__(f"Rename index {old_index} → {new_index}")
+        self.model = model
+        self.model_index = model_index
+        self.old_index = old_index
+        self.new_index = new_index
+
+    def redo(self):
+        self._apply(self.old_index, self.new_index)
+
+    def undo(self):
+        self._apply(self.new_index, self.old_index)
+
+    def _apply(self, src, dst):
+        df = self.model._data_frame
+        df.rename(index={src: dst}, inplace=True)
+        self.model.dataChanged.emit(
+            self.model_index, self.model_index, [Qt.DisplayRole]
+        )

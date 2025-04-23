@@ -11,8 +11,8 @@ from ..models.pandas_table_model import PandasTableModel, \
 from ..settings_manager import settings_manager
 from ..views.table_view import TableViewer, SingleSuggestionDelegate, \
     ColumnSuggestionDelegate, ComboBoxDelegate, ParameterIdSuggestionDelegate
-from ..utils import get_selected, process_file
-from .utils import prompt_overwrite_or_append
+from ..utils import get_selected, process_file, ConditionInputDialog
+from .utils import prompt_overwrite_or_append, linter_wrapper
 from ..C import COLUMN
 import re
 
@@ -598,9 +598,9 @@ class MeasurementController(TableController):
 
             cond_dialog = ConditionInputDialog()
             if cond_dialog.exec():
-                conditions = cond_dialog.get_condition_id()
-                condition_id = conditions.get("conditionId", "")
-                preeq_id = conditions.get("preeq_id", "")
+                conditions = cond_dialog.get_inputs()
+                condition_id = conditions.get("simulationConditionId", "")
+                preeq_id = conditions.get("preequilibrationConditionId", "")
             if mode == "overwrite":
                 self.model.clear_table()
             self.populate_tables_from_data_matrix(

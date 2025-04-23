@@ -381,6 +381,13 @@ class MainController:
         )
         actions["undo"].setShortcut("Ctrl+Z")
         actions["undo"].triggered.connect(self.undo_stack.undo)
+        actions["redo"] = QAction(
+            qta.icon("mdi6.redo"),
+            "&Redo", self.view
+        )
+        # set shortcut as ctrl + z + Arrow up
+        actions["redo"].setShortcut("Ctrl+Shift+Z")
+        actions["redo"].triggered.connect(self.undo_stack.redo)
         return actions
 
     def sync_visibility_with_actions(self):

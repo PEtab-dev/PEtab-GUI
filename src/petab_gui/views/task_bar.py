@@ -75,6 +75,7 @@ class EditMenu(BasicMenu):
         self.menu.addSeparator()
         # Undo, Redo
         self.menu.addAction(actions["undo"])
+        self.menu.addAction(actions["redo"])
         # Add Columns
         self.menu.addAction(actions["add_column"])
         self.menu.addAction(actions["delete_column"])
