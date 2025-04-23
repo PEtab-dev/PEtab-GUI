@@ -89,9 +89,6 @@ class TableController(QObject):
         self.model.inserted_row.connect(
             self.set_index_on_new_row
         )
-        self.model.fill_defaults.connect(
-            self.model.get_default_values, Qt.QueuedConnection
-        )
         settings_manager.settings_changed.connect(
             self.update_defaults
         )
@@ -291,7 +288,8 @@ class TableController(QObject):
 
     def set_index_on_new_row(self, index: QModelIndex):
         """Set the index of the model when a new row is added."""
-        self.view.table_view.setCurrentIndex(index)
+        proxy_index = self.proxy_model.mapFromSource(index)
+        self.view.table_view.setCurrentIndex(proxy_index)
 
     def filter_table(self, text):
         """Filter the table."""
@@ -1040,7 +1038,7 @@ class ParameterController(TableController):
                 self.completers["parameterId"]
             )
 
-    @linter_wrapper
+    @linter_wrapper(additional_error_check=True)
     def check_petab_lint(self, row_data: pd.DataFrame = None, row_name: str = None, col_name: str = None):
         """Check a number of rows of the model with petablint."""
         if row_data is None:

@@ -174,87 +174,81 @@ class PandasTableModel(QAbstractTableModel):
 
     def _set_data_single(self, index, value):
         """Set the data of a single cell."""
-        col_setoff = 0
-        if self._has_named_index:
-            col_setoff = 1
-        if index.row() == self._data_frame.shape[0]:
-            # empty row at the end
-            self.insertRows(index.row(), 1)
-            self.fill_defaults.emit(index)
-            next_index = self.index(index.row(), 0)
-            self.inserted_row.emit(next_index)
-        if index.column() == 0 and self._has_named_index:
-            return self.handle_named_index(index, value)
         row, column = index.row(), index.column()
-        # Handling non-index (regular data) columns
-        column_name = self._data_frame.columns[column - col_setoff]
-        old_value = self._data_frame.iloc[row, column - col_setoff]
-        # cast to numeric if necessary
-        expected_type = self._allowed_columns.get(column_name, None)
-        if is_invalid(value):
-            change = {
-                (self._data_frame.index[row], column_name): (old_value, None)}
-            self.undo_stack.push(ModifyDataFrameCommand(self, change))
+        fill_with_defaults = False
+
+        # Handle new row creation
+        if row == self._data_frame.shape[0]:
+            self.insertRows(row, 1)
+            fill_with_defaults = True
+            next_index = self.index(row, 0)
+            self.inserted_row.emit(next_index)
+
+        # Handle named index column
+        if column == 0 and self._has_named_index:
+            return_this = self.handle_named_index(index, value)
+            if fill_with_defaults:
+                self.get_default_values(index)
             self.cell_needs_validation.emit(row, column)
-            self.dataChanged.emit(index, index, [Qt.DisplayRole])
+            return return_this
+
+        column_name = self._data_frame.columns[column - self.column_offset]
+        old_value = self._data_frame.iloc[row, column - self.column_offset]
+
+        # Handle invalid value
+        if is_invalid(value):
+            self._push_change_and_notify(row, column, column_name, old_value, None)
             return True
-        if expected_type:
-            expected_type = expected_type["type"]
-            value, error_message = validate_value(value, expected_type)
-            if error_message:
+
+        # Type validation
+        expected_info = self._allowed_columns.get(column_name)
+        if expected_info:
+            expected_type = expected_info["type"]
+            validated, error = validate_value(value, expected_type)
+            if error:
                 self.new_log_message.emit(
-                    f"Column '{column_name}' expects a numeric value",
-                    "red"
+                    f"Column '{column_name}' expects a value of type "
+                    f"{expected_type}, but got '{value}'", "red"
                 )
                 return False
+            value = validated
+
         if value == old_value:
             return False
 
+        # Special ID emitters
         if column_name == "observableId":
-            change = {
-                (self._data_frame.index[row], column_name): (old_value, value)}
-            self.undo_stack.push(ModifyDataFrameCommand(self, change))
-            self.dataChanged.emit(index, index, [Qt.DisplayRole])
+            self._push_change_and_notify(row, column, column_name, old_value, value)
             self.relevant_id_changed.emit(value, old_value, "observable")
-            self.cell_needs_validation.emit(row, column)
-            self.something_changed.emit(True)
+            if fill_with_defaults:
+                self.get_default_values(index)
             return True
-        if column_name in ["conditionId", "simulationConditionId",
-                           "preequilibrationConditionId"]:
-            change = {
-                (self._data_frame.index[row], column_name): (old_value, value)}
-            self.undo_stack.push(ModifyDataFrameCommand(self, change))
-            self.dataChanged.emit(index, index, [Qt.DisplayRole])
+
+        if column_name in ["conditionId", "simulationConditionId", "preequilibrationConditionId"]:
+            if fill_with_defaults:
+                self.get_default_values(index)
+            self._push_change_and_notify(row, column, column_name, old_value, value)
             self.relevant_id_changed.emit(value, old_value, "condition")
-            self.cell_needs_validation.emit(row, column)
-            self.something_changed.emit(True)
             return True
 
-        # Validate data based on expected type
-        expected_type = self._allowed_columns.get(column_name, None)
-        if expected_type:
-            expected_type = expected_type["type"]
-            tried_value = value
-            value, error_message = validate_value(
-                value, expected_type
-            )
-            if error_message:
-                self.new_log_message.emit(
-                    f"Column '{column_name}' expects a value of "
-                    f"type {expected_type}, but got '{tried_value}'",
-                    "red"
-                )
-                return False
-        # Set the new value
-        change = {
-            (self._data_frame.index[row], column_name): (old_value, value)}
-        self.undo_stack.push(ModifyDataFrameCommand(self, change))
-        # Validate the row after setting data
-        self.cell_needs_validation.emit(row, column)
-        self.something_changed.emit(True)
-        self.dataChanged.emit(index, index, [Qt.DisplayRole])
-
+        # Default value setting
+        if fill_with_defaults:
+            self.get_default_values(index)
+        self._push_change_and_notify(row, column, column_name, old_value, value)
         return True
+
+    def _push_change_and_notify(
+        self, row, column, column_name, old_value, new_value
+    ):
+        """Push a dataframe change to undo stack and notify view + validation."""
+        change = {
+            (self._data_frame.index[row], column_name): (old_value, new_value)
+        }
+        self.undo_stack.push(ModifyDataFrameCommand(self, change))
+        self.cell_needs_validation.emit(row, column)
+        self.dataChanged.emit(self.index(row, column), self.index(row, column),
+                              [Qt.DisplayRole])
+        self.something_changed.emit(True)
 
     def handle_named_index(self, index, value):
         """Handle the named index column."""
@@ -455,8 +449,8 @@ class PandasTableModel(QAbstractTableModel):
 
     def setDataFromText(self, text, start_row, start_column):
         """Set the data from text."""
-        # TODO: Does this need to be more flexible in the separator?
         lines = text.split("\n")
+        self.undo_stack.beginMacro("Paste from Clipboard")
         self.maybe_add_rows(start_row, len(lines))
         for row_offset, line in enumerate(lines):
             values = line.split("\t")
@@ -470,6 +464,7 @@ class PandasTableModel(QAbstractTableModel):
                     value,
                     Qt.EditRole
                 )
+        self.undo_stack.endMacro()
 
     def maybe_add_rows(self, start_row, n_rows):
         """Add rows if needed."""
@@ -522,8 +517,6 @@ class PandasTableModel(QAbstractTableModel):
         data:
             The data to fill the row with. Gets updated with default values.
         """
-        # TODO: Needs undo command, needs syncing with other commands
-        # TODO: When undoing a lne and adding then meas -> add both lines
         data_to_add = {
             column_name: "" for column_name in self._data_frame.columns
         }
@@ -626,17 +619,23 @@ class IndexedPandasTableModel(PandasTableModel):
         if value == old_value:
             return False
         if value in self._data_frame.index:
+            base = 0
+            value = None
+            while value is None:
+                idx = f"new_{self.table_type}_{base}"
+                if idx not in set(self._data_frame.index.astype(str)):
+                    value = idx
+                base += 1
             self.new_log_message.emit(
-                f"Duplicate index value '{value}'",
-                "red"
+                f"Duplicate index value '{value}'. Renaming to default "
+                f"value '{value}'",
+                "orange"
             )
-            return False
         try:
             self.undo_stack.push(RenameIndexCommand(
                 self, old_value, value, index
             ))
             self.relevant_id_changed.emit(value, old_value, self.table_type)
-            self.cell_needs_validation.emit(row, 0)
             self.something_changed.emit(True)
             return True
         except Exception as e:

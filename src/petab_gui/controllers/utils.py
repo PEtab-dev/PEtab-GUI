@@ -11,7 +11,7 @@ from ..settings_manager import settings_manager
 from ..C import COMMON_ERRORS
 
 
-def linter_wrapper(_func=None):
+def linter_wrapper(_func=None, additional_error_check: bool = False):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, row_data: pd.DataFrame = None, row_name:
@@ -22,10 +22,27 @@ def linter_wrapper(_func=None):
                 )
                 return True
             except Exception as e:
+                err_msg = filtered_error(e)
+                if additional_error_check:
+                    if "Missing parameter(s)" in err_msg:
+                        match = re.search(r"\{(.+?)\}", err_msg)
+                        missing_params = {
+                            s.strip(" '") for s in match.group(1).split(",")
+                        }
+                        remain = {
+                            p for p in missing_params
+                            if p not in self.model._data_frame.index
+                        }
+                        if not remain:
+                            return True
+                        err_msg = re.sub(
+                            r"\{.*?\}", "{" + ", ".join(sorted(remain)) + "}",
+                            err_msg
+                        )
                 if row_name is not None and col_name is not None:
-                    msg = f"PEtab linter failed at ({row_name}, {col_name}): {filtered_error(e)}"
+                    msg = f"PEtab linter failed at ({row_name}, {col_name}): {err_msg}"
                 else:
-                    msg = f"PEtab linter failed: {filtered_error(e)}"
+                    msg = f"PEtab linter failed: {err_msg}"
 
                 self.logger.log_message(msg, color="red")
                 return False
