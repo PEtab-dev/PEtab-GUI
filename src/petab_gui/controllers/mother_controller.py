@@ -2,7 +2,7 @@ from functools import partial
 
 from PySide6.QtWidgets import QMessageBox, QFileDialog, QLineEdit, QWidget, \
     QHBoxLayout, QToolButton, QTableView
-from PySide6.QtGui import QAction, QDesktopServices, QUndoStack
+from PySide6.QtGui import QAction, QDesktopServices, QUndoStack, QKeySequence
 import zipfile
 import tempfile
 import os
@@ -194,21 +194,21 @@ class MainController:
             "&Close", self.view
         )}
         # Close
-        actions["close"].setShortcut("Ctrl+Q")
+        actions["close"].setShortcut(QKeySequence.Close)
         actions["close"].triggered.connect(self.view.close)
         # New File
         actions["new"] = QAction(
             qta.icon("mdi6.file-document"),
             "&New", self.view
         )
-        actions["new"].setShortcut("Ctrl+N")
+        actions["new"].setShortcut(QKeySequence.New)
         actions["new"].triggered.connect(self.new_file)
         # Open File
         actions["open"] = QAction(
             qta.icon("mdi6.folder-open"),
             "&Open", self.view
         )
-        actions["open"].setShortcut("Ctrl+O")
+        actions["open"].setShortcut(QKeySequence.Open)
         actions["open"].triggered.connect(
             partial(self.open_file, mode="overwrite")
         )
@@ -226,33 +226,33 @@ class MainController:
             qta.icon("mdi6.content-save-all"),
             "&Save", self.view
         )
-        actions["save"].setShortcut("Ctrl+S")
+        actions["save"].setShortcut(QKeySequence.Save)
         actions["save"].triggered.connect(self.save_model)
         # Find + Replace
         actions["find"] = QAction(
             qta.icon("mdi6.magnify"),
             "Find", self.view
         )
-        actions["find"].setShortcut("Ctrl+F")
+        actions["find"].setShortcut(QKeySequence.Find)
         actions["find"].triggered.connect(self.find)
         actions["find+replace"] = QAction(
             qta.icon("mdi6.find-replace"),
             "Find/Replace", self.view
         )
-        actions["find+replace"].setShortcut("Ctrl+R")
+        actions["find+replace"].setShortcut(QKeySequence.Replace)
         actions["find+replace"].triggered.connect(self.replace)
         # Copy / Paste
         actions["copy"] = QAction(
             qta.icon("mdi6.content-copy"),
             "Copy", self.view
         )
-        actions["copy"].setShortcut("Ctrl+C")
+        actions["copy"].setShortcut(QKeySequence.Copy)
         actions["copy"].triggered.connect(self.copy_to_clipboard)
         actions["paste"] = QAction(
             qta.icon("mdi6.content-paste"),
             "Paste", self.view
         )
-        actions["paste"].setShortcut("Ctrl+V")
+        actions["paste"].setShortcut(QKeySequence.Paste)
         actions["paste"].triggered.connect(self.paste_from_clipboard)
         # add/delete row
         actions["add_row"] = QAction(
@@ -379,15 +379,18 @@ class MainController:
             qta.icon("mdi6.undo"),
             "&Undo", self.view
         )
-        actions["undo"].setShortcut("Ctrl+Z")
+        actions["undo"].setShortcut(QKeySequence.Undo)
         actions["undo"].triggered.connect(self.undo_stack.undo)
+        actions["undo"].setEnabled(self.undo_stack.canUndo())
+        self.undo_stack.canUndoChanged.connect(actions["undo"].setEnabled)
         actions["redo"] = QAction(
             qta.icon("mdi6.redo"),
             "&Redo", self.view
         )
-        # set shortcut as ctrl + z + Arrow up
-        actions["redo"].setShortcut("Ctrl+Shift+Z")
+        actions["redo"].setShortcut(QKeySequence.Redo)
         actions["redo"].triggered.connect(self.undo_stack.redo)
+        actions["redo"].setEnabled(self.undo_stack.canRedo())
+        self.undo_stack.canRedoChanged.connect(actions["redo"].setEnabled)
         return actions
 
     def sync_visibility_with_actions(self):

@@ -65,17 +65,18 @@ class EditMenu(BasicMenu):
     def __init__(self, parent, actions):
         super().__init__(parent, actions)
 
-        # Find and Replace
-        self.menu.addAction(actions["find"])
-        self.menu.addAction(actions["find+replace"])
+        # Undo, Redo
+        self.menu.addAction(actions["undo"])
+        self.menu.addAction(actions["redo"])
         self.menu.addSeparator()
         # Copy, Paste
         self.menu.addAction(actions["copy"])
         self.menu.addAction(actions["paste"])
         self.menu.addSeparator()
-        # Undo, Redo
-        self.menu.addAction(actions["undo"])
-        self.menu.addAction(actions["redo"])
+        # Find and Replace
+        self.menu.addAction(actions["find"])
+        self.menu.addAction(actions["find+replace"])
+        self.menu.addSeparator()
         # Add Columns
         self.menu.addAction(actions["add_column"])
         self.menu.addAction(actions["delete_column"])
