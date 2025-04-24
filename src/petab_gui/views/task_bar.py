@@ -70,6 +70,7 @@ class EditMenu(BasicMenu):
         self.menu.addAction(actions["redo"])
         self.menu.addSeparator()
         # Copy, Paste
+        self.menu.addAction(actions["cut"])
         self.menu.addAction(actions["copy"])
         self.menu.addAction(actions["paste"])
         self.menu.addSeparator()
