@@ -67,6 +67,7 @@ NO_DEFAULT = "no default"
 MIN_COLUMN = "use column min"
 MAX_COLUMN = "use column max"
 MODE = "use most frequent"
+SBML_LOOK = "sbml value"
 STRATEGIES_DEFAULT = [COPY_FROM, USE_DEFAULT, NO_DEFAULT]
 STRATEGIES_DEFAULT_EXT = STRATEGIES_DEFAULT + [MODE]
 STRATEGIES_DEFAULT_ALL = STRATEGIES_DEFAULT_EXT + [MIN_COLUMN, MAX_COLUMN]
@@ -77,6 +78,7 @@ STRATEGY_TOOLTIP = {
     MIN_COLUMN: "Use the minimum value of the column",
     MAX_COLUMN: "Use the maximum value of the column",
     MODE: "Use the most frequent value of the column",
+    SBML_LOOK: "Use the value from the SBML model",
 }
 SOURCE_COLUMN = "source_column"
 DEFAULT_VALUE = "default_value"
@@ -96,7 +98,7 @@ ALLOWED_STRATEGIES_PAR = {
     "parameterScale": [USE_DEFAULT, NO_DEFAULT, MODE],
     "lowerBound": [MIN_COLUMN, MAX_COLUMN, USE_DEFAULT, NO_DEFAULT, MODE],
     "upperBound": [MAX_COLUMN, MAX_COLUMN, USE_DEFAULT, NO_DEFAULT, MODE],
-    "nominalValue": [USE_DEFAULT, NO_DEFAULT],
+    "nominalValue": [USE_DEFAULT, NO_DEFAULT, SBML_LOOK],
     "estimate": [USE_DEFAULT, NO_DEFAULT, MODE],
 }
 ALLOWED_STRATEGIES_COND = {
@@ -156,6 +158,9 @@ DEFAULT_PAR_CONFIG = {
     },
     "estimate": {
         "strategy": USE_DEFAULT, DEFAULT_VALUE: 1
+    },
+    "nominalValue": {
+        "strategy": SBML_LOOK
     },
 }
 DEFAULT_COND_CONFIG = {

@@ -517,7 +517,10 @@ class PandasTableModel(QAbstractTableModel):
         """Override endResetModel to reset the default handler."""
         super().endResetModel()
         self.config = settings_manager.get_table_defaults(self.table_type)
-        self.default_handler = DefaultHandlerModel(self, self.config)
+        sbml_model = self.default_handler._sbml_model
+        self.default_handler = DefaultHandlerModel(
+            self, self.config, sbml_model=sbml_model
+        )
 
     def fill_row(self, row_position: int, data: dict):
         """Fill a row with data.
@@ -757,12 +760,16 @@ class ObservableModel(IndexedPandasTableModel):
 class ParameterModel(IndexedPandasTableModel):
     """Table model for the parameter data."""
 
-    def __init__(self, data_frame, parent=None):
+    def __init__(self, data_frame, parent=None, sbml_model=None):
         super().__init__(
             data_frame=data_frame,
             allowed_columns=COLUMNS["parameter"],
             table_type="parameter",
             parent=parent
+        )
+        self.default_handler = DefaultHandlerModel(
+            self, self.config,
+            sbml_model=sbml_model
         )
 
 

@@ -5,11 +5,11 @@ import copy
 
 from collections import Counter
 from ..C import (COPY_FROM, USE_DEFAULT, NO_DEFAULT, MIN_COLUMN, MAX_COLUMN,
-                 MODE, DEFAULT_VALUE, SOURCE_COLUMN, STRATEGIES_DEFAULT)
+                 MODE, DEFAULT_VALUE, SOURCE_COLUMN, SBML_LOOK)
 
 
 class DefaultHandlerModel:
-    def __init__(self, model, config):
+    def __init__(self, model, config, sbml_model = None):
         """
         Initialize the handler for the model.
         :param model: The PandasTable Model containing the Data.
@@ -20,6 +20,7 @@ class DefaultHandlerModel:
         self.model = model._data_frame
         self.config = config
         self.model_index = self.model.index.name
+        self._sbml_model = sbml_model
 
     def get_default(self, column_name, row_index=None):
         """
@@ -52,6 +53,8 @@ class DefaultHandlerModel:
         elif strategy == MODE:
             column_config[SOURCE_COLUMN] = source_column
             return self._majority_vote(column_name, column_config)
+        elif strategy == SBML_LOOK:
+            return self._sbml_lookup(row_index)
         else:
             raise ValueError(f"Unknown strategy '{strategy}' for column '{column_name}'.")
 
@@ -100,3 +103,20 @@ class DefaultHandlerModel:
             value_counts = Counter(valid_values)
             return value_counts.most_common(1)[0][0]
         return ""
+
+    def _sbml_lookup(self, row_key):
+        """Use the most frequent value in the column as the default.
+
+        Defaults to last used value in case of a tie.
+        """
+        if self._sbml_model is None:
+            return 1
+        if row_key is None:
+            return 1
+        curr_model = self._sbml_model.get_current_sbml_model()
+        if curr_model is None:
+            return 1
+        parameters = curr_model.get_valid_parameters_for_parameter_table()
+        if row_key not in list(parameters):
+            return 1
+        return curr_model.get_parameter_value(row_key)

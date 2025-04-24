@@ -34,6 +34,7 @@ class SbmlController(QObject):
             The main controller of the application. Needed for signal
             forwarding.
         """
+        super().__init__()
         self.view = view
         self.model = model
         self.logger = logger
@@ -119,7 +120,8 @@ class SbmlController(QObject):
             self.view.antimony_text_edit.setPlainText(
                 self.model.antimony_text
             )
-            # self.overwritten_model.emit()  # Deactivated for now. Discuss!
+
+            self.overwritten_model.emit()
             self.logger.log_message(
                 "SBML model successfully opened and overwritten.",
                 color="green"

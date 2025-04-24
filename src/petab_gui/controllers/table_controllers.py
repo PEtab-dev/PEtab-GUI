@@ -978,6 +978,9 @@ class ParameterController(TableController):
         """Update the handler model."""
         self.model.default_handler.model = self.model._data_frame
 
+    def update_handler_sbml(self):
+        self.model.default_handler._sbml_model = self.mother_controller.model.sbml
+
     def setup_completers(self):
         """Set completers for the parameter table."""
         table_view = self.view.table_view

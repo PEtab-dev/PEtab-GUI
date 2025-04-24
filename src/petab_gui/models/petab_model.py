@@ -46,6 +46,9 @@ class PEtabModel:
         if petab_problem is None:
             petab_problem = petab.Problem()
         self.problem = petab_problem
+        self.sbml = SbmlViewerModel(
+            sbml_model=self.problem.model,
+        )
         self.measurement = MeasurementModel(
             data_frame=self.problem.measurement_df,
         )
@@ -54,12 +57,10 @@ class PEtabModel:
         )
         self.parameter = ParameterModel(
             data_frame=self.problem.parameter_df,
+            sbml_model=self.sbml
         )
         self.condition = ConditionModel(
             data_frame=self.problem.condition_df,
-        )
-        self.sbml = SbmlViewerModel(
-            sbml_model=self.problem.model,
         )
 
     @property
