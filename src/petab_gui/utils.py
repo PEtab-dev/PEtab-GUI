@@ -74,37 +74,38 @@ def antimonyToSBML(ant):
 
 
 class ConditionInputDialog(QDialog):
-    def __init__(self, condition_id, condition_columns, initial_values=None, error_key=None, parent=None):
+    def __init__(self, condition_id=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Add Condition")
 
         self.layout = QVBoxLayout(self)
+        self.notification_label = QLabel("", self)
+        self.notification_label.setStyleSheet("color: red;")
+        self.notification_label.setVisible(False)
+        self.layout.addWidget(self.notification_label)
 
-        # Condition ID
-        self.condition_id_layout = QHBoxLayout()
-        self.condition_id_label = QLabel("Condition ID:", self)
-        self.condition_id_input = QLineEdit(self)
-        self.condition_id_input.setText(condition_id)
-        self.condition_id_input.setReadOnly(True)
-        self.condition_id_layout.addWidget(self.condition_id_label)
-        self.condition_id_layout.addWidget(self.condition_id_input)
-        self.layout.addLayout(self.condition_id_layout)
+        # Simulation Condition
+        sim_layout = QHBoxLayout()
+        sim_label = QLabel("Simulation Condition:", self)
+        self.sim_input = QLineEdit(self)
+        if condition_id:
+            self.sim_input.setText(condition_id)
+        sim_layout.addWidget(sim_label)
+        sim_layout.addWidget(self.sim_input)
+        self.layout.addLayout(sim_layout)
 
-        # Dynamic fields for existing columns
-        self.fields = {}
-        for column in condition_columns:
-            if column != "conditionId":  # Skip conditionId
-                field_layout = QHBoxLayout()
-                field_label = QLabel(f"{column}:", self)
-                field_input = QLineEdit(self)
-                if initial_values and column in initial_values:
-                    field_input.setText(str(initial_values[column]))
-                    if column == error_key:
-                        field_input.setStyleSheet("background-color: red;")
-                field_layout.addWidget(field_label)
-                field_layout.addWidget(field_input)
-                self.layout.addLayout(field_layout)
-                self.fields[column] = field_input
+        # Preequilibration Condition
+        preeq_layout = QHBoxLayout()
+        preeq_label = QLabel("Preequilibration Condition:", self)
+        self.preeq_input = QLineEdit(self)
+        self.preeq_input.setToolTip(
+            "This field is only needed when your experiment started in steady "
+            "state. In this case add here the experimental condition id for "
+            "the steady state."
+        )
+        preeq_layout.addWidget(preeq_label)
+        preeq_layout.addWidget(self.preeq_input)
+        self.layout.addLayout(preeq_layout)
 
         # Buttons
         self.buttons_layout = QHBoxLayout()
@@ -117,10 +118,22 @@ class ConditionInputDialog(QDialog):
         self.ok_button.clicked.connect(self.accept)
         self.cancel_button.clicked.connect(self.reject)
 
+    def accept(self):
+        if not self.sim_input.text().strip():
+            self.sim_input.setStyleSheet("background-color: red;")
+            self.notification_label.setText("Simulation Condition is required.")
+            self.notification_label.setVisible(True)
+            return
+        self.notification_label.setVisible(False)
+        self.sim_input.setStyleSheet("")
+        super().accept()
+
     def get_inputs(self):
-        inputs = {column: field.text() for column, field in self.fields.items()}
-        inputs["conditionId"] = self.condition_id_input.text()
-        inputs["conditionName"] = inputs["conditionId"]
+        inputs = {}
+        inputs["simulationConditionId"] = self.sim_input.text()
+        preeq = self.preeq_input.text()
+        if preeq:
+            inputs["preequilibrationConditionId"] = preeq
         return inputs
 
 
@@ -462,8 +475,6 @@ class FindReplaceDialog(QDialog):
                 antimony_text = self.parent().sbml_viewer.antimony_text_edit.toPlainText()
                 antimony_text = antimony_text.replace(find_text, replace_text)
                 self.parent().sbml_viewer.antimony_text_edit.setPlainText(antimony_text)
-
-
 
 
 class SyntaxHighlighter(QSyntaxHighlighter):

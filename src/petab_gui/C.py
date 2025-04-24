@@ -173,3 +173,8 @@ DEFAULT_CONFIGS = {
     "condition": DEFAULT_COND_CONFIG,
     "measurement": DEFAULT_MEAS_CONFIG
 }
+
+COMMON_ERRORS = {
+    r"Error parsing '': Syntax error at \d+:\d+: mismatched input '<EOF>' "
+    r"expecting \{[^}]+\}" : "Invalid empty cell!"
+}

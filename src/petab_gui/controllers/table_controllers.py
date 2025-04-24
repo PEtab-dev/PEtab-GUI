@@ -11,8 +11,8 @@ from ..models.pandas_table_model import PandasTableModel, \
 from ..settings_manager import settings_manager
 from ..views.table_view import TableViewer, SingleSuggestionDelegate, \
     ColumnSuggestionDelegate, ComboBoxDelegate, ParameterIdSuggestionDelegate
-from ..utils import get_selected, process_file
-from .utils import prompt_overwrite_or_append
+from ..utils import get_selected, process_file, ConditionInputDialog
+from .utils import prompt_overwrite_or_append, linter_wrapper
 from ..C import COLUMN
 import re
 
@@ -26,6 +26,7 @@ class TableController(QObject):
         view: TableViewer,
         model: PandasTableModel,
         logger,
+        undo_stack,
         mother_controller
     ):
         """Initialize the table controller.
@@ -48,6 +49,8 @@ class TableController(QObject):
         self.model.view = self.view.table_view
         self.proxy_model = PandasTableFilterProxy(model)
         self.logger = logger
+        self.undo_stack = undo_stack
+        self.model.undo_stack = undo_stack
         self.check_petab_lint_mode = True
         self.mother_controller = mother_controller
         self.view.table_view.setModel(self.proxy_model)
@@ -86,9 +89,6 @@ class TableController(QObject):
         self.model.inserted_row.connect(
             self.set_index_on_new_row
         )
-        self.model.fill_defaults.connect(
-            self.model.get_default_values, Qt.QueuedConnection
-        )
         settings_manager.settings_changed.connect(
             self.update_defaults
         )
@@ -102,27 +102,22 @@ class TableController(QObject):
         """Validate the changed cell and whether its linting is correct."""
         if not self.check_petab_lint_mode:
             return
-        row_data = self.model.get_df().iloc[row]
-        index_name = self.model.get_df().index.name
+        df = self.model.get_df()
+        row_data = df.iloc[row]
+        index_name = df.index.name
         row_data = row_data.to_frame().T
         row_data.index.name = index_name
-        try:
-            self.check_petab_lint(row_data)
+        row_name = row_data.index[0]
+        if column == 0 and self.model._has_named_index:
+            col_name = index_name
+        else:
+            col_name = df.columns[column - self.model.column_offset]
+        is_valid = self.check_petab_lint(row_data, row_name, col_name)
+        if is_valid:
             for col in range(self.model.columnCount()):
                 self.model.discard_invalid_cell(row, col)
-            error_message = None
-        except Exception as e:
-            error_message = str(e)
-            self.logger.log_message(
-                f"PEtab linter failed at row {row}, column {column}: "
-                f"{error_message}",
-                color="red"
-            )
-        # Update invalid cells based on the error state
-        if error_message:
-            self.model.add_invalid_cell(row, column)
         else:
-            self.model.discard_invalid_cell(row, column)
+            self.model.add_invalid_cell(row, column)
         self.model.notify_data_color_change(row, column)
 
     def open_table(self, file_path=None, separator=None, mode="overwrite"):
@@ -264,7 +259,7 @@ class TableController(QObject):
                 self.logger.log_message(
                     f"Cannot delete column {column_name}, as it is a "
                     f"required column!",
-                    color = "red"
+                    color="red"
                 )
                 continue
             if column_name in self.completers:
@@ -293,7 +288,8 @@ class TableController(QObject):
 
     def set_index_on_new_row(self, index: QModelIndex):
         """Set the index of the model when a new row is added."""
-        self.view.table_view.setCurrentIndex(index)
+        proxy_index = self.proxy_model.mapFromSource(index)
+        self.view.table_view.setCurrentIndex(proxy_index)
 
     def filter_table(self, text):
         """Filter the table."""
@@ -322,7 +318,12 @@ class TableController(QObject):
                 color="red"
             )
 
-    def check_petab_lint(self, row_data):
+    def check_petab_lint(
+        self,
+        row_data: pd.DataFrame = None,
+        row_name: str = None,
+        col_name: str = None
+    ):
         """Check a single row of the model with petablint."""
         raise NotImplementedError(
             "This method must be implemented in child classes."
@@ -483,11 +484,11 @@ class TableController(QObject):
 class MeasurementController(TableController):
     """Controller of the Measurement table."""
 
-    def check_petab_lint(self, row_data: pd.DataFrame = None):
+    @linter_wrapper
+    def check_petab_lint(self, row_data: pd.DataFrame = None, row_name: str = None, col_name: str = None):
         """Check a number of rows of the model with petablint."""
         if row_data is None:
             row_data = self.model.get_df()
-        # Can this be done more elegantly?
         observable_df = self.mother_controller.model.observable.get_df()
         return petab.check_measurement_df(
             row_data,
@@ -595,9 +596,9 @@ class MeasurementController(TableController):
 
             cond_dialog = ConditionInputDialog()
             if cond_dialog.exec():
-                conditions = cond_dialog.get_condition_id()
-                condition_id = conditions.get("conditionId", "")
-                preeq_id = conditions.get("preeq_id", "")
+                conditions = cond_dialog.get_inputs()
+                condition_id = conditions.get("simulationConditionId", "")
+                preeq_id = conditions.get("preequilibrationConditionId", "")
             if mode == "overwrite":
                 self.model.clear_table()
             self.populate_tables_from_data_matrix(
@@ -756,7 +757,8 @@ class ConditionController(TableController):
             self.update_handler_model
         )
 
-    def check_petab_lint(self, row_data: pd.DataFrame = None):
+    @linter_wrapper
+    def check_petab_lint(self, row_data: pd.DataFrame = None, row_name: str = None, col_name: str = None):
         """Check a number of rows of the model with petablint."""
         if row_data is None:
             row_data = self.model.get_df()
@@ -904,7 +906,8 @@ class ObservableController(TableController):
             self.update_handler_model
         )
 
-    def check_petab_lint(self, row_data: pd.DataFrame = None):
+    @linter_wrapper
+    def check_petab_lint(self, row_data: pd.DataFrame = None, row_name: str = None, col_name: str = None):
         """Check a number of rows of the model with petablint."""
         if row_data is None:
             row_data = self.model.get_df()
@@ -1035,7 +1038,8 @@ class ParameterController(TableController):
                 self.completers["parameterId"]
             )
 
-    def check_petab_lint(self, row_data: pd.DataFrame = None):
+    @linter_wrapper(additional_error_check=True)
+    def check_petab_lint(self, row_data: pd.DataFrame = None, row_name: str = None, col_name: str = None):
         """Check a number of rows of the model with petablint."""
         if row_data is None:
             row_data = self.model.get_df()

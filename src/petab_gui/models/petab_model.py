@@ -108,7 +108,6 @@ class PEtabModel:
         bool
             Whether the data is consistent.
         """
-        # TODO: Create logging messages
         return petab.lint.lint_problem(self.current_petab_problem)
 
     def save(self, directory: str | Path):
