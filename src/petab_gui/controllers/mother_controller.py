@@ -391,6 +391,15 @@ class MainController:
         actions["redo"].triggered.connect(self.undo_stack.redo)
         actions["redo"].setEnabled(self.undo_stack.canRedo())
         self.undo_stack.canRedoChanged.connect(actions["redo"].setEnabled)
+        # Clear cells
+        actions["clear_cells"] = QAction(
+            qta.icon("mdi6.delete"),
+            "&Clear Cells", self.view
+        )
+        actions["clear_cells"].setShortcuts(
+            [QKeySequence.Delete, QKeySequence.Backspace]
+        )
+        actions["clear_cells"].triggered.connect(self.clear_cells)
         return actions
 
     def sync_visibility_with_actions(self):
@@ -767,6 +776,11 @@ class MainController:
         controller = self.active_controller()
         if controller:
             controller.delete_column()
+
+    def clear_cells(self):
+        controller = self.active_controller()
+        if controller:
+            controller.clear_cells()
 
     def filter_table(self):
         """Filter the currently activated tables"""

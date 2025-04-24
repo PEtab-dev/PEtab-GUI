@@ -13,7 +13,7 @@ from ..views.table_view import TableViewer, SingleSuggestionDelegate, \
     ColumnSuggestionDelegate, ComboBoxDelegate, ParameterIdSuggestionDelegate
 from ..utils import get_selected, process_file, ConditionInputDialog
 from .utils import prompt_overwrite_or_append, linter_wrapper
-from ..C import COLUMN
+from ..C import COLUMN, INDEX
 import re
 
 
@@ -285,6 +285,11 @@ class TableController(QObject):
             if not ok:
                 return
         self.model.insertColumn(column_name)
+
+    def clear_cells(self):
+        """Clear all selected cells"""
+        selected = get_selected(self.view.table_view, mode=INDEX)
+        self.model.clear_cells(selected)
 
     def set_index_on_new_row(self, index: QModelIndex):
         """Set the index of the model when a new row is added."""

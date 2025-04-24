@@ -148,7 +148,9 @@ class PandasTableModel(QAbstractTableModel):
 
         return True
 
-    def setData(self, index, value, role=Qt.EditRole):
+    def setData(
+        self, index, value, role=Qt.EditRole, check_multi: bool = True
+    ):
         if not (index.isValid() and role == Qt.EditRole):
             return False
 
@@ -157,8 +159,10 @@ class PandasTableModel(QAbstractTableModel):
 
         if is_invalid(value) or value == "":
             value = None
-        # check whether multiple rows but only one column is selected
-        multi_row_change, selected = self.check_selection()
+        multi_row_change = False
+        if check_multi:
+            # check whether multiple rows but only one column is selected
+            multi_row_change, selected = self.check_selection()
         if not multi_row_change:
             self.undo_stack.beginMacro("Set data")
             success = self._set_data_single(index, value)
@@ -249,6 +253,14 @@ class PandasTableModel(QAbstractTableModel):
         self.dataChanged.emit(self.index(row, column), self.index(row, column),
                               [Qt.DisplayRole])
         self.something_changed.emit(True)
+
+    def clear_cells(self, selected):
+        """Clear the selected cells."""
+        self.undo_stack.beginMacro("Clear cells")
+        for index in selected:
+            if index.isValid():
+                self.setData(index, None, Qt.EditRole, False)
+        self.undo_stack.endMacro()
 
     def handle_named_index(self, index, value):
         """Handle the named index column."""
