@@ -591,6 +591,10 @@ class IndexedPandasTableModel(PandasTableModel):
 
         columns_with_index = [df.index.name] if df.index.name else []
         columns_with_index += list(df.columns)
+        # ensure parameterScale is before lowerBound and upperBound (potential)
+        if "parameterScale" in columns_with_index:
+            columns_with_index.remove("parameterScale")
+            columns_with_index.insert(1, "parameterScale")
 
         for colname in columns_with_index:
             if colname == df.index.name:
@@ -602,6 +606,13 @@ class IndexedPandasTableModel(PandasTableModel):
                 ):
                     rename_needed = True
                     new_index = default_value
+            elif colname in ["upperBound", "lowerBound"]:
+                if df.at[row_key, colname] == "":
+                    par_scale = changes[(row_key, "parameterScale")][1] if (row_key, "parameterScale") in changes else df.at[row_key, "parameterScale"]
+                    default_value = self.default_handler.get_default(
+                        colname, row_key, par_scale
+                    )
+                    changes[(row_key, colname)] = ("", default_value)
             else:
                 if df.at[row_key, colname] == "":
                     default_value = self.default_handler.get_default(colname, row_key)

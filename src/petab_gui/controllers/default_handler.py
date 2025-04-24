@@ -22,11 +22,12 @@ class DefaultHandlerModel:
         self.model_index = self.model.index.name
         self._sbml_model = sbml_model
 
-    def get_default(self, column_name, row_index=None):
+    def get_default(self, column_name, row_index=None, par_scale=None):
         """
         Get the default value for a column based on its strategy.
         :param column_name: The name of the column to compute the default for.
         :param row_index: Optional index of the row (needed for some strategies).
+        :param par_scale: Optional parameter scale (needed for some strategies).
         :return: The computed default value.
         """
         source_column = column_name
@@ -45,9 +46,9 @@ class DefaultHandlerModel:
         elif strategy == NO_DEFAULT:
             return ""
         elif strategy == MIN_COLUMN:
-            return self._min_column(column_name)
+            return self._min_column(column_name, par_scale)
         elif strategy == MAX_COLUMN:
-            return self._max_column(column_name)
+            return self._max_column(column_name, par_scale)
         elif strategy == COPY_FROM:
             return self._copy_column(column_name, column_config, row_index)
         elif strategy == MODE:
@@ -58,19 +59,27 @@ class DefaultHandlerModel:
         else:
             raise ValueError(f"Unknown strategy '{strategy}' for column '{column_name}'.")
 
-    def _min_column(self, column_name):
-        if column_name in self.model:
-            column_data = self.model[column_name].replace("", np.nan).dropna()
-            if not column_data.empty:
-                return column_data.min()
-        return ""
+    def _min_column(self, column_name, par_scale=None):
+        if column_name not in self.model:
+            return ""
+        column_data = self.model[column_name].replace("", np.nan).dropna()
+        if column_name in ["upperBound", "lowerBound"]:
+            column_data = column_data.loc[
+                self.model["parameterScale"] == par_scale
+            ]
+        if not column_data.empty:
+            return column_data.min()
 
-    def _max_column(self, column_name):
-        if column_name in self.model:
-            column_data = self.model[column_name].replace("", np.nan).dropna()
-            if not column_data.empty:
-                return column_data.max()
-        return ""
+    def _max_column(self, column_name, par_scale=None):
+        if column_name not in self.model:
+            return ""
+        column_data = self.model[column_name].replace("", np.nan).dropna()
+        if column_name in ["upperBound", "lowerBound"]:
+            column_data = column_data.loc[
+                self.model["parameterScale"] == par_scale
+            ]
+        if not column_data.empty:
+            return column_data.max()
 
     def _copy_column(self, column_name, config, row_index):
         source_column = config.get(SOURCE_COLUMN, column_name)
