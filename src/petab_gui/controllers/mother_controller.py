@@ -254,6 +254,12 @@ class MainController:
         )
         actions["paste"].setShortcut(QKeySequence.Paste)
         actions["paste"].triggered.connect(self.paste_from_clipboard)
+        actions["cut"] = QAction(
+            qta.icon("mdi6.content-cut"),
+            "&Cut", self.view
+        )
+        actions["cut"].setShortcut(QKeySequence.Cut)
+        actions["cut"].triggered.connect(self.cut)
         # add/delete row
         actions["add_row"] = QAction(
             qta.icon("mdi6.table-row-plus-after"),
@@ -802,6 +808,12 @@ class MainController:
         controller = self.active_controller()
         if controller:
             controller.paste_from_clipboard()
+
+    def cut(self):
+        controller = self.active_controller()
+        if controller:
+            controller.copy_to_clipboard()
+            controller.clear_cells()
 
     def open_settings(self):
         """Opens the settings Dialogue."""
