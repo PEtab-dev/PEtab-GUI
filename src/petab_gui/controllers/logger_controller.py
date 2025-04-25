@@ -32,7 +32,8 @@ class LoggerController:
             return
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         full_message = \
-            f"[{timestamp}]\t <span style='color: {color};'>{message}</span>"
+            (f"[{timestamp}]\t <span style='color: {color};'>"
+             f"{message}</span>")
         for view in self.views:
             view.logger.append(full_message)
 

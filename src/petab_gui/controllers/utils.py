@@ -6,6 +6,7 @@ from pathlib import Path
 import functools
 import pandas as pd
 import re
+import html
 
 from ..settings_manager import settings_manager
 from ..C import COMMON_ERRORS
@@ -23,6 +24,7 @@ def linter_wrapper(_func=None, additional_error_check: bool = False):
                 return True
             except Exception as e:
                 err_msg = filtered_error(e)
+                err_msg = html.escape(err_msg)
                 if additional_error_check:
                     if "Missing parameter(s)" in err_msg:
                         match = re.search(r"\{(.+?)\}", err_msg)

@@ -222,22 +222,22 @@ class PandasTableModel(QAbstractTableModel):
 
         # Special ID emitters
         if column_name == "observableId":
-            self._push_change_and_notify(row, column, column_name, old_value, value)
-            self.relevant_id_changed.emit(value, old_value, "observable")
             if fill_with_defaults:
-                self.get_default_values(index)
+                self.get_default_values(index, {column_name: value})
+            self.relevant_id_changed.emit(value, old_value, "observable")
+            self._push_change_and_notify(row, column, column_name, old_value, value)
             return True
 
         if column_name in ["conditionId", "simulationConditionId", "preequilibrationConditionId"]:
             if fill_with_defaults:
-                self.get_default_values(index)
-            self._push_change_and_notify(row, column, column_name, old_value, value)
+                self.get_default_values(index, {column_name: value})
             self.relevant_id_changed.emit(value, old_value, "condition")
+            self._push_change_and_notify(row, column, column_name, old_value, value)
             return True
 
         # Default value setting
         if fill_with_defaults:
-            self.get_default_values(index)
+            self.get_default_values(index, {column_name: value})
         self._push_change_and_notify(row, column, column_name, old_value, value)
         return True
 
@@ -249,9 +249,9 @@ class PandasTableModel(QAbstractTableModel):
             (self._data_frame.index[row], column_name): (old_value, new_value)
         }
         self.undo_stack.push(ModifyDataFrameCommand(self, change))
-        self.cell_needs_validation.emit(row, column)
         self.dataChanged.emit(self.index(row, column), self.index(row, column),
                               [Qt.DisplayRole])
+        self.cell_needs_validation.emit(row, column)
         self.something_changed.emit(True)
 
     def clear_cells(self, selected):
@@ -266,8 +266,15 @@ class PandasTableModel(QAbstractTableModel):
         """Handle the named index column."""
         pass
 
-    def get_default_values(self, index):
-        """Return the default values for a the row in a new index."""
+    def get_default_values(self, index, changed: dict | None = None):
+        """Return the default values for the row in a new index.
+
+        Parameters
+        ----------
+        index: QModelIndex, index where the first change occurs
+        changed:
+            the changes made to the DataFrame, that have not yet been registered
+        """
         pass
 
     def replace_text(self, old_text: str, new_text: str):
@@ -559,7 +566,10 @@ class PandasTableModel(QAbstractTableModel):
         self.undo_stack.push(ModifyDataFrameCommand(
             self, changes, "Fill values"
         ))
-        self.fill_defaults.emit(self.index(row_position, 0))
+        self.get_default_values(
+            self.index(row_position, 0),
+            changed=changes,
+        )
 
 
 class IndexedPandasTableModel(PandasTableModel):
@@ -576,7 +586,7 @@ class IndexedPandasTableModel(PandasTableModel):
         self._has_named_index = True
         self.column_offset = 1
 
-    def get_default_values(self, index):
+    def get_default_values(self, index, changed: dict | None = None):
         """Return the default values for a the row in a new index."""
         row_idx = index.row()
         df = self._data_frame
@@ -597,26 +607,32 @@ class IndexedPandasTableModel(PandasTableModel):
             columns_with_index.insert(1, "parameterScale")
 
         for colname in columns_with_index:
+            if changed and colname in changed.keys():
+                continue
             if colname == df.index.name:
                 # Generate default index name if empty
-                default_value = self.default_handler.get_default(colname, row_key)
+                default_value = self.default_handler.get_default(
+                    colname,
+                    row_key,
+                    changed = changed
+                )
                 if (
                     not row_key
                     or f"new_{self.table_type}" in row_key
-                ):
+                ) and bool(default_value):
                     rename_needed = True
                     new_index = default_value
             elif colname in ["upperBound", "lowerBound"]:
-                if df.at[row_key, colname] == "":
-                    par_scale = changes[(row_key, "parameterScale")][1] if (row_key, "parameterScale") in changes else df.at[row_key, "parameterScale"]
-                    default_value = self.default_handler.get_default(
-                        colname, row_key, par_scale
-                    )
-                    changes[(row_key, colname)] = ("", default_value)
+                par_scale = changes[(row_key, "parameterScale")][1] if\
+                    (row_key, "parameterScale") in changes \
+                    else changed["parameterScale"]
+                default_value = self.default_handler.get_default(
+                    colname, row_key, par_scale
+                )
+                changes[(row_key, colname)] = ("", default_value)
             else:
-                if df.at[row_key, colname] == "":
-                    default_value = self.default_handler.get_default(colname, row_key)
-                    changes[(row_key, colname)] = ("", default_value)
+                default_value = self.default_handler.get_default(colname, row_key)
+                changes[(row_key, colname)] = ("", default_value)
 
         commands = []
         if changes:
@@ -693,7 +709,7 @@ class MeasurementModel(PandasTableModel):
             parent=parent
         )
 
-    def get_default_values(self, index):
+    def get_default_values(self, index, changed: dict | None = None):
         """Fill missing values in a row without modifying the index."""
         row = index.row()
         df = self._data_frame
@@ -704,9 +720,10 @@ class MeasurementModel(PandasTableModel):
 
         changes = {}
         for colname in df.columns:
-            if df.at[row_key, colname] == "":
-                default = self.default_handler.get_default(colname, row_key)
-                changes[(row_key, colname)] = ("", default)
+            if colname in changed.keys():
+                continue
+            default = self.default_handler.get_default(colname, row_key)
+            changes[(row_key, colname)] = ("", default)
         command = ModifyDataFrameCommand(
             self, changes, "Fill default values"
         )

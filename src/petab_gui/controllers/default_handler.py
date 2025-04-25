@@ -22,12 +22,19 @@ class DefaultHandlerModel:
         self.model_index = self.model.index.name
         self._sbml_model = sbml_model
 
-    def get_default(self, column_name, row_index=None, par_scale=None):
+    def get_default(
+        self,
+        column_name,
+        row_index=None,
+        par_scale=None,
+        changed: dict | None = None,
+    ):
         """
         Get the default value for a column based on its strategy.
         :param column_name: The name of the column to compute the default for.
         :param row_index: Optional index of the row (needed for some strategies).
         :param par_scale: Optional parameter scale (needed for some strategies).
+        :param changed: Optional tuple containing the column name and index of the changed cell.
         :return: The computed default value.
         """
         source_column = column_name
@@ -42,6 +49,8 @@ class DefaultHandlerModel:
         default_value = column_config.get(DEFAULT_VALUE, "")
 
         if strategy == USE_DEFAULT:
+            if self.model.dtypes[column_name] == float:
+                return float(default_value)
             return default_value
         elif strategy == NO_DEFAULT:
             return ""
@@ -50,7 +59,9 @@ class DefaultHandlerModel:
         elif strategy == MAX_COLUMN:
             return self._max_column(column_name, par_scale)
         elif strategy == COPY_FROM:
-            return self._copy_column(column_name, column_config, row_index)
+            return self._copy_column(
+                column_name, column_config, row_index, changed
+            )
         elif strategy == MODE:
             column_config[SOURCE_COLUMN] = source_column
             return self._majority_vote(column_name, column_config)
@@ -81,11 +92,21 @@ class DefaultHandlerModel:
         if not column_data.empty:
             return column_data.max()
 
-    def _copy_column(self, column_name, config, row_index):
+    def _copy_column(
+        self,
+        column_name,
+        config,
+        row_index,
+        changed: dict | None = None
+    ):
+        """Copy the value from another column in the same row."""
         source_column = config.get(SOURCE_COLUMN, column_name)
         source_column_valid = (
             source_column in self.model or source_column == self.model_index
         )
+        if changed:
+            if source_column in changed.keys():
+                return changed[source_column]
         if source_column and source_column_valid and row_index is not None:
             prefix = config.get("prefix", "")
             if row_index in self.model.index:
