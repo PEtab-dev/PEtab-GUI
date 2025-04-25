@@ -68,41 +68,38 @@ class MainController:
             self.model.measurement,
             self.logger,
             self.undo_stack,
-            self
+            self,
         )
         self.observable_controller = ObservableController(
             self.view.observable_dock,
             self.model.observable,
             self.logger,
             self.undo_stack,
-            self
+            self,
         )
         self.parameter_controller = ParameterController(
             self.view.parameter_dock,
             self.model.parameter,
             self.logger,
             self.undo_stack,
-            self
+            self,
         )
         self.condition_controller = ConditionController(
             self.view.condition_dock,
             self.model.condition,
             self.logger,
             self.undo_stack,
-            self
+            self,
         )
         self.sbml_controller = SbmlController(
-            self.view.sbml_viewer,
-            self.model.sbml,
-            self.logger,
-            self
+            self.view.sbml_viewer, self.model.sbml, self.logger, self
         )
         self.controllers = [
             self.measurement_controller,
             self.observable_controller,
             self.parameter_controller,
             self.condition_controller,
-            self.sbml_controller
+            self.sbml_controller,
         ]
         # Recent Files
         self.recent_files_manager = RecentFilesManager(max_files=10)
@@ -111,12 +108,9 @@ class MainController:
             "measurement": False,
             "observable": False,
             "parameter": False,
-            "condition": False
+            "condition": False,
         }
-        self.sbml_checkbox_states = {
-            "sbml": False,
-            "antimony": False
-        }
+        self.sbml_checkbox_states = {"sbml": False, "antimony": False}
         self.unsaved_changes = False
         self.filter = QLineEdit()
         self.filter_active = {}  # Saves which tables the filter applies to
@@ -150,31 +144,34 @@ class MainController:
         self.observable_controller.observable_2be_renamed.connect(
             partial(
                 self.measurement_controller.rename_value,
-                column_names="observableId"
+                column_names="observableId",
             )
         )
         # Rename Condition
         self.condition_controller.condition_2be_renamed.connect(
             partial(
                 self.measurement_controller.rename_value,
-                column_names = ["simulationConditionId",
-                "preequilibrationConditionId"]
+                column_names=[
+                    "simulationConditionId",
+                    "preequilibrationConditionId",
+                ],
             )
         )
         # Add new condition or observable
         self.model.measurement.relevant_id_changed.connect(
             lambda x, y, z: self.observable_controller.maybe_add_observable(
-                x, y) if z == "observable" else
-            self.condition_controller.maybe_add_condition(
-                x, y) if z == "condition" else None
+                x, y
+            )
+            if z == "observable"
+            else self.condition_controller.maybe_add_condition(x, y)
+            if z == "condition"
+            else None
         )
         # Maybe Move to a Plot Model
         self.view.measurement_dock.table_view.selectionModel().selectionChanged.connect(
             self.handle_selection_changed
         )
-        self.model.measurement.dataChanged.connect(
-            self.handle_data_changed
-        )
+        self.model.measurement.dataChanged.connect(self.handle_data_changed)
         # Unsaved Changes
         self.model.measurement.something_changed.connect(
             self.unsaved_changes_change
@@ -188,9 +185,7 @@ class MainController:
         self.model.condition.something_changed.connect(
             self.unsaved_changes_change
         )
-        self.model.sbml.something_changed.connect(
-            self.unsaved_changes_change
-        )
+        self.model.sbml.something_changed.connect(self.unsaved_changes_change)
         # Visibility
         self.sync_visibility_with_actions()
         # Recent Files
@@ -198,9 +193,7 @@ class MainController:
             partial(self.open_file, mode="overwrite")
         )
         # Settings logging
-        settings_manager.new_log_message.connect(
-            self.logger.log_message
-        )
+        settings_manager.new_log_message.connect(self.logger.log_message)
         # Update Parameter SBML Model
         self.sbml_controller.overwritten_model.connect(
             self.parameter_controller.update_handler_sbml
@@ -208,108 +201,90 @@ class MainController:
 
     def setup_actions(self):
         """Setup actions for the main controller."""
-        actions = {"close": QAction(
-            qta.icon("mdi6.close"),
-            "&Close", self.view
-        )}
+        actions = {
+            "close": QAction(qta.icon("mdi6.close"), "&Close", self.view)
+        }
         # Close
         actions["close"].setShortcut(QKeySequence.Close)
         actions["close"].triggered.connect(self.view.close)
         # New File
         actions["new"] = QAction(
-            qta.icon("mdi6.file-document"),
-            "&New", self.view
+            qta.icon("mdi6.file-document"), "&New", self.view
         )
         actions["new"].setShortcut(QKeySequence.New)
         actions["new"].triggered.connect(self.new_file)
         # Open File
         actions["open"] = QAction(
-            qta.icon("mdi6.folder-open"),
-            "&Open", self.view
+            qta.icon("mdi6.folder-open"), "&Open", self.view
         )
         actions["open"].setShortcut(QKeySequence.Open)
         actions["open"].triggered.connect(
             partial(self.open_file, mode="overwrite")
         )
         # Add File
-        actions["add"] = QAction(
-            qta.icon("mdi6.table-plus"),
-            "Add", self.view
-        )
+        actions["add"] = QAction(qta.icon("mdi6.table-plus"), "Add", self.view)
         actions["add"].setShortcut("Ctrl+Shift+O")
         actions["add"].triggered.connect(
             partial(self.open_file, mode="append")
         )
         # Save
         actions["save"] = QAction(
-            qta.icon("mdi6.content-save-all"),
-            "&Save", self.view
+            qta.icon("mdi6.content-save-all"), "&Save", self.view
         )
         actions["save"].setShortcut(QKeySequence.Save)
         actions["save"].triggered.connect(self.save_model)
         # Find + Replace
-        actions["find"] = QAction(
-            qta.icon("mdi6.magnify"),
-            "Find", self.view
-        )
+        actions["find"] = QAction(qta.icon("mdi6.magnify"), "Find", self.view)
         actions["find"].setShortcut(QKeySequence.Find)
         actions["find"].triggered.connect(self.find)
         actions["find+replace"] = QAction(
-            qta.icon("mdi6.find-replace"),
-            "Find/Replace", self.view
+            qta.icon("mdi6.find-replace"), "Find/Replace", self.view
         )
         actions["find+replace"].setShortcut(QKeySequence.Replace)
         actions["find+replace"].triggered.connect(self.replace)
         # Copy / Paste
         actions["copy"] = QAction(
-            qta.icon("mdi6.content-copy"),
-            "Copy", self.view
+            qta.icon("mdi6.content-copy"), "Copy", self.view
         )
         actions["copy"].setShortcut(QKeySequence.Copy)
         actions["copy"].triggered.connect(self.copy_to_clipboard)
         actions["paste"] = QAction(
-            qta.icon("mdi6.content-paste"),
-            "Paste", self.view
+            qta.icon("mdi6.content-paste"), "Paste", self.view
         )
         actions["paste"].setShortcut(QKeySequence.Paste)
         actions["paste"].triggered.connect(self.paste_from_clipboard)
         actions["cut"] = QAction(
-            qta.icon("mdi6.content-cut"),
-            "&Cut", self.view
+            qta.icon("mdi6.content-cut"), "&Cut", self.view
         )
         actions["cut"].setShortcut(QKeySequence.Cut)
         actions["cut"].triggered.connect(self.cut)
         # add/delete row
         actions["add_row"] = QAction(
-            qta.icon("mdi6.table-row-plus-after"),
-            "Add Row", self.view
+            qta.icon("mdi6.table-row-plus-after"), "Add Row", self.view
         )
         actions["add_row"].triggered.connect(self.add_row)
         actions["delete_row"] = QAction(
-            qta.icon("mdi6.table-row-remove"),
-            "Delete Row(s)", self.view
+            qta.icon("mdi6.table-row-remove"), "Delete Row(s)", self.view
         )
         actions["delete_row"].triggered.connect(self.delete_rows)
         # add/delete column
         actions["add_column"] = QAction(
-            qta.icon("mdi6.table-column-plus-after"),
-            "Add Column", self.view
+            qta.icon("mdi6.table-column-plus-after"), "Add Column", self.view
         )
         actions["add_column"].triggered.connect(self.add_column)
         actions["delete_column"] = QAction(
-            qta.icon("mdi6.table-column-remove"),
-            "Delete Column(s)", self.view
+            qta.icon("mdi6.table-column-remove"), "Delete Column(s)", self.view
         )
         actions["delete_column"].triggered.connect(self.delete_column)
         # check petab model
         actions["check_petab"] = QAction(
             qta.icon("mdi6.checkbox-multiple-marked-circle-outline"),
-            "Check PEtab", self.view
+            "Check PEtab",
+            self.view,
         )
         actions["check_petab"].triggered.connect(self.check_model)
         actions["reset_model"] = QAction(
-            qta.icon("mdi6.restore"),
-            "Reset SBML Model", self.view
+            qta.icon("mdi6.restore"), "Reset SBML Model", self.view
         )
         actions["reset_model"].triggered.connect(
             self.sbml_controller.reset_to_original_model
@@ -327,14 +302,16 @@ class MainController:
         filter_layout.addWidget(self.filter_input)
         for table_n, table_name in zip(
             ["m", "p", "o", "c"],
-            ["measurement", "parameter", "observable", "condition"], strict=False
+            ["measurement", "parameter", "observable", "condition"],
+            strict=False,
         ):
             tool_button = QToolButton()
             icon = qta.icon(
-                f"mdi6.alpha-{table_n}", "mdi6.filter",
+                f"mdi6.alpha-{table_n}",
+                "mdi6.filter",
                 options=[
-                    {'scale_factor': 1.5, 'offset': (-0.2, -0.2)},
-                    {'off': 'mdi6.filter-off', 'offset': (0.3, 0.3)},
+                    {"scale_factor": 1.5, "offset": (-0.2, -0.2)},
+                    {"off": "mdi6.filter-off", "offset": (0.3, 0.3)},
                 ],
             )
             tool_button.setIcon(icon)
@@ -343,9 +320,7 @@ class MainController:
             tool_button.setToolTip(f"Filter for {table_name} table")
             filter_layout.addWidget(tool_button)
             self.filter_active[table_name] = tool_button
-            self.filter_active[table_name].toggled.connect(
-                self.filter_table
-            )
+            self.filter_active[table_name].toggled.connect(self.filter_table)
         actions["filter_widget"] = filter_widget
         self.filter_input.textChanged.connect(self.filter_table)
 
@@ -356,70 +331,55 @@ class MainController:
             )
             actions[f"show_{element}"].setCheckable(True)
             actions[f"show_{element}"].setChecked(True)
-        actions["show_logger"] = QAction(
-            "Info", self.view
-        )
+        actions["show_logger"] = QAction("Info", self.view)
         actions["show_logger"].setCheckable(True)
         actions["show_logger"].setChecked(True)
-        actions["show_plot"] = QAction(
-            "Data Plot", self.view
-        )
+        actions["show_plot"] = QAction("Data Plot", self.view)
         actions["show_plot"].setCheckable(True)
         actions["show_plot"].setChecked(True)
         # connect actions
         actions["reset_view"] = QAction(
-            qta.icon("mdi6.view-grid-plus"),
-            "Reset View", self.view
+            qta.icon("mdi6.view-grid-plus"), "Reset View", self.view
         )
-        actions["reset_view"].triggered.connect(
-            self.view.default_view
-        )
+        actions["reset_view"].triggered.connect(self.view.default_view)
         # Clear Log
         actions["clear_log"] = QAction(
-            qta.icon("mdi6.delete"),
-            "Clear Log", self.view
+            qta.icon("mdi6.delete"), "Clear Log", self.view
         )
         actions["clear_log"].triggered.connect(self.logger.clear_log)
         # Settings
         actions["settings"] = QAction(
-            qta.icon("mdi6.cog"),
-            "Settings", self.view
+            qta.icon("mdi6.cog"), "Settings", self.view
         )
         actions["settings"].triggered.connect(self.open_settings)
 
         # Opening the PEtab documentation
         actions["open_documentation"] = QAction(
-            qta.icon("mdi6.web"),
-            "View PEtab Documentation", self.view
+            qta.icon("mdi6.web"), "View PEtab Documentation", self.view
         )
         actions["open_documentation"].triggered.connect(
-            lambda: QDesktopServices.openUrl(QUrl(
-                "https://petab.readthedocs.io/en/latest/v1/"
-                "documentation_data_format.html"
-            ))
+            lambda: QDesktopServices.openUrl(
+                QUrl(
+                    "https://petab.readthedocs.io/en/latest/v1/"
+                    "documentation_data_format.html"
+                )
+            )
         )
 
         # Undo / Redo
-        actions["undo"] = QAction(
-            qta.icon("mdi6.undo"),
-            "&Undo", self.view
-        )
+        actions["undo"] = QAction(qta.icon("mdi6.undo"), "&Undo", self.view)
         actions["undo"].setShortcut(QKeySequence.Undo)
         actions["undo"].triggered.connect(self.undo_stack.undo)
         actions["undo"].setEnabled(self.undo_stack.canUndo())
         self.undo_stack.canUndoChanged.connect(actions["undo"].setEnabled)
-        actions["redo"] = QAction(
-            qta.icon("mdi6.redo"),
-            "&Redo", self.view
-        )
+        actions["redo"] = QAction(qta.icon("mdi6.redo"), "&Redo", self.view)
         actions["redo"].setShortcut(QKeySequence.Redo)
         actions["redo"].triggered.connect(self.undo_stack.redo)
         actions["redo"].setEnabled(self.undo_stack.canRedo())
         self.undo_stack.canRedoChanged.connect(actions["redo"].setEnabled)
         # Clear cells
         actions["clear_cells"] = QAction(
-            qta.icon("mdi6.delete"),
-            "&Clear Cells", self.view
+            qta.icon("mdi6.delete"), "&Clear Cells", self.view
         )
         actions["clear_cells"].setShortcuts(
             [QKeySequence.Delete, QKeySequence.Backspace]
@@ -453,11 +413,7 @@ class MainController:
     def save_model(self):
         options = QFileDialog.Options()
         file_name, _ = QFileDialog.getSaveFileName(
-            self.view,
-            "Save Project",
-            "",
-            "Zip Files (*.zip)",
-            options=options
+            self.view, "Save Project", "", "Zip Files (*.zip)", options=options
         )
         if not file_name:
             return False
@@ -470,19 +426,20 @@ class MainController:
 
             # Create a bytes buffer to hold the zip file in memory
             buffer = BytesIO()
-            with zipfile.ZipFile(buffer, 'w') as zip_file:
+            with zipfile.ZipFile(buffer, "w") as zip_file:
                 # Add files to zip archive
                 for root, _, files in os.walk(temp_dir):
                     for file in files:
                         file_path = os.path.join(root, file)
-                        with open(file_path, 'rb') as f:
+                        with open(file_path, "rb") as f:
                             zip_file.writestr(file, f.read())
-            with open(file_name, 'wb') as f:
+            with open(file_name, "wb") as f:
                 f.write(buffer.getvalue())
 
         QMessageBox.information(
-            self.view, "Save Project",
-            f"Project saved successfully to {file_name}"
+            self.view,
+            "Save Project",
+            f"Project saved successfully to {file_name}",
         )
         return True
 
@@ -491,15 +448,17 @@ class MainController:
         if current_tab == 0:
             # TODO: rewrite functionality in FindReplaceDialoge
             dialog = FindReplaceDialog(
-                self.view, mode="petab",
+                self.view,
+                mode="petab",
                 checkbox_states=self.petab_checkbox_states,
-                controller=self
+                controller=self,
             )
         elif current_tab == 1:
             dialog = FindReplaceDialog(
-                self.view, mode="sbml",
+                self.view,
+                mode="sbml",
                 checkbox_states=self.sbml_checkbox_states,
-                controller=self
+                controller=self,
             )
         dialog.exec()
 
@@ -514,8 +473,9 @@ class MainController:
 
     def update_plot(self):
         # ??
-        selection_model = \
+        selection_model = (
             self.view.measurement_dock.table_view.selectionModel()
+        )
         indexes = selection_model.selectedIndexes()
         if not indexes:
             return None
@@ -526,30 +486,34 @@ class MainController:
                 continue
             row = index.row()
             observable_id = self.model.measurement._data_frame.iloc[row][
-                "observableId"]
+                "observableId"
+            ]
             if observable_id not in selected_points:
                 selected_points[observable_id] = []
-            selected_points[observable_id].append({
-                "x": self.model.measurement._data_frame.iloc[row]["time"],
-                "y": self.model.measurement._data_frame.iloc[row][
-                    "measurement"]
-            })
+            selected_points[observable_id].append(
+                {
+                    "x": self.model.measurement._data_frame.iloc[row]["time"],
+                    "y": self.model.measurement._data_frame.iloc[row][
+                        "measurement"
+                    ],
+                }
+            )
         if selected_points == {}:
             return None
 
         measurement_data = self.model.measurement._data_frame
-        plot_data = {
-            "all_data": [],
-            "selected_points": selected_points
-        }
+        plot_data = {"all_data": [], "selected_points": selected_points}
         for observable_id in selected_points.keys():
             observable_data = measurement_data[
-                measurement_data["observableId"] == observable_id]
-            plot_data["all_data"].append({
-                "observable_id": observable_id,
-                "x": observable_data["time"].tolist(),
-                "y": observable_data["measurement"].tolist()
-            })
+                measurement_data["observableId"] == observable_id
+            ]
+            plot_data["all_data"].append(
+                {
+                    "observable_id": observable_id,
+                    "x": observable_data["time"].tolist(),
+                    "y": observable_data["measurement"].tolist(),
+                }
+            )
 
         self.view.plot_dock.update_visualization(plot_data)
 
@@ -567,7 +531,7 @@ class MainController:
                 "All supported (*.yaml *.yml *.xml *.sbml *.tsv *.csv *.txt);;"
                 "PEtab Problems (*.yaml *.yml);;SBML Files (*.xml *.sbml);;"
                 "PEtab Tables or Data Matrix (*.tsv *.csv *.txt);;"
-                "All files (*)"
+                "All files (*)",
             )
         if not file_path:
             return
@@ -576,7 +540,7 @@ class MainController:
         if actionable in ["yaml", "sbml"] and mode == "append":
             self.logger.log_message(
                 f"Append mode is not supported for *.{actionable} files.",
-                color="red"
+                color="red",
             )
             return
         if not actionable:
@@ -600,21 +564,13 @@ class MainController:
         elif actionable == "sbml":
             self.sbml_controller.overwrite_sbml(file_path)
         elif actionable == "measurement":
-            self.measurement_controller.open_table(
-                file_path, sep, mode
-            )
+            self.measurement_controller.open_table(file_path, sep, mode)
         elif actionable == "observable":
-            self.observable_controller.open_table(
-                file_path, sep, mode
-            )
+            self.observable_controller.open_table(file_path, sep, mode)
         elif actionable == "parameter":
-            self.parameter_controller.open_table(
-                file_path, sep, mode
-            )
+            self.parameter_controller.open_table(file_path, sep, mode)
         elif actionable == "condition":
-            self.condition_controller.open_table(
-                file_path, sep, mode
-            )
+            self.condition_controller.open_table(file_path, sep, mode)
         elif actionable == "data_matrix":
             self.measurement_controller.process_data_matrix_file(
                 file_path, mode, sep
@@ -628,10 +584,7 @@ class MainController:
         """
         if not yaml_path:
             yaml_path, _ = QFileDialog.getOpenFileName(
-                self.view,
-                "Open YAML File",
-                "",
-                "YAML Files (*.yaml *.yml)"
+                self.view, "Open YAML File", "", "YAML Files (*.yaml *.yml)"
             )
         if not yaml_path:
             return
@@ -648,24 +601,25 @@ class MainController:
             yaml_dir = Path(yaml_path).parent
 
             # Upload SBML model
-            sbml_file_path = \
-                yaml_dir / yaml_content['problems'][0]['sbml_files'][0]
+            sbml_file_path = (
+                yaml_dir / yaml_content["problems"][0]["sbml_files"][0]
+            )
             self.sbml_controller.overwrite_sbml(sbml_file_path)
             self.measurement_controller.open_table(
-                yaml_dir / yaml_content['problems'][0]['measurement_files'][0]
+                yaml_dir / yaml_content["problems"][0]["measurement_files"][0]
             )
             self.observable_controller.open_table(
-                yaml_dir / yaml_content['problems'][0]['observable_files'][0]
+                yaml_dir / yaml_content["problems"][0]["observable_files"][0]
             )
             self.parameter_controller.open_table(
-                yaml_dir / yaml_content['parameter_file']
+                yaml_dir / yaml_content["parameter_file"]
             )
             self.condition_controller.open_table(
-                yaml_dir / yaml_content['problems'][0]['condition_files'][0]
+                yaml_dir / yaml_content["problems"][0]["condition_files"][0]
             )
             self.logger.log_message(
                 "All files opened successfully from the YAML configuration.",
-                color="green"
+                color="green",
             )
             self.check_model()
             # rerun the completers
@@ -684,10 +638,11 @@ class MainController:
         """Empty all tables. In case of unsaved changes, ask to save."""
         if self.unsaved_changes:
             reply = QMessageBox.question(
-                self.view, "Unsaved Changes",
+                self.view,
+                "Unsaved Changes",
                 "You have unsaved changes. Do you want to save them?",
                 QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
-                QMessageBox.Save
+                QMessageBox.Save,
             )
             if reply == QMessageBox.Save:
                 self.save_model()
@@ -695,7 +650,7 @@ class MainController:
             self.measurement_controller,
             self.observable_controller,
             self.parameter_controller,
-            self.condition_controller
+            self.condition_controller,
         ]:
             controller.clear_table()
 
@@ -718,7 +673,7 @@ class MainController:
                 self.logger.log_message(
                     f"Captured petab lint logs:<br>"
                     f"&nbsp;&nbsp;&nbsp;&nbsp;{captured_output}",
-                    color="purple"
+                    color="purple",
                 )
 
             # Log the consistency check result
@@ -747,10 +702,11 @@ class MainController:
             self.view.allow_close = True
             return
         reply = QMessageBox.question(
-            self.view, "Unsaved Changes",
+            self.view,
+            "Unsaved Changes",
             "You have unsaved changes. Do you want to save them?",
             QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
-            QMessageBox.Save
+            QMessageBox.Save,
         )
         if reply == QMessageBox.Save:
             saved = self.save_model()

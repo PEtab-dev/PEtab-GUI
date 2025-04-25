@@ -1,4 +1,5 @@
 """The Default Handlers for the GUI."""
+
 import copy
 from collections import Counter
 
@@ -19,7 +20,7 @@ from ..C import (
 
 
 class DefaultHandlerModel:
-    def __init__(self, model, config, sbml_model = None):
+    def __init__(self, model, config, sbml_model=None):
         """
         Initialize the handler for the model.
         :param model: The PandasTable Model containing the Data.
@@ -78,7 +79,9 @@ class DefaultHandlerModel:
         elif strategy == SBML_LOOK:
             return self._sbml_lookup(row_index)
         else:
-            raise ValueError(f"Unknown strategy '{strategy}' for column '{column_name}'.")
+            raise ValueError(
+                f"Unknown strategy '{strategy}' for column '{column_name}'."
+            )
 
     def _min_column(self, column_name, par_scale=None):
         if column_name not in self.model:
@@ -103,11 +106,7 @@ class DefaultHandlerModel:
             return column_data.max()
 
     def _copy_column(
-        self,
-        column_name,
-        config,
-        row_index,
-        changed: dict | None = None
+        self, column_name, config, row_index, changed: dict | None = None
     ):
         """Copy the value from another column in the same row."""
         source_column = config.get(SOURCE_COLUMN, column_name)

@@ -10,6 +10,7 @@ well as separate view/controller communication.
 - The log controller, which handles all logging tasks
 - The SBML controller, which handles all SBML tasks
 """
+
 from .logger_controller import LoggerController
 from .mother_controller import MainController
 from .sbml_controller import SbmlController

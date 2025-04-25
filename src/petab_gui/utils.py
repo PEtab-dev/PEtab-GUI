@@ -40,7 +40,7 @@ def _checkAntimonyReturnCode(code):
     :type code: int
     """
     if code < 0:
-        raise Exception(f'Antimony: {antimony.getLastError()}')
+        raise Exception(f"Antimony: {antimony.getLastError()}")
 
 
 def sbmlToAntimony(sbml):
@@ -137,7 +137,9 @@ class ConditionInputDialog(QDialog):
     def accept(self):
         if not self.sim_input.text().strip():
             self.sim_input.setStyleSheet("background-color: red;")
-            self.notification_label.setText("Simulation Condition is required.")
+            self.notification_label.setText(
+                "Simulation Condition is required."
+            )
             self.notification_label.setVisible(True)
             return
         self.notification_label.setVisible(False)
@@ -156,11 +158,11 @@ class ConditionInputDialog(QDialog):
 class MeasurementInputDialog(QDialog):
     def __init__(
         self,
-        condition_ids = None,
-        observable_ids = None,
+        condition_ids=None,
+        observable_ids=None,
         initial_values=None,
         error_key=None,
-        parent=None
+        parent=None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Add Measurement")
@@ -172,9 +174,13 @@ class MeasurementInputDialog(QDialog):
         self.observable_id_label = QLabel("Observable ID:", self)
         self.observable_id_input = QLineEdit(self)
         if initial_values and "observableId" in initial_values:
-            self.observable_id_input.setText(str(initial_values["observableId"]))
+            self.observable_id_input.setText(
+                str(initial_values["observableId"])
+            )
             if "observableId" == error_key:
-                self.observable_id_input.setStyleSheet("background-color: red;")
+                self.observable_id_input.setStyleSheet(
+                    "background-color: red;"
+                )
         self.observable_id_layout.addWidget(self.observable_id_label)
         self.observable_id_layout.addWidget(self.observable_id_input)
         self.layout.addLayout(self.observable_id_layout)
@@ -239,10 +245,12 @@ class MeasurementInputDialog(QDialog):
         self.cancel_button.clicked.connect(self.reject)
 
     def get_inputs(self):
-        return (self.observable_id_input.text(),
-                self.measurement_input.text(),
-                self.timepoints_input.text(),
-                self.condition_id_input.text())
+        return (
+            self.observable_id_input.text(),
+            self.measurement_input.text(),
+            self.timepoints_input.text(),
+            self.condition_id_input.text(),
+        )
 
 
 class ObservableInputDialog(QDialog):
@@ -257,9 +265,13 @@ class ObservableInputDialog(QDialog):
         self.observable_id_label = QLabel("Observable ID:", self)
         self.observable_id_input = QLineEdit(self)
         if initial_values and "observableId" in initial_values:
-            self.observable_id_input.setText(str(initial_values["observableId"]))
+            self.observable_id_input.setText(
+                str(initial_values["observableId"])
+            )
             if "observableId" == error_key:
-                self.observable_id_input.setStyleSheet("background-color: red;")
+                self.observable_id_input.setStyleSheet(
+                    "background-color: red;"
+                )
         self.observable_id_layout.addWidget(self.observable_id_label)
         self.observable_id_layout.addWidget(self.observable_id_input)
         self.layout.addLayout(self.observable_id_layout)
@@ -269,9 +281,13 @@ class ObservableInputDialog(QDialog):
         self.observable_formula_label = QLabel("Observable Formula:", self)
         self.observable_formula_input = QLineEdit(self)
         if initial_values and "observableFormula" in initial_values:
-            self.observable_formula_input.setText(str(initial_values["observableFormula"]))
+            self.observable_formula_input.setText(
+                str(initial_values["observableFormula"])
+            )
             if "observableFormula" == error_key:
-                self.observable_formula_input.setStyleSheet("background-color: red;")
+                self.observable_formula_input.setStyleSheet(
+                    "background-color: red;"
+                )
         self.observable_formula_layout.addWidget(self.observable_formula_label)
         self.observable_formula_layout.addWidget(self.observable_formula_input)
         self.layout.addLayout(self.observable_formula_layout)
@@ -288,7 +304,10 @@ class ObservableInputDialog(QDialog):
         self.cancel_button.clicked.connect(self.reject)
 
     def get_inputs(self):
-        return self.observable_id_input.text(), self.observable_formula_input.text()
+        return (
+            self.observable_id_input.text(),
+            self.observable_formula_input.text(),
+        )
 
 
 class ObservableFormulaInputDialog(QDialog):
@@ -330,8 +349,10 @@ class ObservableFormulaInputDialog(QDialog):
         self.cancel_button.clicked.connect(self.reject)
 
     def get_inputs(self):
-        return (self.observable_id_input.text(),
-                self.observable_formula_input.text())
+        return (
+            self.observable_id_input.text(),
+            self.observable_formula_input.text(),
+        )
 
 
 class ParameterInputDialog(QDialog):
@@ -358,9 +379,13 @@ class ParameterInputDialog(QDialog):
         self.nominal_value_label = QLabel("Nominal Value (optional):", self)
         self.nominal_value_input = QLineEdit(self)
         if initial_values and "nominalValue" in initial_values:
-            self.nominal_value_input.setText(str(initial_values["nominalValue"]))
+            self.nominal_value_input.setText(
+                str(initial_values["nominalValue"])
+            )
             if "nominalValue" == error_key:
-                self.nominal_value_input.setStyleSheet("background-color: red;")
+                self.nominal_value_input.setStyleSheet(
+                    "background-color: red;"
+                )
         self.nominal_value_layout.addWidget(self.nominal_value_label)
         self.nominal_value_layout.addWidget(self.nominal_value_input)
         self.layout.addLayout(self.nominal_value_layout)
@@ -381,21 +406,21 @@ class ParameterInputDialog(QDialog):
 
 
 def set_dtypes(data_frame, columns, index_columns=None):
-    dtype_mapping = {
-        "STRING": str,
-        "NUMERIC": float,
-        "BOOLEAN": bool
-    }
+    dtype_mapping = {"STRING": str, "NUMERIC": float, "BOOLEAN": bool}
     for column, dtype in columns.items():
         if column in data_frame.columns:
-            data_frame[column] = data_frame[column].astype(dtype_mapping[dtype])
+            data_frame[column] = data_frame[column].astype(
+                dtype_mapping[dtype]
+            )
     if index_columns:
         data_frame.set_index(index_columns, inplace=True)
     return data_frame
 
 
 class FindReplaceDialog(QDialog):
-    def __init__(self, parent=None, mode="petab", checkbox_states=None, controller=None):
+    def __init__(
+        self, parent=None, mode="petab", checkbox_states=None, controller=None
+    ):
         super().__init__(parent)
         self.controller = controller
         self.setWindowTitle("Find and Replace")
@@ -437,10 +462,18 @@ class FindReplaceDialog(QDialog):
             checkbox_layout.addWidget(self.parameter_checkbox, 1, 0)
             checkbox_layout.addWidget(self.condition_checkbox, 1, 1)
 
-            self.measurement_checkbox.setChecked(self.checkbox_states.get("measurement", False))
-            self.observable_checkbox.setChecked(self.checkbox_states.get("observable", False))
-            self.parameter_checkbox.setChecked(self.checkbox_states.get("parameter", False))
-            self.condition_checkbox.setChecked(self.checkbox_states.get("condition", False))
+            self.measurement_checkbox.setChecked(
+                self.checkbox_states.get("measurement", False)
+            )
+            self.observable_checkbox.setChecked(
+                self.checkbox_states.get("observable", False)
+            )
+            self.parameter_checkbox.setChecked(
+                self.checkbox_states.get("parameter", False)
+            )
+            self.condition_checkbox.setChecked(
+                self.checkbox_states.get("condition", False)
+            )
         else:  # SBML mode
             self.sbml_checkbox = QCheckBox("SBML Text")
             self.antimony_checkbox = QCheckBox("Antimony Text")
@@ -448,8 +481,12 @@ class FindReplaceDialog(QDialog):
             checkbox_layout.addWidget(self.sbml_checkbox, 0, 0)
             checkbox_layout.addWidget(self.antimony_checkbox, 0, 1)
 
-            self.sbml_checkbox.setChecked(self.checkbox_states.get("sbml", False))
-            self.antimony_checkbox.setChecked(self.checkbox_states.get("antimony", False))
+            self.sbml_checkbox.setChecked(
+                self.checkbox_states.get("sbml", False)
+            )
+            self.antimony_checkbox.setChecked(
+                self.checkbox_states.get("antimony", False)
+            )
 
         layout.addLayout(checkbox_layout)
 
@@ -459,13 +496,23 @@ class FindReplaceDialog(QDialog):
 
     def closeEvent(self, event):
         if self.mode == "petab":
-            self.checkbox_states["measurement"] = self.measurement_checkbox.isChecked()
-            self.checkbox_states["observable"] = self.observable_checkbox.isChecked()
-            self.checkbox_states["parameter"] = self.parameter_checkbox.isChecked()
-            self.checkbox_states["condition"] = self.condition_checkbox.isChecked()
+            self.checkbox_states["measurement"] = (
+                self.measurement_checkbox.isChecked()
+            )
+            self.checkbox_states["observable"] = (
+                self.observable_checkbox.isChecked()
+            )
+            self.checkbox_states["parameter"] = (
+                self.parameter_checkbox.isChecked()
+            )
+            self.checkbox_states["condition"] = (
+                self.condition_checkbox.isChecked()
+            )
         else:  # SBML mode
             self.checkbox_states["sbml"] = self.sbml_checkbox.isChecked()
-            self.checkbox_states["antimony"] = self.antimony_checkbox.isChecked()
+            self.checkbox_states["antimony"] = (
+                self.antimony_checkbox.isChecked()
+            )
         super().closeEvent(event)
 
     def replace(self):
@@ -474,23 +521,39 @@ class FindReplaceDialog(QDialog):
 
         if self.mode == "petab":
             if self.measurement_checkbox.isChecked():
-                self.controller.measurement_controller.replace_text(find_text, replace_text)
+                self.controller.measurement_controller.replace_text(
+                    find_text, replace_text
+                )
             if self.observable_checkbox.isChecked():
-                self.controller.observable_controller.replace_text(find_text, replace_text)
+                self.controller.observable_controller.replace_text(
+                    find_text, replace_text
+                )
             if self.parameter_checkbox.isChecked():
-                self.controller.parameter_controller.replace_text(find_text, replace_text)
+                self.controller.parameter_controller.replace_text(
+                    find_text, replace_text
+                )
             if self.condition_checkbox.isChecked():
-                self.controller.condition_controller.replace_text(find_text, replace_text)
+                self.controller.condition_controller.replace_text(
+                    find_text, replace_text
+                )
         else:  # SBML mode
             if self.sbml_checkbox.isChecked():
-                sbml_text = self.parent().sbml_viewer.sbml_text_edit.toPlainText()
+                sbml_text = (
+                    self.parent().sbml_viewer.sbml_text_edit.toPlainText()
+                )
                 sbml_text = sbml_text.replace(find_text, replace_text)
-                self.parent().sbml_viewer.sbml_text_edit.setPlainText(sbml_text)
+                self.parent().sbml_viewer.sbml_text_edit.setPlainText(
+                    sbml_text
+                )
 
             if self.antimony_checkbox.isChecked():
-                antimony_text = self.parent().sbml_viewer.antimony_text_edit.toPlainText()
+                antimony_text = (
+                    self.parent().sbml_viewer.antimony_text_edit.toPlainText()
+                )
                 antimony_text = antimony_text.replace(find_text, replace_text)
-                self.parent().sbml_viewer.antimony_text_edit.setPlainText(antimony_text)
+                self.parent().sbml_viewer.antimony_text_edit.setPlainText(
+                    antimony_text
+                )
 
 
 class SyntaxHighlighter(QSyntaxHighlighter):
@@ -510,7 +573,9 @@ class SyntaxHighlighter(QSyntaxHighlighter):
     def highlightBlock(self, text):
         for pattern, format in self._rules:
             for match in pattern.finditer(text):
-                self.setFormat(match.start(), match.end() - match.start(), format)
+                self.setFormat(
+                    match.start(), match.end() - match.start(), format
+                )
 
 
 def validate_value(value, expected_type):
@@ -525,7 +590,6 @@ def validate_value(value, expected_type):
 
 
 class PlotWidget(FigureCanvas):
-
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
@@ -536,6 +600,7 @@ class SignalForwarder(QObject):
     """Forward signals from one object to another."""
 
     forwarded_signal = Signal()
+
     def __init__(self, original_signal):
         super().__init__()
         self.original_signal = original_signal
@@ -553,10 +618,13 @@ class SignalForwarder(QObject):
 
 
 def create_empty_dataframe(column_dict: dict, table_type: str):
-    columns = [col for col, props in column_dict.items() if not props["optional"]]
+    columns = [
+        col for col, props in column_dict.items() if not props["optional"]
+    ]
     dtypes = {
-        col: props["type"] for col, props in column_dict.items() if not
-        props["optional"]
+        col: props["type"]
+        for col, props in column_dict.items()
+        if not props["optional"]
     }
     df = pd.DataFrame(columns=columns).astype(dtypes)
     # set potential index columns
@@ -582,7 +650,8 @@ class CaptureLogHandler(logging.Handler):
     def get_formatted_messages(self):
         """Return formatted messages with levels."""
         return [
-            f"{record.levelname}: {self.format(record)}" for record in self.records
+            f"{record.levelname}: {self.format(record)}"
+            for record in self.records
         ]
 
 
@@ -686,7 +755,7 @@ def process_file(filepath, logger):
             logger.log_message(
                 f"Failed to read file: {filepath}. Perhaps unsupported "
                 f"delimiter. Supported delimiters: {', '.join(separators)}",
-                color="red"
+                color="red",
             )
             return None, None
 
@@ -703,12 +772,11 @@ def process_file(filepath, logger):
             logger.log_message(
                 f"Unrecognized table type for file: {filepath}. Uploading as "
                 f"data matrix.",
-                color="orange"
+                color="orange",
             )
             return "data_matrix", separator
     logger.log_message(
-        f"Unrecognized file type for file: {filepath}.",
-        color="red"
+        f"Unrecognized file type for file: {filepath}.", color="red"
     )
     return None, None
 
@@ -834,7 +902,7 @@ class FindReplaceBar(QWidget):
         self.setLayout(self.layout_main)
 
     def run_find(self):
-        """Triggered when the search text changes."""""
+        """Triggered when the search text changes.""" ""
         search_text = self.find_input.text()
         case_sensitive = self.case_sensitive_button.isChecked()
         regex = self.regex_button.isChecked()
@@ -849,8 +917,12 @@ class FindReplaceBar(QWidget):
             self.controller.parameter_controller,
             self.controller.measurement_controller,
         ]:
-            matches = controller.find_text(search_text, case_sensitive, regex, whole_cell)
-            self.matches.extend([(match[0], match[1], controller) for match in matches])  # Extend match with controller
+            matches = controller.find_text(
+                search_text, case_sensitive, regex, whole_cell
+            )
+            self.matches.extend(
+                [(match[0], match[1], controller) for match in matches]
+            )  # Extend match with controller
 
         if self.matches:
             self.current_match_ind = 0
@@ -864,7 +936,9 @@ class FindReplaceBar(QWidget):
             return
         __, _, controller = self.matches[self.current_match_ind]
         controller.focus_match(None)
-        self.current_match_ind = (self.current_match_ind + 1) % len(self.matches)
+        self.current_match_ind = (self.current_match_ind + 1) % len(
+            self.matches
+        )
         row, col, controller = self.matches[self.current_match_ind]
         controller.focus_match((row, col), with_focus=True)
         self.update_result_label()
@@ -876,7 +950,8 @@ class FindReplaceBar(QWidget):
         __, _, controller = self.matches[self.current_match_ind]
         controller.focus_match(None)
         self.current_match_ind = (self.current_match_ind - 1) % len(
-            self.matches)
+            self.matches
+        )
         row, col, controller = self.matches[self.current_match_ind]
         controller.focus_match((row, col), with_focus=True)
         self.update_result_label()
@@ -885,7 +960,8 @@ class FindReplaceBar(QWidget):
         """Update the result label dynamically."""
         match_count = len(self.matches)
         self.results_label.setText(
-            f"{self.current_match_ind + 1}/{match_count}" if match_count > 0
+            f"{self.current_match_ind + 1}/{match_count}"
+            if match_count > 0
             else "0 results"
         )
 
@@ -898,7 +974,9 @@ class FindReplaceBar(QWidget):
         if not replace_text:
             return
 
-        row, col, controller = self.matches[self.current_match_ind]  # Extract controller from match
+        row, col, controller = self.matches[
+            self.current_match_ind
+        ]  # Extract controller from match
 
         controller.replace_text(
             row=row,
@@ -924,7 +1002,9 @@ class FindReplaceBar(QWidget):
         case_sensitive = self.case_sensitive_button.isChecked()
         regex = self.regex_button.isChecked()
 
-        controllers = set(match[2] for match in self.matches)  # Get unique controllers
+        controllers = set(
+            match[2] for match in self.matches
+        )  # Get unique controllers
 
         for controller in controllers:
             controller.replace_all(
@@ -934,7 +1014,7 @@ class FindReplaceBar(QWidget):
         for row, col, controller in self.matches:
             controller.model.dataChanged.emit(
                 controller.model.index(row, col),
-                controller.model.index(row, col)
+                controller.model.index(row, col),
             )
             controller.cleanse_highlighted_cells()
         self.run_find()
@@ -948,8 +1028,11 @@ class FindReplaceBar(QWidget):
 
     def show_filter_menu(self):
         """Show the filter selection dropdown below the filter button."""
-        self.filter_menu.exec_(self.filter_button.mapToGlobal(
-            self.filter_button.rect().bottomLeft()))
+        self.filter_menu.exec_(
+            self.filter_button.mapToGlobal(
+                self.filter_button.rect().bottomLeft()
+            )
+        )
 
     def update_selected_controllers(self):
         """Update which tables are included in the search based on selection."""
@@ -958,8 +1041,8 @@ class FindReplaceBar(QWidget):
         else:
             self.selected_controllers = {
                 self.controller_map[table_name]
-                for table_name, action in self.filter_actions.items() if
-                action.isChecked() & (table_name != "All")
+                for table_name, action in self.filter_actions.items()
+                if action.isChecked() & (table_name != "All")
             }
         self.run_find()
 
@@ -984,7 +1067,8 @@ class FindReplaceBar(QWidget):
             return
         for controller in [match[2] for match in self.matches]:
             matches = [
-                (match[0], match[1]) for match in self.matches
+                (match[0], match[1])
+                for match in self.matches
                 if match[2] == controller
             ]
             controller.highlight_text(matches)

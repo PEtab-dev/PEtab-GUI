@@ -36,8 +36,14 @@ class PandasTableModel(QAbstractTableModel):
     something_changed = Signal(bool)
     inserted_row = Signal(QModelIndex)
 
-    def __init__(self, data_frame, allowed_columns, table_type,
-                 undo_stack = None, parent=None):
+    def __init__(
+        self,
+        data_frame,
+        allowed_columns,
+        table_type,
+        undo_stack=None,
+        parent=None,
+    ):
         super().__init__(parent)
         self._allowed_columns = allowed_columns
         self.table_type = table_type
@@ -139,18 +145,17 @@ class PandasTableModel(QAbstractTableModel):
         """
         if column_name in self._data_frame.columns:
             self.new_log_message.emit(
-                f"Column '{column_name}' already exists",
-                "red"
+                f"Column '{column_name}' already exists", "red"
             )
             return False
         if not (
-            column_name in self._allowed_columns or
-            self.table_type == "condition"
+            column_name in self._allowed_columns
+            or self.table_type == "condition"
         ):  # empty dict means all columns allowed
             self.new_log_message.emit(
                 f"Column '{column_name}' will be ignored for the petab "
                 f"problem but may still be used to store relevant information",
-                "orange"
+                "orange",
             )
 
         if self.undo_stack:
@@ -215,7 +220,9 @@ class PandasTableModel(QAbstractTableModel):
 
         # Handle invalid value
         if is_invalid(value):
-            self._push_change_and_notify(row, column, column_name, old_value, None)
+            self._push_change_and_notify(
+                row, column, column_name, old_value, None
+            )
             return True
 
         # Type validation
@@ -226,7 +233,8 @@ class PandasTableModel(QAbstractTableModel):
             if error:
                 self.new_log_message.emit(
                     f"Column '{column_name}' expects a value of type "
-                    f"{expected_type}, but got '{value}'", "red"
+                    f"{expected_type}, but got '{value}'",
+                    "red",
                 )
                 return False
             value = validated
@@ -239,20 +247,30 @@ class PandasTableModel(QAbstractTableModel):
             if fill_with_defaults:
                 self.get_default_values(index, {column_name: value})
             self.relevant_id_changed.emit(value, old_value, "observable")
-            self._push_change_and_notify(row, column, column_name, old_value, value)
+            self._push_change_and_notify(
+                row, column, column_name, old_value, value
+            )
             return True
 
-        if column_name in ["conditionId", "simulationConditionId", "preequilibrationConditionId"]:
+        if column_name in [
+            "conditionId",
+            "simulationConditionId",
+            "preequilibrationConditionId",
+        ]:
             if fill_with_defaults:
                 self.get_default_values(index, {column_name: value})
             self.relevant_id_changed.emit(value, old_value, "condition")
-            self._push_change_and_notify(row, column, column_name, old_value, value)
+            self._push_change_and_notify(
+                row, column, column_name, old_value, value
+            )
             return True
 
         # Default value setting
         if fill_with_defaults:
             self.get_default_values(index, {column_name: value})
-        self._push_change_and_notify(row, column, column_name, old_value, value)
+        self._push_change_and_notify(
+            row, column, column_name, old_value, value
+        )
         return True
 
     def _push_change_and_notify(
@@ -263,8 +281,9 @@ class PandasTableModel(QAbstractTableModel):
             (self._data_frame.index[row], column_name): (old_value, new_value)
         }
         self.undo_stack.push(ModifyDataFrameCommand(self, change))
-        self.dataChanged.emit(self.index(row, column), self.index(row, column),
-                              [Qt.DisplayRole])
+        self.dataChanged.emit(
+            self.index(row, column), self.index(row, column), [Qt.DisplayRole]
+        )
         self.cell_needs_validation.emit(row, column)
         self.something_changed.emit(True)
 
@@ -299,7 +318,8 @@ class PandasTableModel(QAbstractTableModel):
             self._data_frame.replace(old_text, new_text, inplace=True)
             # Get first and last modified cell for efficient `dataChanged` emit
             changed_cells = mask.stack()[
-                mask.stack()].index.tolist()  # Extract (row, col) pairs
+                mask.stack()
+            ].index.tolist()  # Extract (row, col) pairs
             if changed_cells:
                 first_row, first_col = changed_cells[0]
                 last_row, last_col = changed_cells[-1]
@@ -338,7 +358,7 @@ class PandasTableModel(QAbstractTableModel):
         self.dataChanged.emit(
             self.index(row, column),
             self.index(row, column),
-            [Qt.BackgroundRole]
+            [Qt.BackgroundRole],
         )
 
     def discard_invalid_cell(self, row, column):
@@ -347,7 +367,7 @@ class PandasTableModel(QAbstractTableModel):
         self.dataChanged.emit(
             self.index(row, column),
             self.index(row, column),
-            [Qt.BackgroundRole]
+            [Qt.BackgroundRole],
         )
 
     def update_invalid_cells(self, selected, mode: str = "rows"):
@@ -379,7 +399,7 @@ class PandasTableModel(QAbstractTableModel):
         self.dataChanged.emit(
             self.index(row, column),
             self.index(row, column),
-            [Qt.BackgroundRole]
+            [Qt.BackgroundRole],
         )
 
     def get_value_from_column(self, column_name, row):
@@ -416,7 +436,9 @@ class PandasTableModel(QAbstractTableModel):
 
     def delete_column(self, column_index):
         """Delete a column from the DataFrame."""
-        column_name = self._data_frame.columns[column_index - self.column_offset]
+        column_name = self._data_frame.columns[
+            column_index - self.column_offset
+        ]
         if self.undo_stack:
             self.undo_stack.push(ModifyColumnCommand(self, column_name, False))
         else:
@@ -469,7 +491,7 @@ class PandasTableModel(QAbstractTableModel):
                 if rectangle[row, col]:
                     copied_data += self.data(
                         self.index(start_index[0] + row, start_index[1] + col),
-                        Qt.DisplayRole
+                        Qt.DisplayRole,
                     )
                 else:
                     copied_data += "SKIP"
@@ -495,7 +517,7 @@ class PandasTableModel(QAbstractTableModel):
                         start_row + row_offset, start_column + col_offset
                     ),
                     value,
-                    Qt.EditRole
+                    Qt.EditRole,
                 )
         self.undo_stack.endMacro()
 
@@ -504,7 +526,7 @@ class PandasTableModel(QAbstractTableModel):
         if start_row + n_rows > self._data_frame.shape[0]:
             self.insertRows(
                 self._data_frame.shape[0],
-                start_row + n_rows - self._data_frame.shape[0]
+                start_row + n_rows - self._data_frame.shape[0],
             )
 
     def determine_background_color(self, row, column):
@@ -529,7 +551,7 @@ class PandasTableModel(QAbstractTableModel):
         """Checks whether the column can safely be deleted"""
         if column == 0 and self._has_named_index:
             return False, self._data_frame.index.name
-        column_name = self._data_frame.columns[column-self.column_offset]
+        column_name = self._data_frame.columns[column - self.column_offset]
         if column_name not in self._allowed_columns.keys():
             return True, column_name
         return self._allowed_columns[column_name]["optional"], column_name
@@ -566,18 +588,22 @@ class PandasTableModel(QAbstractTableModel):
         elif self.table_type == "observable":
             index_key = data_to_add.pop("observableId")
         if index_key and self._has_named_index:
-            self.undo_stack.push(RenameIndexCommand(
-                self, self._data_frame.index.tolist()[row_position],
-                index_key, self.index(row_position, 0)
-            ))
+            self.undo_stack.push(
+                RenameIndexCommand(
+                    self,
+                    self._data_frame.index.tolist()[row_position],
+                    index_key,
+                    self.index(row_position, 0),
+                )
+            )
 
         changes = {
             (index_key, col): (self._data_frame.at[index_key, col], val)
             for col, val in data_to_add.items()
         }
-        self.undo_stack.push(ModifyDataFrameCommand(
-            self, changes, "Fill values"
-        ))
+        self.undo_stack.push(
+            ModifyDataFrameCommand(self, changes, "Fill values")
+        )
         self.get_default_values(
             self.index(row_position, 0),
             changed=changes,
@@ -594,7 +620,7 @@ class IndexedPandasTableModel(PandasTableModel):
             data_frame=data_frame,
             allowed_columns=allowed_columns,
             table_type=table_type,
-            parent=parent
+            parent=parent,
         )
         self._has_named_index = True
         self.column_offset = 1
@@ -625,37 +651,38 @@ class IndexedPandasTableModel(PandasTableModel):
             if colname == df.index.name:
                 # Generate default index name if empty
                 default_value = self.default_handler.get_default(
-                    colname,
-                    row_key,
-                    changed = changed
+                    colname, row_key, changed=changed
                 )
                 if (
-                    not row_key
-                    or f"new_{self.table_type}" in row_key
+                    not row_key or f"new_{self.table_type}" in row_key
                 ) and bool(default_value):
                     rename_needed = True
                     new_index = default_value
             elif colname in ["upperBound", "lowerBound"]:
-                par_scale = changes[(row_key, "parameterScale")][1] if\
-                    (row_key, "parameterScale") in changes \
+                par_scale = (
+                    changes[(row_key, "parameterScale")][1]
+                    if (row_key, "parameterScale") in changes
                     else changed["parameterScale"]
+                )
                 default_value = self.default_handler.get_default(
                     colname, row_key, par_scale
                 )
                 changes[(row_key, colname)] = ("", default_value)
             else:
-                default_value = self.default_handler.get_default(colname, row_key)
+                default_value = self.default_handler.get_default(
+                    colname, row_key
+                )
                 changes[(row_key, colname)] = ("", default_value)
 
         commands = []
         if changes:
-            commands.append(ModifyDataFrameCommand(
-                self, changes, "Fill default values"
-            ))
+            commands.append(
+                ModifyDataFrameCommand(self, changes, "Fill default values")
+            )
         if rename_needed:
-            commands.append(RenameIndexCommand(
-                self, old_index, new_index, index
-            ))
+            commands.append(
+                RenameIndexCommand(self, old_index, new_index, index)
+            )
         if not commands:
             return
         if not self.undo_stack:
@@ -684,19 +711,19 @@ class IndexedPandasTableModel(PandasTableModel):
             self.new_log_message.emit(
                 f"Duplicate index value '{value}'. Renaming to default "
                 f"value '{value}'",
-                "orange"
+                "orange",
             )
         try:
-            self.undo_stack.push(RenameIndexCommand(
-                self, old_value, value, index
-            ))
+            self.undo_stack.push(
+                RenameIndexCommand(self, old_value, value, index)
+            )
             self.relevant_id_changed.emit(value, old_value, self.table_type)
             self.something_changed.emit(True)
             return True
         except Exception as e:
             self.new_log_message.emit(
                 f"Error renaming index value '{old_value}' to '{value}': {e}",
-                "red"
+                "red",
             )
             return False
 
@@ -720,7 +747,7 @@ class MeasurementModel(PandasTableModel):
             data_frame=data_frame,
             allowed_columns=COLUMNS["measurement"],
             table_type="measurement",
-            parent=parent
+            parent=parent,
         )
 
     def get_default_values(self, index, changed: dict | None = None):
@@ -738,9 +765,7 @@ class MeasurementModel(PandasTableModel):
                 continue
             default = self.default_handler.get_default(colname, row_key)
             changes[(row_key, colname)] = ("", default)
-        command = ModifyDataFrameCommand(
-            self, changes, "Fill default values"
-        )
+        command = ModifyDataFrameCommand(self, changes, "Fill default values")
         if self.undo_stack:
             self.undo_stack.push(command)
         else:
@@ -795,7 +820,7 @@ class ObservableModel(IndexedPandasTableModel):
             data_frame=data_frame,
             allowed_columns=COLUMNS["observable"],
             table_type="observable",
-            parent=parent
+            parent=parent,
         )
 
 
@@ -807,11 +832,10 @@ class ParameterModel(IndexedPandasTableModel):
             data_frame=data_frame,
             allowed_columns=COLUMNS["parameter"],
             table_type="parameter",
-            parent=parent
+            parent=parent,
         )
         self.default_handler = DefaultHandlerModel(
-            self, self.config,
-            sbml_model=sbml_model
+            self, self.config, sbml_model=sbml_model
         )
 
 
@@ -823,7 +847,7 @@ class ConditionModel(IndexedPandasTableModel):
             data_frame=data_frame,
             allowed_columns=COLUMNS["condition"],
             table_type="condition",
-            parent=parent
+            parent=parent,
         )
         self._allowed_columns.pop("conditionId")
 

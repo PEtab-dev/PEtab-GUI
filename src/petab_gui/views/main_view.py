@@ -1,4 +1,5 @@
 """Main Window View."""
+
 import copy
 
 from PySide6.QtCore import QSettings, Qt
@@ -77,17 +78,11 @@ class MainWindow(QMainWindow):
         self.parameter_dock.visibilityChanged.connect(
             self.save_dock_visibility
         )
-        self.logger_dock.visibilityChanged.connect(
-            self.save_dock_visibility
-        )
-        self.plot_dock.visibilityChanged.connect(
-            self.save_dock_visibility
-        )
+        self.logger_dock.visibilityChanged.connect(self.save_dock_visibility)
+        self.plot_dock.visibilityChanged.connect(self.save_dock_visibility)
 
         # Allow docking in multiple areas
-        self.data_tab.setDockOptions(
-            QMainWindow.AllowNestedDocks
-        )
+        self.data_tab.setDockOptions(QMainWindow.AllowNestedDocks)
 
         self.tab_widget.currentChanged.connect(self.set_docks_visible)
 
@@ -134,9 +129,7 @@ class MainWindow(QMainWindow):
                 dock.setGeometry(x, y, width, height)
                 dock.setFloating(False)
             if x == x_right:
-                self.data_tab.splitDockWidget(
-                    y, dock, Qt.Horizontal
-                )
+                self.data_tab.splitDockWidget(y, dock, Qt.Horizontal)
 
         if hasattr(self, "dock_visibility"):
             for dock in self.dock_visibility:
@@ -224,7 +217,9 @@ class MainWindow(QMainWindow):
 
         # Load the visibility of the dock widgets
         for dock, _ in self.dock_visibility.items():
-            dock.setVisible(settings.value(f"docks/{dock.objectName()}", True, type=bool))
+            dock.setVisible(
+                settings.value(f"docks/{dock.objectName()}", True, type=bool)
+            )
 
         # Load the geometry of the main window
         self.restoreGeometry(settings.value("main_window/geometry"))
@@ -271,7 +266,9 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(container)
         # Restore the visibility of the docks
-        for dock, visible in zip(self.dock_visibility.keys(), dock_visibility_values):
+        for dock, visible in zip(
+            self.dock_visibility.keys(), dock_visibility_values
+        ):
             self.dock_visibility[dock] = visible
             dock.setVisible(visible)
 

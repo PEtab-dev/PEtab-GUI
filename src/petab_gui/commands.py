@@ -1,10 +1,11 @@
 """Store commands for the do/undo functionality."""
+
 import numpy as np
 import pandas as pd
 from PySide6.QtCore import QModelIndex, Qt
 from PySide6.QtGui import QUndoCommand
 
-pd.set_option('future.no_silent_downcasting', True)
+pd.set_option("future.no_silent_downcasting", True)
 
 
 class ModifyColumnCommand(QUndoCommand):
@@ -32,8 +33,12 @@ class ModifyColumnCommand(QUndoCommand):
             self.model._data_frame[self.column_name] = ""
             self.model.endInsertColumns()
         else:
-            self.position = self.model._data_frame.columns.get_loc(self.column_name)
-            self.model.beginRemoveColumns(QModelIndex(), self.position, self.position)
+            self.position = self.model._data_frame.columns.get_loc(
+                self.column_name
+            )
+            self.model.beginRemoveColumns(
+                QModelIndex(), self.position, self.position
+            )
             self.model._data_frame.drop(columns=self.column_name, inplace=True)
             self.model.endRemoveColumns()
 
@@ -44,8 +49,12 @@ class ModifyColumnCommand(QUndoCommand):
             self.model._data_frame.drop(columns=self.column_name, inplace=True)
             self.model.endRemoveColumns()
         else:
-            self.model.beginInsertColumns(QModelIndex(), self.position, self.position)
-            self.model._data_frame.insert(self.position, self.column_name, self.old_values)
+            self.model.beginInsertColumns(
+                QModelIndex(), self.position, self.position
+            )
+            self.model._data_frame.insert(
+                self.position, self.column_name, self.old_values
+            )
             self.model.endInsertColumns()
 
 
@@ -53,10 +62,7 @@ class ModifyRowCommand(QUndoCommand):
     """Command to add a row to the table."""
 
     def __init__(
-        self,
-        model,
-        row_indices: list[int] | int,
-        add_mode: bool = True
+        self, model, row_indices: list[int] | int, add_mode: bool = True
     ):
         action = "Add" if add_mode else "Remove"
         super().__init__(f"{action} row(s) in table {model.table_type}")
@@ -72,7 +78,9 @@ class ModifyRowCommand(QUndoCommand):
             self.row_indices = self._generate_new_indices(row_indices)
         else:
             # Deleting: interpret input as specific index labels
-            self.row_indices = row_indices if isinstance(row_indices, list) else [row_indices]
+            self.row_indices = (
+                row_indices if isinstance(row_indices, list) else [row_indices]
+            )
             self.old_rows = df.iloc[self.row_indices].copy()
             self.old_ind_names = [df.index[idx] for idx in self.row_indices]
 
@@ -96,12 +104,16 @@ class ModifyRowCommand(QUndoCommand):
 
         if self.add_mode:
             position = df.shape[0] - 1  # insert *before* the auto-row
-            self.model.beginInsertRows(QModelIndex(), position, position + len(self.row_indices) - 1)
+            self.model.beginInsertRows(
+                QModelIndex(), position, position + len(self.row_indices) - 1
+            )
             for i, idx in enumerate(self.row_indices):
                 df.loc[idx] = [np.nan] * df.shape[1]
             self.model.endInsertRows()
         else:
-            self.model.beginRemoveRows(QModelIndex(), min(self.row_indices), max(self.row_indices))
+            self.model.beginRemoveRows(
+                QModelIndex(), min(self.row_indices), max(self.row_indices)
+            )
             df.drop(index=self.old_ind_names, inplace=True)
             self.model.endRemoveRows()
 
@@ -110,11 +122,15 @@ class ModifyRowCommand(QUndoCommand):
 
         if self.add_mode:
             positions = [df.index.get_loc(idx) for idx in self.row_indices]
-            self.model.beginRemoveRows(QModelIndex(), min(positions), max(positions))
+            self.model.beginRemoveRows(
+                QModelIndex(), min(positions), max(positions)
+            )
             df.drop(index=self.old_ind_names, inplace=True)
             self.model.endRemoveRows()
         else:
-            self.model.beginInsertRows(QModelIndex(), min(self.row_indices), max(self.row_indices))
+            self.model.beginInsertRows(
+                QModelIndex(), min(self.row_indices), max(self.row_indices)
+            )
             restore_index_order = df.index
             for pos, index_name, row in zip(
                 self.row_indices, self.old_ind_names, self.old_rows.values
@@ -125,13 +141,15 @@ class ModifyRowCommand(QUndoCommand):
                 df.loc[index_name] = row
                 df.sort_index(
                     inplace=True,
-                    key=lambda x: x.map(restore_index_order.get_loc)
+                    key=lambda x: x.map(restore_index_order.get_loc),
                 )
             self.model.endInsertRows()
 
 
 class ModifyDataFrameCommand(QUndoCommand):
-    def __init__(self, model, changes: dict[tuple, tuple], description="Modify values"):
+    def __init__(
+        self, model, changes: dict[tuple, tuple], description="Modify values"
+    ):
         super().__init__(description)
         self.model = model
         self.changes = changes  # {(row_key, column_name): (old_val, new_val)}
@@ -155,7 +173,7 @@ class ModifyDataFrameCommand(QUndoCommand):
         update_df = pd.Series(update_vals).unstack()
         for col in update_df.columns:
             if col in df.columns:
-                df[col] = df[col].astype('object')
+                df[col] = df[col].astype("object")
         update_df.replace({None: "Placeholder_temp"}, inplace=True)
         df.update(update_df)
         df.replace({"Placeholder_temp": ""}, inplace=True)
@@ -167,10 +185,13 @@ class ModifyDataFrameCommand(QUndoCommand):
             else:
                 df[col] = df[col].astype(dtype)
 
-        rows = [df.index.get_loc(row_key) for (row_key, _) in
-                self.changes.keys()]
-        cols = [df.columns.get_loc(col) + col_offset for (_, col) in
-                self.changes.keys()]
+        rows = [
+            df.index.get_loc(row_key) for (row_key, _) in self.changes.keys()
+        ]
+        cols = [
+            df.columns.get_loc(col) + col_offset
+            for (_, col) in self.changes.keys()
+        ]
 
         top_left = self.model.index(min(rows), min(cols))
         bottom_right = self.model.index(max(rows), max(cols))

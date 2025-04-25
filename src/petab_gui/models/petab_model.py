@@ -1,4 +1,5 @@
 """Contains the overarching PEtab model class."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -63,8 +64,7 @@ class PEtabModel:
             data_frame=self.problem.observable_df,
         )
         self.parameter = ParameterModel(
-            data_frame=self.problem.parameter_df,
-            sbml_model=self.sbml
+            data_frame=self.problem.parameter_df, sbml_model=self.sbml
         )
         self.condition = ConditionModel(
             data_frame=self.problem.condition_df,
@@ -144,4 +144,3 @@ class PEtabModel:
             parameter_df=self.parameter.get_df(),
             model=self.sbml.get_current_sbml_model(),
         )
-

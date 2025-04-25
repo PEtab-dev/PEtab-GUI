@@ -107,9 +107,7 @@ class ViewMenu(BasicMenu):
         super().__init__(parent, actions)
 
         # Add actions to the menu for re-adding tables
-        visibility_header = QAction(
-            qta.icon("fa5s.eye"), "Visibility", parent
-        )
+        visibility_header = QAction(qta.icon("fa5s.eye"), "Visibility", parent)
         visibility_header.setEnabled(False)
         self.menu.addAction(visibility_header)
         self.menu.addSeparator()
@@ -135,7 +133,6 @@ class HelpMenu(BasicMenu):
 
         # Add actions to the menu for re-adding tables
         self.menu.addAction(actions["open_documentation"])
-
 
 
 class TaskBar:

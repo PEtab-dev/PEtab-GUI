@@ -16,8 +16,14 @@ from ..settings_manager import settings_manager
 def linter_wrapper(_func=None, additional_error_check: bool = False):
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(self, row_data: pd.DataFrame = None, row_name:
-                str = None, col_name: str = None, *args, **kwargs):
+        def wrapper(
+            self,
+            row_data: pd.DataFrame = None,
+            row_name: str = None,
+            col_name: str = None,
+            *args,
+            **kwargs,
+        ):
             try:
                 result = func(
                     self, row_data, row_name, col_name, *args, **kwargs
@@ -33,14 +39,16 @@ def linter_wrapper(_func=None, additional_error_check: bool = False):
                             s.strip(" '") for s in match.group(1).split(",")
                         }
                         remain = {
-                            p for p in missing_params
+                            p
+                            for p in missing_params
                             if p not in self.model._data_frame.index
                         }
                         if not remain:
                             return True
                         err_msg = re.sub(
-                            r"\{.*?\}", "{" + ", ".join(sorted(remain)) + "}",
-                            err_msg
+                            r"\{.*?\}",
+                            "{" + ", ".join(sorted(remain)) + "}",
+                            err_msg,
                         )
                 if row_name is not None and col_name is not None:
                     msg = f"PEtab linter failed at ({row_name}, {col_name}): {err_msg}"
@@ -49,7 +57,9 @@ def linter_wrapper(_func=None, additional_error_check: bool = False):
 
                 self.logger.log_message(msg, color="red")
                 return False
+
         return wrapper
+
     if callable(_func):  # used without parentheses
         return decorator(_func)
     return decorator
@@ -62,12 +72,14 @@ def filtered_error(error_message: BaseException) -> str:
     )
     regex = re.compile(all_errors)
     replacement_values = list(COMMON_ERRORS.values())
+
     # Replace function
     def replacer(match):
         for i, _ in enumerate(COMMON_ERRORS):
             if match.group(f"key{i}"):
                 return replacement_values[i]
         return match.group(0)
+
     return regex.sub(replacer, str(error_message))
 
 
@@ -75,7 +87,9 @@ def prompt_overwrite_or_append(controller):
     """Prompt user to choose between overwriting or appending the file."""
     msg_box = QMessageBox(controller.view)
     msg_box.setWindowTitle("Open File Options")
-    msg_box.setText("Do you want to overwrite the current data or append to it?")
+    msg_box.setText(
+        "Do you want to overwrite the current data or append to it?"
+    )
     overwrite_button = msg_box.addButton("Overwrite", QMessageBox.AcceptRole)
     append_button = msg_box.addButton("Append", QMessageBox.AcceptRole)
     cancel_button = msg_box.addButton("Cancel", QMessageBox.RejectRole)
@@ -107,7 +121,7 @@ class RecentFilesManager(QObject):
         if file_path in self.recent_files:
             self.recent_files.remove(file_path)
         self.recent_files.insert(0, file_path)
-        self.recent_files = self.recent_files[:self.max_files]
+        self.recent_files = self.recent_files[: self.max_files]
         self.save_recent_files()
         self.update_tool_bar_menu()
 
@@ -134,10 +148,14 @@ class RecentFilesManager(QObject):
         short_paths = [short_name(f) for f in self.recent_files]
         counts = Counter(short_paths)
 
-        for full_path, short in zip(self.recent_files, short_paths, strict=False):
+        for full_path, short in zip(
+            self.recent_files, short_paths, strict=False
+        ):
             display = full_path if counts[short] > 1 else short
             action = QAction(display, self.tool_bar_menu)
-            action.triggered.connect(lambda _, p=full_path: self.open_file.emit(p))
+            action.triggered.connect(
+                lambda _, p=full_path: self.open_file.emit(p)
+            )
             self.tool_bar_menu.addAction(action)
         self.tool_bar_menu.addSeparator()
         clear_action = QAction("Clear Recent Files", self.tool_bar_menu)

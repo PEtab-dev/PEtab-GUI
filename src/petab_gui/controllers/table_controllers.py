@@ -1,4 +1,5 @@
 """Classes for the controllers of the tables in the GUI."""
+
 import re
 from pathlib import Path
 
@@ -42,7 +43,7 @@ class TableController(QObject):
         model: PandasTableModel,
         logger,
         undo_stack,
-        mother_controller
+        mother_controller,
     ):
         """Initialize the table controller.
 
@@ -95,18 +96,10 @@ class TableController(QObject):
 
         Only handles connections from within the table controllers.
         """
-        self.model.new_log_message.connect(
-            self.logger.log_message
-        )
-        self.model.cell_needs_validation.connect(
-            self.validate_changed_cell
-        )
-        self.model.inserted_row.connect(
-            self.set_index_on_new_row
-        )
-        settings_manager.settings_changed.connect(
-            self.update_defaults
-        )
+        self.model.new_log_message.connect(self.logger.log_message)
+        self.model.cell_needs_validation.connect(self.validate_changed_cell)
+        self.model.inserted_row.connect(self.set_index_on_new_row)
+        settings_manager.settings_changed.connect(self.update_defaults)
 
     def setup_context_menu(self, actions):
         """Setup context menu for this table."""
@@ -139,8 +132,10 @@ class TableController(QObject):
         if not file_path:
             # Open a file dialog to select the CSV or TSV file
             file_path, _ = QFileDialog.getOpenFileName(
-                self.view, "Open CSV or TSV", "",
-                "CSV/TSV/TXT Files (*.csv *.tsv *.txt)"
+                self.view,
+                "Open CSV or TSV",
+                "",
+                "CSV/TSV/TXT Files (*.csv *.tsv *.txt)",
             )
         # just in case anything goes wrong here
         if not file_path:
@@ -160,14 +155,14 @@ class TableController(QObject):
                 new_df = pd.read_csv(file_path, sep=separator, index_col=0)
         except Exception as e:
             self.view.log_message(
-                f"Failed to read file: {str(e)}",
-                color="red"
+                f"Failed to read file: {str(e)}", color="red"
             )
             return
         dtypes = {
-            col: self.model._allowed_columns.get(
-                col, {"type": np.object_}
-            )["type"] for col in new_df.columns
+            col: self.model._allowed_columns.get(col, {"type": np.object_})[
+                "type"
+            ]
+            for col in new_df.columns
         }
         new_df = new_df.astype(dtypes)
         if mode is None:
@@ -189,7 +184,7 @@ class TableController(QObject):
         self.model.endResetModel()
         self.logger.log_message(
             f"Overwrote the {self.model.table_type} table with new data.",
-            color="green"
+            color="green",
         )
         # test: overwrite the new model as source model
         self.proxy_model.setSourceModel(self.model)
@@ -205,9 +200,7 @@ class TableController(QObject):
             2. Rows are the union of both DataFrame rows (duplicates removed)
         """
         self.model.beginResetModel()
-        combined_df = pd.concat(
-            [self.model.get_df(), new_df], axis=0
-        )
+        combined_df = pd.concat([self.model.get_df(), new_df], axis=0)
         combined_df = combined_df[~combined_df.index.duplicated(keep="first")]
         self.model._data_frame = combined_df
         self.proxy_model.setSourceModel(None)
@@ -215,7 +208,7 @@ class TableController(QObject):
         self.model.endResetModel()
         self.logger.log_message(
             f"Appended the {self.model.table_type} table with new data.",
-            color="green"
+            color="green",
         )
         # test: overwrite the new model as source model
         self.overwritten_df.emit()
@@ -240,7 +233,7 @@ class TableController(QObject):
             self.logger.log_message(
                 f"Deleted row {row} from {self.model.table_type} table."
                 f" Data: {row_info}",
-                color="orange"
+                color="orange",
             )
         self.model.something_changed.emit(True)
 
@@ -253,8 +246,7 @@ class TableController(QObject):
             selection_model = self.view.table_view.selectionModel()
             if selection_model:
                 selection_model.select(
-                    new_row_index,
-                    selection_model.SelectionFlag.ClearAndSelect
+                    new_row_index, selection_model.SelectionFlag.ClearAndSelect
                 )
             self.view.table_view.scrollTo(new_row_index)
             self.view.table_view.setCurrentIndex(new_row_index)
@@ -274,7 +266,7 @@ class TableController(QObject):
                 self.logger.log_message(
                     f"Cannot delete column {column_name}, as it is a "
                     f"required column!",
-                    color="red"
+                    color="red",
                 )
                 continue
             if column_name in self.completers:
@@ -283,7 +275,7 @@ class TableController(QObject):
             self.model.delete_column(column)
             self.logger.log_message(
                 f"Deleted column '{column_name}' from {self.model.table_type} table.",
-                color="orange"
+                color="orange",
             )
             deleted_columns.add(column)
         self.model.update_invalid_cells(deleted_columns, mode="columns")
@@ -293,9 +285,7 @@ class TableController(QObject):
         """Add a column to the datatable"""
         if not column_name:
             column_name, ok = QInputDialog.getText(
-                self.view,
-                "Add Column",
-                "Enter the name of the new column:"
+                self.view, "Add Column", "Enter the name of the new column:"
             )
             if not ok:
                 return
@@ -334,15 +324,14 @@ class TableController(QObject):
             self.check_petab_lint()
         except Exception as e:
             self.logger.log_message(
-                f"PEtab linter failed after copying: {str(e)}",
-                color="red"
+                f"PEtab linter failed after copying: {str(e)}", color="red"
             )
 
     def check_petab_lint(
         self,
         row_data: pd.DataFrame = None,
         row_name: str = None,
-        col_name: str = None
+        col_name: str = None,
     ):
         """Check a single row of the model with petablint."""
         raise NotImplementedError(
@@ -358,26 +347,61 @@ class TableController(QObject):
         # Search in the main DataFrame
         if regex:
             pattern = re.compile(text, 0 if case_sensitive else re.IGNORECASE)
-            mask = df.map(lambda cell: bool(pattern.fullmatch(str(cell))) if whole_cell else bool(pattern.search(str(cell))))
+            mask = df.map(
+                lambda cell: bool(pattern.fullmatch(str(cell)))
+                if whole_cell
+                else bool(pattern.search(str(cell)))
+            )
         else:
             text = text.lower() if not case_sensitive else text
-            mask = df.map(lambda cell: text == str(cell).lower() if whole_cell else text in str(cell).lower()) if not case_sensitive else \
-                   df.map(lambda cell: text == str(cell) if whole_cell else text in str(cell))
+            mask = (
+                df.map(
+                    lambda cell: text == str(cell).lower()
+                    if whole_cell
+                    else text in str(cell).lower()
+                )
+                if not case_sensitive
+                else df.map(
+                    lambda cell: text == str(cell)
+                    if whole_cell
+                    else text in str(cell)
+                )
+            )
 
         # Find matches
         match_indices = list(zip(*mask.to_numpy().nonzero()))
-        table_matches = [(row, col + self.model.column_offset) for row, col in match_indices]
+        table_matches = [
+            (row, col + self.model.column_offset) for row, col in match_indices
+        ]
 
         # Search in the index if it's named
         index_matches = []
         if isinstance(df.index, pd.Index) and df.index.name:
             if regex:
-                index_mask = df.index.to_series().map(lambda idx: bool(pattern.fullmatch(str(idx))) if whole_cell else bool(pattern.search(str(idx))))
+                index_mask = df.index.to_series().map(
+                    lambda idx: bool(pattern.fullmatch(str(idx)))
+                    if whole_cell
+                    else bool(pattern.search(str(idx)))
+                )
             else:
-                index_mask = df.index.to_series().map(lambda idx: text == str(idx).lower() if whole_cell else text in str(idx).lower()) if not case_sensitive else \
-                             df.index.to_series().map(lambda idx: text == str(idx) if whole_cell else text in str(idx))
+                index_mask = (
+                    df.index.to_series().map(
+                        lambda idx: text == str(idx).lower()
+                        if whole_cell
+                        else text in str(idx).lower()
+                    )
+                    if not case_sensitive
+                    else df.index.to_series().map(
+                        lambda idx: text == str(idx)
+                        if whole_cell
+                        else text in str(idx)
+                    )
+                )
 
-            index_matches = [(df.index.get_loc(idx), 0) for idx in index_mask[index_mask].index]
+            index_matches = [
+                (df.index.get_loc(idx), 0)
+                for idx in index_mask[index_mask].index
+            ]
 
         all_matches = index_matches + table_matches
 
@@ -389,19 +413,23 @@ class TableController(QObject):
         """Color the text of all matched cells in yellow."""
         self.model.highlighted_cells = set(matches)
         top_left = self.model.index(0, 0)
-        bottom_right = self.model.index(self.model.rowCount() - 1,
-                                        self.model.columnCount() - 1)
-        self.model.dataChanged.emit(top_left, bottom_right,
-                                    [Qt.ForegroundRole])
+        bottom_right = self.model.index(
+            self.model.rowCount() - 1, self.model.columnCount() - 1
+        )
+        self.model.dataChanged.emit(
+            top_left, bottom_right, [Qt.ForegroundRole]
+        )
 
     def cleanse_highlighted_cells(self):
         """Cleanses the highlighted cells."""
         self.model.highlighted_cells = set()
         top_left = self.model.index(0, 0)
-        bottom_right = self.model.index(self.model.rowCount() - 1,
-                                        self.model.columnCount() - 1)
-        self.model.dataChanged.emit(top_left, bottom_right,
-                                    [Qt.ForegroundRole])
+        bottom_right = self.model.index(
+            self.model.rowCount() - 1, self.model.columnCount() - 1
+        )
+        self.model.dataChanged.emit(
+            top_left, bottom_right, [Qt.ForegroundRole]
+        )
 
     def focus_match(self, match, with_focus: bool = False):
         """Focus and select the given match in the table."""
@@ -418,12 +446,14 @@ class TableController(QObject):
 
         self.view.table_view.setCurrentIndex(proxy_index)
         self.view.table_view.scrollTo(
-                proxy_index, QAbstractItemView.EnsureVisible
+            proxy_index, QAbstractItemView.EnsureVisible
         )
         if with_focus:
             self.view.table_view.setFocus()
 
-    def replace_text(self, row, col, replace_text, search_text, case_sensitive, regex):
+    def replace_text(
+        self, row, col, replace_text, search_text, case_sensitive, regex
+    ):
         """Replace the text in the given cell and update highlights."""
         index = self.model.index(row, col)
         original_text = self.model.data(index, Qt.DisplayRole)
@@ -432,12 +462,19 @@ class TableController(QObject):
             return
 
         if regex:
-            pattern = re.compile(search_text, 0 if case_sensitive else re.IGNORECASE)
+            pattern = re.compile(
+                search_text, 0 if case_sensitive else re.IGNORECASE
+            )
             new_text = pattern.sub(replace_text, original_text)
         else:
             if not case_sensitive:
                 search_text = re.escape(search_text.lower())
-                new_text = re.sub(search_text, replace_text, original_text, flags=re.IGNORECASE)
+                new_text = re.sub(
+                    search_text,
+                    replace_text,
+                    original_text,
+                    flags=re.IGNORECASE,
+                )
             else:
                 new_text = original_text.replace(search_text, replace_text)
 
@@ -455,28 +492,37 @@ class TableController(QObject):
 
         df = self.model._data_frame
         if regex:
-            pattern = re.compile(search_text,
-                                 0 if case_sensitive else re.IGNORECASE)
-            df.replace(to_replace=pattern, value=replace_text, regex=True,
-                       inplace=True)
+            pattern = re.compile(
+                search_text, 0 if case_sensitive else re.IGNORECASE
+            )
+            df.replace(
+                to_replace=pattern,
+                value=replace_text,
+                regex=True,
+                inplace=True,
+            )
         else:
             if not case_sensitive:
                 df.replace(
                     to_replace=re.escape(search_text),
                     value=replace_text,
                     regex=True,
-                    inplace=True
+                    inplace=True,
                 )
             else:
-                df.replace(to_replace=search_text, value=replace_text,
-                           inplace=True)
+                df.replace(
+                    to_replace=search_text, value=replace_text, inplace=True
+                )
 
         # Replace in the index as well
         if isinstance(df.index, pd.Index) and df.index.name:
             index_map = {
-                idx: pattern.sub(replace_text, str(idx)) if regex else str(
-                    idx).replace(search_text, replace_text)
-                for idx in df.index if search_text in str(idx)}
+                idx: pattern.sub(replace_text, str(idx))
+                if regex
+                else str(idx).replace(search_text, replace_text)
+                for idx in df.index
+                if search_text in str(idx)
+            }
             if index_map:
                 df.rename(index=index_map, inplace=True)
 
@@ -505,7 +551,12 @@ class MeasurementController(TableController):
     """Controller of the Measurement table."""
 
     @linter_wrapper
-    def check_petab_lint(self, row_data: pd.DataFrame = None, row_name: str = None, col_name: str = None):
+    def check_petab_lint(
+        self,
+        row_data: pd.DataFrame = None,
+        row_name: str = None,
+        col_name: str = None,
+    ):
         """Check a number of rows of the model with petablint."""
         if row_data is None:
             row_data = self.model.get_df()
@@ -515,7 +566,9 @@ class MeasurementController(TableController):
             observable_df=observable_df,
         )
 
-    def rename_value(self, old_id: str, new_id: str, column_names: str | list[str]):
+    def rename_value(
+        self, old_id: str, new_id: str, column_names: str | list[str]
+    ):
         """Rename the observables in the measurement_df.
 
         Triggered by changes in the original observable_df id.
@@ -536,7 +589,8 @@ class MeasurementController(TableController):
             self.model._data_frame.loc[mask] = new_id
             changed_rows = mask.any(axis=1)
             first_row, last_row = (
-                changed_rows.idxmax(), changed_rows[::-1].idxmax()
+                changed_rows.idxmax(),
+                changed_rows[::-1].idxmax(),
             )
             top_left = self.model.index(first_row, 1)
             bottom_right = self.model.index(
@@ -550,9 +604,7 @@ class MeasurementController(TableController):
             self.model.something_changed.emit(True)
 
     def copy_noise_parameters(
-        self,
-        observable_id: str,
-        condition_id: str | None = None
+        self, observable_id: str, condition_id: str | None = None
     ) -> str:
         """Copies noise parameter from measurements already in the table.
 
@@ -574,13 +626,15 @@ class MeasurementController(TableController):
         """
         measurement_df = self.model.measurement._data_frame
         matching_rows = measurement_df[
-            measurement_df["observableId"] == observable_id]
+            measurement_df["observableId"] == observable_id
+        ]
         if matching_rows.empty:
             return ""
         if not condition_id:
             return matching_rows["noiseParameters"].iloc[0]
         preferred_row = matching_rows[
-            matching_rows["simulationConditionId"] == condition_id]
+            matching_rows["simulationConditionId"] == condition_id
+        ]
         if not preferred_row.empty:
             return preferred_row["noiseParameters"].iloc[0]
         else:
@@ -598,7 +652,7 @@ class MeasurementController(TableController):
             self.view,
             "Open Data Matrix",
             "",
-            "CSV Files (*.csv);;TSV Files (*.tsv)"
+            "CSV Files (*.csv);;TSV Files (*.tsv)",
         )
         if file_name:
             self.process_data_matrix_file(file_name, "append")
@@ -629,20 +683,19 @@ class MeasurementController(TableController):
         except Exception as e:
             self.logger.log_message(
                 f"An error occurred while uploading the data matrix: {str(e)}",
-                color="red"
+                color="red",
             )
 
     def load_data_matrix(self, file_name, separator=None):
         """Loads in the data matrix. Checks for the 'time' column."""
-        data_matrix = pd.read_csv(
-            file_name, delimiter=separator
-        )
+        data_matrix = pd.read_csv(file_name, delimiter=separator)
         if not any(
-            col in data_matrix.columns for col in ["Time", "time", "t"]):
+            col in data_matrix.columns for col in ["Time", "time", "t"]
+        ):
             self.logger.log_message(
                 "Invalid File, the file must contain a 'Time' column. "
                 "Please ensure that the file contains a 'Time'",
-                color="red"
+                color="red",
             )
             return None
 
@@ -669,22 +722,24 @@ class MeasurementController(TableController):
                 data_matrix[["time", observable_id]],
                 observable_id,
                 condition_id,
-                preeq_id
+                preeq_id,
             )
 
     def add_measurement_rows(
-        self, data_matrix,
+        self,
+        data_matrix,
         observable_id,
         condition_id: str = "",
-        preeq_id: str = ""
+        preeq_id: str = "",
     ):
         """Adds multiple rows to the measurement table."""
         # check number of rows and signal row insertion
         rows = data_matrix.shape[0]
         # get current number of rows
         current_rows = self.model.get_df().shape[0]
-        self.model.insertRows(position=None,
-                              rows=rows)  # Fills the table with empty rows
+        self.model.insertRows(
+            position=None, rows=rows
+        )  # Fills the table with empty rows
         top_left = self.model.createIndex(current_rows, 0)
         for i_row, (_, row) in enumerate(data_matrix.iterrows()):
             self.model.fill_row(
@@ -694,15 +749,15 @@ class MeasurementController(TableController):
                     "time": row["time"],
                     "measurement": row[observable_id],
                     "simulationConditionId": condition_id,
-                    "preequilibrationConditionId": preeq_id
-                }
+                    "preequilibrationConditionId": preeq_id,
+                },
             )
         bottom, right = (x - 1 for x in self.model.get_df().shape)
         bottom_right = self.model.createIndex(bottom, right)
         self.model.dataChanged.emit(top_left, bottom_right)
         self.logger.log_message(
             f"Added {rows} measurements to the measurement table.",
-            color="green"
+            color="green",
         )
 
     def setup_completers(self):
@@ -715,45 +770,46 @@ class MeasurementController(TableController):
                 self.mother_controller.model.observable, "observableId"
             )
             table_view.setItemDelegateForColumn(
-                observableId_index,
-                self.completers["observableId"]
+                observableId_index, self.completers["observableId"]
             )
         # preequilibrationConditionId
         preequilibrationConditionId_index = self.model.return_column_index(
             "preequilibrationConditionId"
         )
         if preequilibrationConditionId_index > -1:
-            self.completers[
-                "preequilibrationConditionId"] = ColumnSuggestionDelegate(
-                self.mother_controller.model.condition, "conditionId"
+            self.completers["preequilibrationConditionId"] = (
+                ColumnSuggestionDelegate(
+                    self.mother_controller.model.condition, "conditionId"
+                )
             )
             table_view.setItemDelegateForColumn(
                 preequilibrationConditionId_index,
-                self.completers["preequilibrationConditionId"]
+                self.completers["preequilibrationConditionId"],
             )
         # simulationConditionId
         simulationConditionId_index = self.model.return_column_index(
             "simulationConditionId"
         )
         if simulationConditionId_index > -1:
-            self.completers[
-                "simulationConditionId"] = ColumnSuggestionDelegate(
-                self.mother_controller.model.condition, "conditionId"
+            self.completers["simulationConditionId"] = (
+                ColumnSuggestionDelegate(
+                    self.mother_controller.model.condition, "conditionId"
+                )
             )
             table_view.setItemDelegateForColumn(
                 simulationConditionId_index,
-                self.completers["simulationConditionId"]
+                self.completers["simulationConditionId"],
             )
         # noiseParameters
         noiseParameters_index = self.model.return_column_index(
-            "noiseParameters")
+            "noiseParameters"
+        )
         if noiseParameters_index > -1:
             self.completers["noiseParameters"] = SingleSuggestionDelegate(
                 self.model, "observableId", afix="sd_"
             )
             table_view.setItemDelegateForColumn(
-                noiseParameters_index,
-                self.completers["noiseParameters"]
+                noiseParameters_index, self.completers["noiseParameters"]
             )
 
 
@@ -771,15 +827,16 @@ class ConditionController(TableController):
 
         Only handles connections from within the table controllers.
         """
-        self.model.relevant_id_changed.connect(
-            self.maybe_rename_condition
-        )
-        self.overwritten_df.connect(
-            self.update_handler_model
-        )
+        self.model.relevant_id_changed.connect(self.maybe_rename_condition)
+        self.overwritten_df.connect(self.update_handler_model)
 
     @linter_wrapper
-    def check_petab_lint(self, row_data: pd.DataFrame = None, row_name: str = None, col_name: str = None):
+    def check_petab_lint(
+        self,
+        row_data: pd.DataFrame = None,
+        row_name: str = None,
+        col_name: str = None,
+    ):
         """Check a number of rows of the model with petablint."""
         if row_data is None:
             row_data = self.model.get_df()
@@ -797,23 +854,28 @@ class ConditionController(TableController):
         Opens a dialog to ask the user if they want to rename the conditions.
         If so, emits a signal to rename the conditions in the measurement_df.
         """
-        if old_id not in self.mother_controller.measurement_controller.model.get_df()["simulationConditionId"].values:
+        if (
+            old_id
+            not in self.mother_controller.measurement_controller.model.get_df()[
+                "simulationConditionId"
+            ].values
+        ):
             return
         reply = QMessageBox.question(
-            self.view, 'Rename Condition',
+            self.view,
+            "Rename Condition",
             f'Do you want to rename condition "{old_id}" to "{new_id}" '
-            f'in all measurements?',
+            f"in all measurements?",
             QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
+            QMessageBox.No,
         )
         if reply == QMessageBox.Yes:
             self.logger.log_message(
                 f"Renaming condition '{old_id}' to '{new_id}' in all "
                 f"measurements",
-                color="green"
+                color="green",
             )
             self.condition_2be_renamed.emit(old_id, new_id)
-
 
     def maybe_add_condition(self, condition_id, old_id=None):
         """Add a condition to the condition table if it does not exist yet."""
@@ -823,7 +885,7 @@ class ConditionController(TableController):
         self.model.insertRows(position=None, rows=1)
         self.model.fill_row(
             self.model.get_df().shape[0] - 1,
-            data={"conditionId": condition_id}
+            data={"conditionId": condition_id},
         )
         self.model.cell_needs_validation.emit(
             self.model.get_df().shape[0] - 1, 0
@@ -831,7 +893,7 @@ class ConditionController(TableController):
         self.logger.log_message(
             f"Automatically added condition '{condition_id}' to the condition "
             f"table.",
-            color="green"
+            color="green",
         )
 
     def setup_completers(self):
@@ -841,10 +903,10 @@ class ConditionController(TableController):
         conditionName_index = self.model.return_column_index("conditionName")
         if conditionName_index > -1:
             self.completers["conditionName"] = SingleSuggestionDelegate(
-                self.model, "conditionId")
+                self.model, "conditionId"
+            )
             table_view.setItemDelegateForColumn(
-                conditionName_index,
-                self.completers["conditionName"]
+                conditionName_index, self.completers["conditionName"]
             )
         for column in self.model.get_df().columns:
             if column in ["conditionId", "conditionName"]:
@@ -855,8 +917,7 @@ class ConditionController(TableController):
                     self.model, column, QCompleter.PopupCompletion
                 )
                 table_view.setItemDelegateForColumn(
-                    column_index,
-                    self.completers[column]
+                    column_index, self.completers[column]
                 )
 
 
@@ -876,10 +937,10 @@ class ObservableController(TableController):
         observableName_index = self.model.return_column_index("observableName")
         if observableName_index > -1:
             self.completers["observableName"] = SingleSuggestionDelegate(
-                self.model, "observableId")
+                self.model, "observableId"
+            )
             table_view.setItemDelegateForColumn(
-                observableName_index,
-                self.completers["observableName"]
+                observableName_index, self.completers["observableName"]
             )
         # observableTransformation
         observableTransformation_index = self.model.return_column_index(
@@ -891,7 +952,7 @@ class ObservableController(TableController):
             )
             table_view.setItemDelegateForColumn(
                 observableTransformation_index,
-                self.completers["observableTransformation"]
+                self.completers["observableTransformation"],
             )
         # noiseFormula
         noiseFormula_index = self.model.return_column_index("noiseFormula")
@@ -900,8 +961,7 @@ class ObservableController(TableController):
                 self.model, "observableId", afix="noiseParameter1_"
             )
             table_view.setItemDelegateForColumn(
-                noiseFormula_index,
-                self.completers["noiseFormula"]
+                noiseFormula_index, self.completers["noiseFormula"]
             )
         # noiseDistribution
         noiseDistribution_index = self.model.return_column_index(
@@ -912,8 +972,7 @@ class ObservableController(TableController):
                 ["normal", "laplace"]
             )
             table_view.setItemDelegateForColumn(
-                noiseDistribution_index,
-                self.completers["noiseDistribution"]
+                noiseDistribution_index, self.completers["noiseDistribution"]
             )
 
     def setup_connections_specific(self):
@@ -921,15 +980,16 @@ class ObservableController(TableController):
 
         Only handles connections from within the table controllers.
         """
-        self.model.relevant_id_changed.connect(
-            self.maybe_rename_observable
-        )
-        self.overwritten_df.connect(
-            self.update_handler_model
-        )
+        self.model.relevant_id_changed.connect(self.maybe_rename_observable)
+        self.overwritten_df.connect(self.update_handler_model)
 
     @linter_wrapper
-    def check_petab_lint(self, row_data: pd.DataFrame = None, row_name: str = None, col_name: str = None):
+    def check_petab_lint(
+        self,
+        row_data: pd.DataFrame = None,
+        row_name: str = None,
+        col_name: str = None,
+    ):
         """Check a number of rows of the model with petablint."""
         if row_data is None:
             row_data = self.model.get_df()
@@ -941,20 +1001,26 @@ class ObservableController(TableController):
         Opens a dialog to ask the user if they want to rename the observables.
         If so, emits a signal to rename the observables in the measurement_df.
         """
-        if old_id not in self.mother_controller.measurement_controller.model.get_df()["observableId"].values:
+        if (
+            old_id
+            not in self.mother_controller.measurement_controller.model.get_df()[
+                "observableId"
+            ].values
+        ):
             return
         reply = QMessageBox.question(
-            self.view, 'Rename Observable',
+            self.view,
+            "Rename Observable",
             f'Do you want to rename observable "{old_id}" to "{new_id}" '
-            f'in all measurements?',
+            f"in all measurements?",
             QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
+            QMessageBox.No,
         )
         if reply == QMessageBox.Yes:
             self.logger.log_message(
                 f"Renaming observable '{old_id}' to '{new_id}' in all "
                 f"measurements",
-                color="green"
+                color="green",
             )
             # TODO: connect this signal with the measurement function
             self.observable_2be_renamed.emit(old_id, new_id)
@@ -970,7 +1036,7 @@ class ObservableController(TableController):
         self.model.insertRows(position=None, rows=1)
         self.model.fill_row(
             self.model.get_df().shape[0] - 1,
-            data={"observableId": observable_id}
+            data={"observableId": observable_id},
         )
         self.model.cell_needs_validation.emit(
             self.model.get_df().shape[0] - 1, 0
@@ -978,7 +1044,7 @@ class ObservableController(TableController):
         self.logger.log_message(
             f"Automatically added observable '{observable_id}' to the "
             f"observable table.",
-            color="green"
+            color="green",
         )
 
 
@@ -987,16 +1053,16 @@ class ParameterController(TableController):
 
     def setup_connections_specific(self):
         """Connect signals specific to the parameter controller."""
-        self.overwritten_df.connect(
-            self.update_handler_model
-        )
+        self.overwritten_df.connect(self.update_handler_model)
 
     def update_handler_model(self):
         """Update the handler model."""
         self.model.default_handler.model = self.model._data_frame
 
     def update_handler_sbml(self):
-        self.model.default_handler._sbml_model = self.mother_controller.model.sbml
+        self.model.default_handler._sbml_model = (
+            self.mother_controller.model.sbml
+        )
 
     def setup_completers(self):
         """Set completers for the parameter table."""
@@ -1005,10 +1071,10 @@ class ParameterController(TableController):
         parameterName_index = self.model.return_column_index("parameterName")
         if parameterName_index > -1:
             self.completers["parameterName"] = SingleSuggestionDelegate(
-                self.model, "parameterId")
+                self.model, "parameterId"
+            )
             table_view.setItemDelegateForColumn(
-                parameterName_index,
-                self.completers["parameterName"]
+                parameterName_index, self.completers["parameterName"]
             )
         # parameterScale
         parameterScale_index = self.model.return_column_index("parameterScale")
@@ -1017,8 +1083,7 @@ class ParameterController(TableController):
                 ["lin", "log", "log10"]
             )
             table_view.setItemDelegateForColumn(
-                parameterScale_index,
-                self.completers["parameterScale"]
+                parameterScale_index, self.completers["parameterScale"]
             )
         # lowerBound
         lowerBound_index = self.model.return_column_index("lowerBound")
@@ -1027,8 +1092,7 @@ class ParameterController(TableController):
                 self.model, "lowerBound", QCompleter.PopupCompletion
             )
             table_view.setItemDelegateForColumn(
-                lowerBound_index,
-                self.completers["lowerBound"]
+                lowerBound_index, self.completers["lowerBound"]
             )
         # upperBound
         upperBound_index = self.model.return_column_index("upperBound")
@@ -1037,34 +1101,33 @@ class ParameterController(TableController):
                 self.model, "upperBound", QCompleter.PopupCompletion
             )
             table_view.setItemDelegateForColumn(
-                upperBound_index,
-                self.completers["upperBound"]
+                upperBound_index, self.completers["upperBound"]
             )
         # estimate
         estimate_index = self.model.return_column_index("estimate")
         if estimate_index > -1:
-            self.completers["estimate"] = ComboBoxDelegate(
-                ["1", "0"]
-            )
+            self.completers["estimate"] = ComboBoxDelegate(["1", "0"])
             table_view.setItemDelegateForColumn(
-                estimate_index,
-                self.completers["estimate"]
+                estimate_index, self.completers["estimate"]
             )
         # parameterId: retrieved from the sbml model
         parameterId_index = self.model.return_column_index("parameterId")
         sbml_model = self.mother_controller.model.sbml
         if parameterId_index > -1:
             self.completers["parameterId"] = ParameterIdSuggestionDelegate(
-                par_model=self.model,
-                sbml_model=sbml_model
+                par_model=self.model, sbml_model=sbml_model
             )
             table_view.setItemDelegateForColumn(
-                parameterId_index,
-                self.completers["parameterId"]
+                parameterId_index, self.completers["parameterId"]
             )
 
     @linter_wrapper(additional_error_check=True)
-    def check_petab_lint(self, row_data: pd.DataFrame = None, row_name: str = None, col_name: str = None):
+    def check_petab_lint(
+        self,
+        row_data: pd.DataFrame = None,
+        row_name: str = None,
+        col_name: str = None,
+    ):
         """Check a number of rows of the model with petablint."""
         if row_data is None:
             row_data = self.model.get_df()
