@@ -557,6 +557,7 @@ class MainController:
 
     def _open_file(self, actionable, file_path, sep, mode):
         """Overwrites the File in the appropriate controller.
+
         Actionable dictates which controller to use.
         """
         if actionable == "yaml":

@@ -23,6 +23,7 @@ class DefaultHandlerModel:
     def __init__(self, model, config, sbml_model=None):
         """
         Initialize the handler for the model.
+
         :param model: The PandasTable Model containing the Data.
         :param config: Dictionary containing strategies and settings for each column.
         """
@@ -42,6 +43,7 @@ class DefaultHandlerModel:
     ):
         """
         Get the default value for a column based on its strategy.
+
         :param column_name: The name of the column to compute the default for.
         :param row_index: Optional index of the row (needed for some strategies).
         :param par_scale: Optional parameter scale (needed for some strategies).

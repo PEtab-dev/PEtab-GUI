@@ -1,5 +1,4 @@
-"""Create a SettingsManager class to handle application settings with
-persistent storage.
+"""SettingsManager class to handle application setting's persistent storage.
 
 Creates a single instance that will be imported and used.
 """
@@ -126,6 +125,8 @@ class ColumnConfigWidget(QWidget):
         self, column_name, config, table_columns, strategies=None, parent=None
     ):
         """
+        Initialize the column configuration widget.
+
         :param column_name: Name of the column
         :param config: Dictionary containing settings for the column
         :param table_columns: List of columns in the same table (used for dropdown)
@@ -232,6 +233,8 @@ class TableDefaultsWidget(QWidget):
 
     def __init__(self, table_name, table_columns, settings, parent=None):
         """
+        Initialize the table defaults widget.
+
         :param table_name: The name of the table
         :param table_columns: List of column names in this table
         :param settings: Dictionary of settings for this table

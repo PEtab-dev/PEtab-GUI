@@ -118,6 +118,7 @@ class PandasTableModel(QAbstractTableModel):
     def insertRows(self, position, rows, parent=QModelIndex()) -> bool:
         """
         Insert new rows at the end of the DataFrame in-place.
+
         This function always adds rows at the end.
 
         Parameters:
