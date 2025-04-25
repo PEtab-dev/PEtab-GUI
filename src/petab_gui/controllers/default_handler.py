@@ -25,7 +25,7 @@ class DefaultHandlerModel:
         Initialize the handler for the model.
 
         :param model: The PandasTable Model containing the Data.
-        :param config: Dictionary containing strategies and settings for each 
+        :param config: Dictionary containing strategies and settings for each
             column.
         """
         self._model = model
@@ -46,11 +46,11 @@ class DefaultHandlerModel:
         Get the default value for a column based on its strategy.
 
         :param column_name: The name of the column to compute the default for.
-        :param row_index: Optional index of the row (needed for some 
+        :param row_index: Optional index of the row (needed for some
             strategies).
-        :param par_scale: Optional parameter scale (needed for some 
+        :param par_scale: Optional parameter scale (needed for some
             strategies).
-        :param changed: Optional tuple containing the column name and index of 
+        :param changed: Optional tuple containing the column name and index of
             the changed cell.
         :return: The computed default value.
         """

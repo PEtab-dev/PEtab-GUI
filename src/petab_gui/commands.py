@@ -9,9 +9,20 @@ pd.set_option("future.no_silent_downcasting", True)
 
 
 class ModifyColumnCommand(QUndoCommand):
-    """Command to add a column to the table."""
+    """Command to add or remove a column in the table.
+
+    This command is used for undo/redo functionality when adding or removing
+    columns in a table model.
+    """
 
     def __init__(self, model, column_name, add_mode: bool = True):
+        """Initialize the command for adding or removing a column.
+
+        Args:
+            model: The table model to modify
+            column_name: The name of the column to add or remove
+            add_mode: If True, add a column; if False, remove a column
+        """
         action = "Add" if add_mode else "Remove"
         super().__init__(
             f"{action} column {column_name} in table {model.table_type}"
@@ -27,6 +38,11 @@ class ModifyColumnCommand(QUndoCommand):
             self.old_values = model._data_frame[column_name].copy()
 
     def redo(self):
+        """Execute the command to add or remove a column.
+
+        If in add mode, adds a new column to the table.
+        If in remove mode, removes the specified column from the table.
+        """
         if self.add_mode:
             position = self.model._data_frame.shape[1]
             self.model.beginInsertColumns(QModelIndex(), position, position)
@@ -43,6 +59,11 @@ class ModifyColumnCommand(QUndoCommand):
             self.model.endRemoveColumns()
 
     def undo(self):
+        """Undo the command, reversing the add or remove operation.
+
+        If the original command was to add a column, this removes it.
+        If the original command was to remove a column, this restores it.
+        """
         if self.add_mode:
             position = self.model._data_frame.columns.get_loc(self.column_name)
             self.model.beginRemoveColumns(QModelIndex(), position, position)
@@ -59,11 +80,23 @@ class ModifyColumnCommand(QUndoCommand):
 
 
 class ModifyRowCommand(QUndoCommand):
-    """Command to add a row to the table."""
+    """Command to add or remove rows in the table.
+
+    This command is used for undo/redo functionality when adding or removing
+    rows in a table model.
+    """
 
     def __init__(
         self, model, row_indices: list[int] | int, add_mode: bool = True
     ):
+        """Initialize the command for adding or removing rows.
+
+        Args:
+            model: The table model to modify
+            row_indices: If add_mode is True, the number of rows to add.
+                         If add_mode is False, the indices of rows to remove.
+            add_mode: If True, add rows; if False, remove rows
+        """
         action = "Add" if add_mode else "Remove"
         super().__init__(f"{action} row(s) in table {model.table_type}")
         self.model = model
@@ -100,6 +133,11 @@ class ModifyRowCommand(QUndoCommand):
         return indices
 
     def redo(self):
+        """Execute the command to add or remove rows.
+
+        If in add mode, adds new rows to the table.
+        If in remove mode, removes the specified rows from the table.
+        """
         df = self.model._data_frame
 
         if self.add_mode:
@@ -118,6 +156,11 @@ class ModifyRowCommand(QUndoCommand):
             self.model.endRemoveRows()
 
     def undo(self):
+        """Undo the command, reversing the add or remove operation.
+
+        If the original command was to add rows, this removes them.
+        If the original command was to remove rows, this restores them.
+        """
         df = self.model._data_frame
 
         if self.add_mode:
@@ -150,20 +193,44 @@ class ModifyRowCommand(QUndoCommand):
 
 
 class ModifyDataFrameCommand(QUndoCommand):
+    """Command to modify values in a DataFrame.
+
+    This command is used for undo/redo functionality when modifying cell values
+    in a table model.
+    """
+
     def __init__(
         self, model, changes: dict[tuple, tuple], description="Modify values"
     ):
+        """Initialize the command for modifying DataFrame values.
+
+        Args:
+        model:
+            The table model to modify
+        changes:
+            A dictionary mapping (row_key, column_name) to (old_val, new_val)
+        description:
+            A description of the command for the undo stack
+        """
         super().__init__(description)
         self.model = model
         self.changes = changes  # {(row_key, column_name): (old_val, new_val)}
 
     def redo(self):
+        """Execute the command to apply the new values."""
         self._apply_changes(use_new=True)
 
     def undo(self):
+        """Undo the command to restore the old values."""
         self._apply_changes(use_new=False)
 
     def _apply_changes(self, use_new: bool):
+        """Apply changes to the DataFrame.
+
+        Args:
+        use_new:
+            If True, apply the new values; if False, restore the old values
+        """
         df = self.model._data_frame
         col_offset = 1 if self.model._has_named_index else 0
         original_dtypes = df.dtypes.copy()
@@ -202,7 +269,21 @@ class ModifyDataFrameCommand(QUndoCommand):
 
 
 class RenameIndexCommand(QUndoCommand):
+    """Command to rename an index in a DataFrame.
+
+    This command is used for undo/redo functionality when renaming row indices
+    in a table model.
+    """
+
     def __init__(self, model, old_index, new_index, model_index):
+        """Initialize the command for renaming an index.
+
+        Args:
+            model: The table model to modify
+            old_index: The original index name
+            new_index: The new index name
+            model_index: The QModelIndex of the cell being edited
+        """
         super().__init__(f"Rename index {old_index} → {new_index}")
         self.model = model
         self.model_index = model_index
@@ -210,12 +291,20 @@ class RenameIndexCommand(QUndoCommand):
         self.new_index = new_index
 
     def redo(self):
+        """Execute the command to rename the index."""
         self._apply(self.old_index, self.new_index)
 
     def undo(self):
+        """Undo the command to restore the original index name."""
         self._apply(self.new_index, self.old_index)
 
     def _apply(self, src, dst):
+        """Apply the rename operation.
+
+        Args:
+            src: The source index name to rename
+            dst: The destination index name
+        """
         df = self.model._data_frame
         df.rename(index={src: dst}, inplace=True)
         self.model.dataChanged.emit(

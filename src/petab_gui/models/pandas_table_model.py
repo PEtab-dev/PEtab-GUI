@@ -27,7 +27,13 @@ from ..utils import (
 
 
 class PandasTableModel(QAbstractTableModel):
-    """Basic table model for a pandas DataFrame."""
+    """Basic table model for a pandas DataFrame.
+
+    This class provides a Qt model interface for pandas DataFrames,
+    allowing them to be displayed and edited in Qt table views. It handles
+    data access, modification, and various table operations like
+    adding/removing rows and columns.
+    """
 
     # Signals
     relevant_id_changed = Signal(str, str, str)  # new_id, old_id, type
@@ -44,6 +50,20 @@ class PandasTableModel(QAbstractTableModel):
         undo_stack=None,
         parent=None,
     ):
+        """Initialize the pandas table model.
+
+        Args:
+        data_frame:
+            The pandas DataFrame to be displayed in the table
+        allowed_columns:
+            Dictionary of allowed columns with their properties
+        table_type:
+            The type of table (e.g., 'observable', 'parameter', 'condition')
+        undo_stack:
+            Optional QUndoStack for undo/redo functionality
+        parent:
+            The parent QObject
+        """
         super().__init__(parent)
         self._allowed_columns = allowed_columns
         self.table_type = table_type
@@ -64,17 +84,50 @@ class PandasTableModel(QAbstractTableModel):
         self.undo_stack = undo_stack
 
     def rowCount(self, parent=None):
+        """Return the number of rows in the model.
+
+        Includes an extra row at the end for adding new entries.
+
+        Args:
+            parent: The parent model index (unused in table models)
+
+        Returns:
+            int: The number of rows in the model
+        """
         if parent is None:
             parent = QModelIndex()
         return self._data_frame.shape[0] + 1  # empty row at the end
 
     def columnCount(self, parent=None):
+        """Return the number of columns in the model.
+
+        Includes any column offset (e.g., for index column).
+
+        Args:
+            parent: The parent model index (unused in table models)
+
+        Returns:
+            int: The number of columns in the model
+        """
         if parent is None:
             parent = QModelIndex()
         return self._data_frame.shape[1] + self.column_offset
 
     def data(self, index, role=Qt.DisplayRole):
-        """Return the data at the given index and role for the View."""
+        """Return the data at the given index and role for the View.
+
+        Handles different roles:
+        - DisplayRole/EditRole: Returns the cell value as a string
+        - BackgroundRole: Returns the background color for the cell
+        - ForegroundRole: Returns the text color for the cell
+
+        Args:
+            index: The model index to get data for
+            role: The data role (DisplayRole, EditRole, BackgroundRole, etc.)
+
+        Returns:
+            The requested data for the given index and role, or None
+        """
         if not index.isValid():
             return None
         row, column = index.row(), index.column()
@@ -100,13 +153,36 @@ class PandasTableModel(QAbstractTableModel):
         return None
 
     def flags(self, index):
-        """Return whether cells are editable and selectable."""
+        """Return the item flags for the given index.
+
+        Determines whether cells are editable, selectable, and enabled.
+
+        Args:
+            index: The model index to get flags for
+
+        Returns:
+            Qt.ItemFlags: The flags for the given index
+        """
         if not index.isValid():
             return Qt.ItemIsEnabled
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
-        """Return the header data for the given section, orientation."""
+        """Return the header data for the given section and orientation.
+
+        Provides column and row headers for the table view.
+
+        Args:
+        section:
+            The row or column number
+        orientation:
+            Qt.Horizontal for column headers, Qt.Vertical for row headers
+        role:
+            The data role (usually DisplayRole)
+
+        Returns:
+            The header text for the given section and orientation, or None.
+        """
         if role != Qt.DisplayRole:
             return None
         if orientation == Qt.Horizontal:
@@ -142,7 +218,21 @@ class PandasTableModel(QAbstractTableModel):
         return True
 
     def insertColumn(self, column_name: str):
-        """Always add the column inplace at the right (end) of the table."""
+        """Add a new column to the table.
+
+        Always adds the column at the right (end) of the table. Checks if the
+        column already exists or if it's not in the allowed columns list.
+
+        Args:
+            column_name: The name of the column to add
+
+        Returns:
+            bool: True if the column was added successfully, False otherwise
+
+        Notes:
+            If the column is not in the allowed columns list, a warning message
+            is emitted but the column is still added.
+        """
         if column_name in self._data_frame.columns:
             self.new_log_message.emit(
                 f"Column '{column_name}' already exists", "red"
@@ -170,6 +260,21 @@ class PandasTableModel(QAbstractTableModel):
     def setData(
         self, index, value, role=Qt.EditRole, check_multi: bool = True
     ):
+        """Set the data for a specific model index.
+
+        Updates the value at the given index in the model. If multiple rows are
+        selected and check_multi is True, applies the change to all selected
+        cells in the same column.
+
+        Args:
+            index: The model index to set data for
+            value: The new value to set
+            role: The data role (usually EditRole)
+            check_multi: Whether to check for multi-row selection
+
+        Returns:
+            bool: True if the data was set successfully, False otherwise
+        """
         if not (index.isValid() and role == Qt.EditRole):
             return False
 
@@ -196,7 +301,19 @@ class PandasTableModel(QAbstractTableModel):
         return all(all_set)
 
     def _set_data_single(self, index, value):
-        """Set the data of a single cell."""
+        """Set the data of a single cell.
+
+        Internal method used by setData to update a single cell's value.
+        Handles special cases like new row creation, named index columns,
+        and type validation.
+
+        Args:
+            index: The model index to set data for
+            value: The new value to set
+
+        Returns:
+            bool: True if the data was set successfully, False otherwise
+        """
         row, column = index.row(), index.column()
         fill_with_defaults = False
 
@@ -276,7 +393,19 @@ class PandasTableModel(QAbstractTableModel):
     def _push_change_and_notify(
         self, row, column, column_name, old_value, new_value
     ):
-        """Push a dataframe change to undo stack and signal."""
+        """Push a dataframe change to the undo stack and emit signals.
+
+        Creates a ModifyDataFrameCommand for the change and adds it to the
+        undo stack. Also emits signals to notify views and other components
+        about the change.
+
+        Args:
+            row: The row index in the dataframe
+            column: The column index in the view
+            column_name: The name of the column being changed
+            old_value: The previous value in the cell
+            new_value: The new value to set in the cell
+        """
         change = {
             (self._data_frame.index[row], column_name): (old_value, new_value)
         }
@@ -288,7 +417,15 @@ class PandasTableModel(QAbstractTableModel):
         self.something_changed.emit(True)
 
     def clear_cells(self, selected):
-        """Clear the selected cells."""
+        """Clear the values in the selected cells.
+
+        Sets all selected cells to None (empty) and groups the changes into a
+        single undo command for better undo/redo functionality.
+
+        Args:
+        selected:
+            A list of QModelIndex objects representing the selected cells
+        """
         self.undo_stack.beginMacro("Clear cells")
         for index in selected:
             if index.isValid():
@@ -296,23 +433,47 @@ class PandasTableModel(QAbstractTableModel):
         self.undo_stack.endMacro()
 
     def handle_named_index(self, index, value):
-        """Handle the named index column."""
+        """Handle changes to the named index column.
+
+        This is a placeholder method in the base class. Subclasses that use
+        named indices (like IndexedPandasTableModel) override this method to
+        implement the actual behavior.
+
+        Args:
+            index: The model index of the cell being edited
+            value: The new value for the index
+
+        Returns:
+            bool: True if the index was successfully changed, False otherwise
+        """
         pass
 
     def get_default_values(self, index, changed: dict | None = None):
-        """Return the default values for the row in a new index.
+        """Fill a row with default values based on the table's configuration.
 
-        Parameters
-        ----------
-        index: QModelIndex, index where the first change occurs
-        changed:
-            The changes made to the DataFrame not yet registered
+        This is a placeholder method in the base class. Subclasses override
+        this method to implement the actual behavior for filling default
+        values.
+
+        Args:
+            index: The model index where the first change occurs
+            changed: Dictionary of changes made to the DataFrame not yet registered
         """
         pass
 
     def replace_text(self, old_text: str, new_text: str):
-        """Replace text in the table."""
-        # find all occurences of old_text and sae indices
+        """Replace all occurrences of a text string in the table.
+
+        Searches for and replaces all instances of old_text with new_text in
+        both the data cells and index values (if using named indices).
+        Efficiently updates the view by emitting dataChanged signals only
+        for the affected cells.
+
+        Args:
+            old_text: The text to search for
+            new_text: The text to replace it with
+        """
+        # find all occurrences of old_text and save indices
         mask = self._data_frame.eq(old_text)
         if mask.any().any():
             self._data_frame.replace(old_text, new_text, inplace=True)
@@ -340,11 +501,26 @@ class PandasTableModel(QAbstractTableModel):
             )
 
     def get_df(self):
-        """Return the DataFrame."""
+        """Return the underlying pandas DataFrame.
+
+        Provides direct access to the DataFrame that this model wraps.
+
+        Returns:
+            pd.DataFrame: The DataFrame containing the table data
+        """
         return self._data_frame
 
     def add_invalid_cell(self, row, column):
-        """Add an invalid cell to the set."""
+        """Mark a cell as invalid, giving it a special background color.
+
+        Adds the cell coordinates to the _invalid_cells set and triggers a UI
+        update to show the cell with an error background color. Performs
+        several validity checks before adding the cell.
+
+        Args:
+            row: The row index of the cell
+            column: The column index of the cell
+        """
         # check that the index is valid
         if not self.index(row, column).isValid():
             return
@@ -362,7 +538,15 @@ class PandasTableModel(QAbstractTableModel):
         )
 
     def discard_invalid_cell(self, row, column):
-        """Discard an invalid cell from the set."""
+        """Remove a cell from the invalid cells set, restoring its state.
+
+        Removes the cell coordinates from the _invalid_cells set and triggers
+        a UI update to restore the cell's normal background color.
+
+        Args:
+            row: The row index of the cell
+            column: The column index of the cell
+        """
         self._invalid_cells.discard((row, column))
         self.dataChanged.emit(
             self.index(row, column),
@@ -371,7 +555,19 @@ class PandasTableModel(QAbstractTableModel):
         )
 
     def update_invalid_cells(self, selected, mode: str = "rows"):
-        """Edits the invalid cells when values are deleted."""
+        """Update invalid cell coordinates when rows or columns are deleted.
+
+        When rows or columns are deleted, the coordinates of invalid cells need
+        to be adjusted to account for the shifted indices. This method
+        recalculates the coordinates of all invalid cells based on the
+        deleted indices.
+
+        Args:
+        selected:
+            A set or list of indices (row or column) that are being deleted
+        mode:
+            Either "rows" or "columns" to indicate what is being deleted
+        """
         if not selected:
             return
         old_invalid_cells = self._invalid_cells.copy()
@@ -395,7 +591,15 @@ class PandasTableModel(QAbstractTableModel):
         self._invalid_cells = new_invalid_cells
 
     def notify_data_color_change(self, row, column):
-        """Notify the view to change the color of some cells."""
+        """Notify the view that a cell's background color needs to be updated.
+
+        Emits a dataChanged signal with the BackgroundRole to trigger the view
+        to redraw the cell with its current background color.
+
+        Args:
+            row: The row index of the cell
+            column: The column index of the cell
+        """
         self.dataChanged.emit(
             self.index(row, column),
             self.index(row, column),
@@ -403,7 +607,18 @@ class PandasTableModel(QAbstractTableModel):
         )
 
     def get_value_from_column(self, column_name, row):
-        """Retrieve the value from a specific column and row."""
+        """Retrieve the value from a specific column and row in the DataFrame.
+
+        Handles special cases like the "new row" at the end of the table and
+        accessing values from the index column.
+
+        Args:
+            column_name: The name of the column to get the value from
+            row: The row index to get the value from
+
+        Returns:
+            The value at the specified column and row, or an empty string
+        """
         # if row is a new row return ""
         if row == self._data_frame.shape[0]:
             return ""
@@ -414,11 +629,32 @@ class PandasTableModel(QAbstractTableModel):
         return ""
 
     def return_column_index(self, column_name):
-        """Return the index of a column. Defined in Subclasses."""
+        """Return the view column index for a given column name.
+
+        This is a placeholder method in the base class. Subclasses override
+        this method to implement the actual behavior for mapping column
+        names to view indices.
+
+        Args:
+            column_name: The name of the column to find the index for
+
+        Returns:
+            int: The view column index for the given column name, or -1
+        """
         pass
 
     def unique_values(self, column_name):
-        """Return the unique values in a column."""
+        """Return a list of unique values in a specified column.
+
+        Used for providing suggestions in autocomplete fields/dropdown lists.
+        Handles both regular columns and the index column.
+
+        Args:
+            column_name: The name of the column to get unique values from
+
+        Returns:
+            list: A list of unique values from the column, or an empty list
+        """
         if column_name in self._data_frame.columns:
             return list(self._data_frame[column_name].dropna().unique())
         if column_name == self._data_frame.index.name:
@@ -426,7 +662,14 @@ class PandasTableModel(QAbstractTableModel):
         return []
 
     def delete_row(self, row):
-        """Delete a row from the table."""
+        """Delete a row from the table.
+
+        Creates a ModifyRowCommand for the deletion and adds it to the stack
+        to support undo/redo functionality.
+
+        Args:
+            row: The index of the row to delete
+        """
         if self.undo_stack:
             self.undo_stack.push(ModifyRowCommand(self, row, False))
         else:
@@ -435,7 +678,15 @@ class PandasTableModel(QAbstractTableModel):
             command.redo()
 
     def delete_column(self, column_index):
-        """Delete a column from the DataFrame."""
+        """Delete a column from the table.
+
+        Maps the view column index to the actual DataFrame column name and
+        creates a ModifyColumnCommand for the deletion. Adds the command to
+        the stack to support undo/redo functionality.
+
+        Args:
+            column_index: The view index of the column to delete
+        """
         column_name = self._data_frame.columns[
             column_index - self.column_offset
         ]
@@ -447,22 +698,38 @@ class PandasTableModel(QAbstractTableModel):
             command.redo()
 
     def clear_table(self):
-        """Clear the table."""
+        """Clear all data from the table."""
         self.beginResetModel()
         self._data_frame.drop(self._data_frame.index, inplace=True)
         self.endResetModel()
 
     def check_selection(self):
-        """Check if multiple rows but only one column is selected."""
+        """Check if multiple rows but only one column is selected in the view.
+
+        Used to determine if a multi-row edit operation should be performed,
+        when setting data. This allows for efficiently applying the same
+        change to multiple cells in the same column.
+
+        Returns:
+            tuple: A tuple containing:
+                - bool: True if multiple rows but only one column is selected
+                - list: The list of selected QModelIndex objects, or None
+        """
         if self.view is None:
-            return False
+            return False, None
         selected = get_selected(self.view, mode="index")
         cols = {index.column() for index in selected}
         rows = {index.row() for index in selected}
         return len(rows) > 1 and len(cols) == 1, selected
 
     def reset_invalid_cells(self):
-        """Reset the invalid cells and update their background color."""
+        """Clear all invalid cell markings and update their appearance.
+
+        Removes all cells from the _invalid_cells set and triggers UI updates
+        to restore their normal background colors.
+        This is useful when reloading data or when validation state needs to be
+         reset.
+        """
         if not self._invalid_cells:
             return
 
@@ -476,14 +743,18 @@ class PandasTableModel(QAbstractTableModel):
     def mimeData(self, rectangle, start_index):
         """Return the data to be copied to the clipboard.
 
-        Parameters
-        ----------
-        rectangle: np.ndarray
-            The rectangle of selected cells. Creates a minimum rectangle
-            around all selected cells and is True if the cell is selected.
-        start_index: (int, int)
-            The start index of the selection. Used to determine the location
-            of the copied data.
+        Formats the selected cells' data as tab-separated text for clipboard
+        operations.
+
+        Args:
+        rectangle:
+            A numpy array representing the selected cells, where True values
+            indicate selected cells within the minimum bounding rectangle
+        start_index:
+            A tuple (row, col) indicating the top-left corner of the selection
+
+        Returns:
+            QMimeData: A mime data object containing the formatted text data
         """
         copied_data = ""
         for row in range(rectangle.shape[0]):
@@ -503,7 +774,17 @@ class PandasTableModel(QAbstractTableModel):
         return mime_data
 
     def setDataFromText(self, text, start_row, start_column):
-        """Set the data from text."""
+        """Set table data from tab-separated text.
+
+        Used for pasting clipboard content into the table. Parses the text as
+        tab-separated values and sets the data in the table starting from the
+        specified position. Groups all changes into a single undo command.
+
+        Args:
+            text: The tab-separated text to parse and set in the table
+            start_row: The row index where to start setting data
+            start_column: The column index where to start setting data
+        """
         lines = text.split("\n")
         self.undo_stack.beginMacro("Paste from Clipboard")
         self.maybe_add_rows(start_row, len(lines))
@@ -522,7 +803,15 @@ class PandasTableModel(QAbstractTableModel):
         self.undo_stack.endMacro()
 
     def maybe_add_rows(self, start_row, n_rows):
-        """Add rows if needed."""
+        """Add rows to the table if there aren't enough.
+
+        Used during paste operations to ensure there are enough rows for the
+        pasted data. Adds rows if the current number of rows is insufficient.
+
+        Args:
+            start_row: The row index where data insertion begins
+            n_rows: The number of rows needed for the data
+        """
         if start_row + n_rows > self._data_frame.shape[0]:
             self.insertRows(
                 self._data_frame.shape[0],
@@ -530,12 +819,20 @@ class PandasTableModel(QAbstractTableModel):
             )
 
     def determine_background_color(self, row, column):
-        """Determine the background color of a cell.
+        """Determine the background color for a specific cell.
 
-        1. If it is the first column and last row, return light green.
-        2. If it is an invalid cell, return red
-        3. If it is an even row return light blue
-        4. Otherwise return light green
+        Applies different background colors based on cell properties:
+        - Light green for the "New row" cell (first column of last row)
+        - System highlight color for cells that match search criteria
+        - Red for cells marked as invalid
+        - Alternating light blue and light green for even/odd rows
+
+        Args:
+            row: The row index of the cell
+            column: The column index of the cell
+
+        Returns:
+            QColor: The background color to use for the cell
         """
         if (row, column) == (self._data_frame.shape[0], 0):
             return QColor(144, 238, 144, 150)
@@ -548,7 +845,19 @@ class PandasTableModel(QAbstractTableModel):
         return QColor(177, 217, 231, 102)
 
     def allow_column_deletion(self, column: int) -> bool:
-        """Checks whether the column can safely be deleted."""
+        """Check whether a column can safely be deleted from the table.
+
+        Prevents deletion of required columns and the index column.
+        Used to validate column deletion requests before they are processed.
+
+        Args:
+            column: The view index of the column to check
+
+        Returns:
+            tuple: A tuple containing:
+                - bool: True if the column can be deleted, False otherwise
+                - str: The name of the column
+        """
         if column == 0 and self._has_named_index:
             return False, self._data_frame.index.name
         column_name = self._data_frame.columns[column - self.column_offset]
@@ -629,10 +938,7 @@ class IndexedPandasTableModel(PandasTableModel):
         """Return the default values for a the row in a new index."""
         row_idx = index.row()
         df = self._data_frame
-        if isinstance(row_idx, int):
-            row_key = df.index[row_idx]
-        else:
-            row_key = row_idx
+        row_key = df.index[row_idx] if isinstance(row_idx, int) else row_idx
         changes = {}
         rename_needed = False
         old_index = row_key
@@ -646,7 +952,7 @@ class IndexedPandasTableModel(PandasTableModel):
             columns_with_index.insert(1, "parameterScale")
 
         for colname in columns_with_index:
-            if changed and colname in changed.keys():
+            if changed and colname in changed:
                 continue
             if colname == df.index.name:
                 # Generate default index name if empty
@@ -754,14 +1060,11 @@ class MeasurementModel(PandasTableModel):
         """Fill missing values in a row without modifying the index."""
         row = index.row()
         df = self._data_frame
-        if isinstance(row, int):
-            row_key = self._data_frame.index[row]
-        else:
-            row_key = row
+        row_key = self._data_frame.index[row] if isinstance(row, int) else row
 
         changes = {}
         for colname in df.columns:
-            if colname in changed.keys():
+            if colname in changed:
                 continue
             default = self.default_handler.get_default(colname, row_key)
             changes[(row_key, colname)] = ("", default)

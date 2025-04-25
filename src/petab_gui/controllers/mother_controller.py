@@ -445,7 +445,7 @@ class MainController:
         return True
 
     def handle_selection_changed(self):
-        """Update the plot when the selection in the measurement table changes."""
+        """Update the plot when selection in the measurement table changes."""
         self.update_plot()
 
     def handle_data_changed(self, top_left, bottom_right, roles):
@@ -489,7 +489,7 @@ class MainController:
 
         measurement_data = self.model.measurement._data_frame
         plot_data = {"all_data": [], "selected_points": selected_points}
-        for observable_id in selected_points.keys():
+        for observable_id in selected_points:
             observable_data = measurement_data[
                 measurement_data["observableId"] == observable_id
             ]
