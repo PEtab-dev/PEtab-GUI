@@ -238,7 +238,7 @@ class TableController(QObject):
         self.model.something_changed.emit(True)
 
     def add_row(self):
-        """Add a row to the datatable"""
+        """Add a row to the datatable."""
         row_count = self.model.rowCount() - 1
         if self.model.insertRows(row_count, 1):
             new_row_index = self.model.index(row_count, 0)
@@ -282,7 +282,7 @@ class TableController(QObject):
         self.model.something_changed.emit(True)
 
     def add_column(self, column_name: str = None):
-        """Add a column to the datatable"""
+        """Add a column to the datatable."""
         if not column_name:
             column_name, ok = QInputDialog.getText(
                 self.view, "Add Column", "Enter the name of the new column:"
@@ -292,7 +292,7 @@ class TableController(QObject):
         self.model.insertColumn(column_name)
 
     def clear_cells(self):
-        """Clear all selected cells"""
+        """Clear all selected cells."""
         selected = get_selected(self.view.table_view, mode=INDEX)
         self.model.clear_cells(selected)
 

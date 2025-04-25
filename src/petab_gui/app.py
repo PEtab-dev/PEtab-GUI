@@ -22,7 +22,7 @@ def find_example(path: Path) -> Path:
 
 
 def get_icon() -> QIcon:
-    """Get the Icon for the Window"""
+    """Get the Icon for the Window."""
     icon_path = files("petab_gui.assets").joinpath("PEtab.png")
     if not icon_path.is_file():
         raise FileNotFoundError(f"Icon file not found: {icon_path}")

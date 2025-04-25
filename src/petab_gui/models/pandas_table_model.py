@@ -96,13 +96,13 @@ class PandasTableModel(QAbstractTableModel):
         return None
 
     def flags(self, index):
-        """Return whether cells are editable and selectable"""
+        """Return whether cells are editable and selectable."""
         if not index.isValid():
             return Qt.ItemIsEnabled
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
-        """Return the header data for the given section, orientation"""
+        """Return the header data for the given section, orientation."""
         if role != Qt.DisplayRole:
             return None
         # role == Qt.DisplayRole
@@ -139,10 +139,7 @@ class PandasTableModel(QAbstractTableModel):
         return True
 
     def insertColumn(self, column_name: str):
-        """
-        Override insertColumn to always add the column at the right (end) of the table,
-        and do so in-place on the DataFrame.
-        """
+        """Always add the column inplace at the right (end) of the table."""
         if column_name in self._data_frame.columns:
             self.new_log_message.emit(
                 f"Column '{column_name}' already exists", "red"
@@ -276,7 +273,7 @@ class PandasTableModel(QAbstractTableModel):
     def _push_change_and_notify(
         self, row, column, column_name, old_value, new_value
     ):
-        """Push a dataframe change to undo stack and notify view + validation."""
+        """Push a dataframe change to undo stack and signal."""
         change = {
             (self._data_frame.index[row], column_name): (old_value, new_value)
         }
@@ -395,7 +392,7 @@ class PandasTableModel(QAbstractTableModel):
         self._invalid_cells = new_invalid_cells
 
     def notify_data_color_change(self, row, column):
-        """Notify the view to change the color of some cells"""
+        """Notify the view to change the color of some cells."""
         self.dataChanged.emit(
             self.index(row, column),
             self.index(row, column),
@@ -414,7 +411,7 @@ class PandasTableModel(QAbstractTableModel):
         return ""
 
     def return_column_index(self, column_name):
-        """Return the index of a column. Defined in Subclasses"""
+        """Return the index of a column. Defined in Subclasses."""
         pass
 
     def unique_values(self, column_name):
@@ -548,7 +545,7 @@ class PandasTableModel(QAbstractTableModel):
         return QColor(177, 217, 231, 102)
 
     def allow_column_deletion(self, column: int) -> bool:
-        """Checks whether the column can safely be deleted"""
+        """Checks whether the column can safely be deleted."""
         if column == 0 and self._has_named_index:
             return False, self._data_frame.index.name
         column_name = self._data_frame.columns[column - self.column_offset]
@@ -795,7 +792,7 @@ class MeasurementModel(PandasTableModel):
         return None
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
-        """Return the header data for the given section, orientation"""
+        """Return the header data for the given section, orientation."""
         if role != Qt.DisplayRole:
             return None
         # role == Qt.DisplayRole
@@ -859,7 +856,7 @@ class PandasTableFilterProxy(QSortFilterProxyModel):
         self.setSourceModel(model)
 
     def filterAcceptsRow(self, source_row, source_parent):
-        """Custom filtering logic to apply global filtering across all columns."""
+        """Apply global filtering across all columns."""
         source_model = self.sourceModel()
 
         # Always accept the last row (for "add new row")

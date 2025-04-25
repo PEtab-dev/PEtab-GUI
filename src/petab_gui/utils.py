@@ -34,6 +34,7 @@ from .C import COLUMN, INDEX, ROW
 
 def _checkAntimonyReturnCode(code):
     """Helper for checking the antimony response code.
+
     Raises Exception if error in antimony.
 
     :param code: antimony response
@@ -596,27 +597,6 @@ class PlotWidget(FigureCanvas):
         super(PlotWidget, self).__init__(fig)
 
 
-class SignalForwarder(QObject):
-    """Forward signals from one object to another."""
-
-    forwarded_signal = Signal()
-
-    def __init__(self, original_signal):
-        super().__init__()
-        self.original_signal = original_signal
-        self.original_signal.connect(self.forward_signal)
-
-    def forward_signal(self, *args, **kwargs):
-        """
-        Capture any arguments from the original signal and forward them.
-        """
-        self.forwarded_signal.emit(*args, **kwargs)
-
-    def connect_forwarded(self, slot):
-        """Connect a slot to the forwarded signal."""
-        self.forwarded_signal.connect(slot)
-
-
 def create_empty_dataframe(column_dict: dict, table_type: str):
     columns = [
         col for col, props in column_dict.items() if not props["optional"]
@@ -1035,7 +1015,7 @@ class FindReplaceBar(QWidget):
         )
 
     def update_selected_controllers(self):
-        """Update which tables are included in the search based on selection."""
+        """Update which tables are included in the search."""
         if self.filter_actions["All"].isChecked():
             self.selected_controllers = set(self.controller_map.values())
         else:

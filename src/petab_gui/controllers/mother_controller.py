@@ -763,7 +763,7 @@ class MainController:
             controller.clear_cells()
 
     def filter_table(self):
-        """Filter the currently activated tables"""
+        """Filter the currently activated tables."""
         filter_text = self.filter_input.text()
         for table_name, tool_button in self.filter_active.items():
             if tool_button.isChecked():
