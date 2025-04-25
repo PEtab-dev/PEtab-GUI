@@ -4,7 +4,6 @@ from PySide6.QtCore import QEvent
 from importlib.resources import files
 import sys
 import os
-import petab.v1 as petab
 
 from .views import MainWindow
 from .controllers import MainController

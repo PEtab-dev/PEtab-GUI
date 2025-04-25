@@ -6,8 +6,6 @@ from PySide6.QtGui import QGuiApplication, QColor
 
 from ..utils import get_selected_rectangles
 from .context_menu_mananger import ContextMenuManager
-import re
-import pandas as pd
 
 
 class TableViewer(QDockWidget):

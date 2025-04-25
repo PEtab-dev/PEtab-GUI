@@ -5,7 +5,7 @@ Creates a single instance that will be imported and used."""
 from PySide6.QtCore import QSettings, QObject, Signal, Qt
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QListWidget, QStackedWidget, QWidget,
-    QLabel, QGridLayout, QFormLayout, QComboBox, QDoubleSpinBox, QLineEdit,
+    QLabel, QGridLayout, QFormLayout, QComboBox, QLineEdit,
     QScrollArea, QGroupBox, QSizePolicy, QSpacerItem, QPushButton
 )
 from .C import (DEFAULT_CONFIGS, COPY_FROM, USE_DEFAULT, NO_DEFAULT,

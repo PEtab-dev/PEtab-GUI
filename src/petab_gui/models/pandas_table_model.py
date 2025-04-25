@@ -1,4 +1,3 @@
-import pandas as pd
 from PySide6.QtCore import (Qt, QAbstractTableModel, QModelIndex, Signal,
                             QSortFilterProxyModel, QMimeData)
 from PySide6.QtGui import QColor, QBrush, QPalette
@@ -20,7 +19,6 @@ class PandasTableModel(QAbstractTableModel):
     cell_needs_validation = Signal(int, int)  # row, column
     something_changed = Signal(bool)
     inserted_row = Signal(QModelIndex)
-    fill_defaults = Signal(QModelIndex)
 
     def __init__(self, data_frame, allowed_columns, table_type,
                  undo_stack = None, parent=None):

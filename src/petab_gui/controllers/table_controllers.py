@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QInputDialog, QMessageBox, QFileDialog, \
 import numpy as np
 import pandas as pd
 import petab.v1 as petab
-from PySide6.QtCore import Signal, QObject, QModelIndex, Qt, QTimer
+from PySide6.QtCore import Signal, QObject, QModelIndex, Qt
 from pathlib import Path
 from ..models.pandas_table_model import PandasTableModel, \
     PandasTableFilterProxy

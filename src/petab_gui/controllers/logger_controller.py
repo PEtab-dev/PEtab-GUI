@@ -1,8 +1,6 @@
 """File containing the controller of the logger widget."""
 from datetime import datetime
 
-from pyarrow import timestamp
-
 
 class LoggerController:
     """Mainly responsible for handling the logger widget."""

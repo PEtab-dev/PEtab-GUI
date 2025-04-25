@@ -1,6 +1,5 @@
 from PySide6.QtCore import QObject, Signal
 import libsbml
-import tempfile
 from petab.v1.models.sbml_model import SbmlModel
 from petab.v1.sbml import load_sbml_from_string
 import petab.v1 as petab

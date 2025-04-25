@@ -20,7 +20,6 @@ from .table_controllers import MeasurementController, ObservableController, \
 from .logger_controller import LoggerController
 from ..views import TaskBar
 from .utils import prompt_overwrite_or_append, RecentFilesManager, filtered_error
-from functools import partial
 from ..settings_manager import SettingsDialog, settings_manager
 
 

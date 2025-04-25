@@ -1,4 +1,3 @@
-import sys
 from petab_gui import app
 
 def main():
