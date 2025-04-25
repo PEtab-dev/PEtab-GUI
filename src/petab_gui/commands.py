@@ -99,7 +99,7 @@ class ModifyRowCommand(QUndoCommand):
             position = df.shape[0] - 1  # insert *before* the auto-row
             self.model.beginInsertRows(QModelIndex(), position, position + len(self.row_indices) - 1)
             for i, idx in enumerate(self.row_indices):
-                df.loc[idx] = [""] * df.shape[1]
+                df.loc[idx] = [np.nan] * df.shape[1]
             self.model.endInsertRows()
         else:
             self.model.beginRemoveRows(QModelIndex(), min(self.row_indices), max(self.row_indices))

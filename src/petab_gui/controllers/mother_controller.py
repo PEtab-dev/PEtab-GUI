@@ -186,6 +186,10 @@ class MainController:
         settings_manager.new_log_message.connect(
             self.logger.log_message
         )
+        # Update Parameter SBML Model
+        self.sbml_controller.overwritten_model.connect(
+            self.parameter_controller.update_handler_sbml
+        )
 
     def setup_actions(self):
         """Setup actions for the main controller."""
