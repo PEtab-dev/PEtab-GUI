@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..settings_manager import settings_manager
-from ..utils import FindReplaceBar
+from .find_replace_bar import FindReplaceBar
 from .logger import Logger
 from .measurement_plot import MeasuremenPlotter
 from .sbml_view import SbmlViewer

@@ -33,9 +33,7 @@ class PEtabGuiApp(QApplication):
     def __init__(self):
         super().__init__(sys.argv)
 
-        # Load the stylesheet
         self.setWindowIcon(get_icon())
-        self.apply_stylesheet()
         self.model = PEtabModel()
         self.view = MainWindow()
         self.view.setWindowIcon(get_icon())
