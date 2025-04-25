@@ -62,29 +62,27 @@ class SettingsManager(QObject):
     def load_ui_settings(self, main_window):
         """Load UI-related settings such as main window and dock states."""
         # Restore main window geometry and state
-        main_window.restoreGeometry(
-            self.get_value("main_window/geometry", main_window.saveGeometry())
-        )
+        main_window.restoreGeometry(self.get_value(
+            "main_window/geometry", main_window.saveGeometry()
+        ))
         main_window.restoreState(
             self.get_value("main_window/state", main_window.saveState())
         )
 
         # Restore dock widget visibility
         for dock, _ in main_window.dock_visibility.items():
-            dock.setVisible(
-                self.get_value(
-                    f"docks/{dock.objectName()}", True, value_type=bool
-                )
-            )
+            dock.setVisible(self.get_value(
+                f"docks/{dock.objectName()}", True, value_type=bool
+            ))
 
         main_window.data_tab.restoreGeometry(
             self.get_value(
                 "data_tab/geometry", main_window.data_tab.saveGeometry()
             )
         )
-        main_window.data_tab.restoreState(
-            self.get_value("data_tab/state", main_window.data_tab.saveState())
-        )
+        main_window.data_tab.restoreState(self.get_value(
+            "data_tab/state", main_window.data_tab.saveState()
+        ))
 
     def save_ui_settings(self, main_window):
         """Save UI-related settings such as main window and dock states."""
@@ -127,9 +125,12 @@ class ColumnConfigWidget(QWidget):
         """
         Initialize the column configuration widget.
 
-        :param column_name: Name of the column
-        :param config: Dictionary containing settings for the column
-        :param table_columns: List of columns in the same table (used for dropdown)
+        :param column_name:
+            Name of the column
+        :param config:
+            Dictionary containing settings for the column
+        :param table_columns:
+            List of columns in the same table (used for dropdown)
         """
         super().__init__(parent)
         self.setWindowTitle(column_name)

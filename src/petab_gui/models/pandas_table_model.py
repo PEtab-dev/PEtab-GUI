@@ -304,7 +304,7 @@ class PandasTableModel(QAbstractTableModel):
         ----------
         index: QModelIndex, index where the first change occurs
         changed:
-            the changes made to the DataFrame, that have not yet been registered
+            The changes made to the DataFrame not yet registered
         """
         pass
 

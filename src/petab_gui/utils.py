@@ -57,7 +57,7 @@ def sbmlToAntimony(sbml):
     isfile = False
     try:
         isfile = os.path.isfile(sbml)
-    except:
+    except Exception:
         pass
     if isfile:
         code = antimony.loadSBMLFile(sbml)
@@ -715,7 +715,6 @@ def process_file(filepath, logger):
 
     # Case 3: CSV/TSV/TXT files
     if ext in {".csv", ".tsv", ".txt"}:
-        # Determine separator by attempting to read the file with different delimiters
         separators = [",", "\t", ";"]
         separator = None
         header = None

@@ -637,8 +637,7 @@ class MeasurementController(TableController):
         ]
         if not preferred_row.empty:
             return preferred_row["noiseParameters"].iloc[0]
-        else:
-            return matching_rows["noiseParameters"].iloc[0]
+        return matching_rows["noiseParameters"].iloc[0]
 
     def upload_data_matrix(self):
         """Upload a data matrix to the measurement table.
@@ -854,12 +853,8 @@ class ConditionController(TableController):
         Opens a dialog to ask the user if they want to rename the conditions.
         If so, emits a signal to rename the conditions in the measurement_df.
         """
-        if (
-            old_id
-            not in self.mother_controller.measurement_controller.model.get_df()[
-                "simulationConditionId"
-            ].values
-        ):
+        df = self.mother_controller.measurement_controller.model.get_df()
+        if old_id not in df["simulationConditionId"].values:
             return
         reply = QMessageBox.question(
             self.view,
@@ -1001,12 +996,8 @@ class ObservableController(TableController):
         Opens a dialog to ask the user if they want to rename the observables.
         If so, emits a signal to rename the observables in the measurement_df.
         """
-        if (
-            old_id
-            not in self.mother_controller.measurement_controller.model.get_df()[
-                "observableId"
-            ].values
-        ):
+        df = self.mother_controller.measurement_controller.model.get_df()
+        if old_id not in df["observableId"].values:
             return
         reply = QMessageBox.question(
             self.view,

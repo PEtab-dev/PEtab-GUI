@@ -25,9 +25,7 @@ def linter_wrapper(_func=None, additional_error_check: bool = False):
             **kwargs,
         ):
             try:
-                func(
-                    self, row_data, row_name, col_name, *args, **kwargs
-                )
+                func(self, row_data, row_name, col_name, *args, **kwargs)
                 return True
             except Exception as e:
                 err_msg = filtered_error(e)
@@ -50,10 +48,11 @@ def linter_wrapper(_func=None, additional_error_check: bool = False):
                             "{" + ", ".join(sorted(remain)) + "}",
                             err_msg,
                         )
+                msg = "PEtab linter failed"
                 if row_name is not None and col_name is not None:
-                    msg = f"PEtab linter failed at ({row_name}, {col_name}): {err_msg}"
+                    msg = f"{msg} at ({row_name}, {col_name}): {err_msg}"
                 else:
-                    msg = f"PEtab linter failed: {err_msg}"
+                    msg = f"{msg}: {err_msg}"
 
                 self.logger.log_message(msg, color="red")
                 return False
