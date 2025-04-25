@@ -12,7 +12,7 @@ from matplotlib.backends.backend_qt5agg import (
     FigureCanvasQTAgg as FigureCanvas,
 )
 from matplotlib.figure import Figure
-from PySide6.QtCore import QObject, Qt, Signal, QModelIndex
+from PySide6.QtCore import QModelIndex, QObject, Qt, Signal
 from PySide6.QtGui import QAction, QColor, QSyntaxHighlighter, QTextCharFormat
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -98,6 +98,7 @@ class ConditionInputDialog(QDialog):
     Provides input fields for simulation condition ID and optional
     preequilibration condition ID.
     """
+
     def __init__(self, condition_id=None, parent=None):
         """Initialize the condition input dialog.
 
@@ -301,7 +302,7 @@ def get_selected(
             - INDEX: Return selected model indices
 
     Returns:
-        list[int] or set[int] or list[QModelIndex]: 
+        list[int] or set[int] or list[QModelIndex]:
             - If mode is ROW: A set of selected row indices
             - If mode is COLUMN: A set of selected column indices
             - If mode is INDEX: A list of selected QModelIndex objects

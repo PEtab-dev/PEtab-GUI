@@ -120,9 +120,8 @@ class DefaultHandlerModel:
         source_column_valid = (
             source_column in self.model or source_column == self.model_index
         )
-        if changed:
-            if source_column in changed.keys():
-                return changed[source_column]
+        if changed and source_column in changed:
+            return changed[source_column]
         if source_column and source_column_valid and row_index is not None:
             prefix = config.get("prefix", "")
             if row_index in self.model.index:

@@ -85,7 +85,7 @@ class FindReplaceBar(QWidget):
         action.triggered.connect(self.update_selected_controllers)
         self.filter_menu.addAction(action)
         self.filter_actions["All"] = action
-        for table_name in self.controller_map.keys():
+        for table_name in self.controller_map:
             action = QAction(table_name, self.filter_menu)
             action.setCheckable(True)
             action.triggered.connect(self.update_selected_controllers)

@@ -1,3 +1,5 @@
+from typing import Any
+
 from PySide6.QtCore import (
     QAbstractTableModel,
     QMimeData,
@@ -456,8 +458,10 @@ class PandasTableModel(QAbstractTableModel):
         values.
 
         Args:
-            index: The model index where the first change occurs
-            changed: Dictionary of changes made to the DataFrame not yet registered
+        index:
+            The model index where the first change occurs
+        changed:
+            Dictionary of changes made to the DataFrame not yet registered
         """
         pass
 
@@ -844,7 +848,9 @@ class PandasTableModel(QAbstractTableModel):
             return QColor(144, 190, 109, 102)
         return QColor(177, 217, 231, 102)
 
-    def allow_column_deletion(self, column: int) -> bool:
+    def allow_column_deletion(
+        self, column: int
+    ) -> tuple[bool, Any] | tuple[Any, Any]:
         """Check whether a column can safely be deleted from the table.
 
         Prevents deletion of required columns and the index column.
@@ -861,7 +867,7 @@ class PandasTableModel(QAbstractTableModel):
         if column == 0 and self._has_named_index:
             return False, self._data_frame.index.name
         column_name = self._data_frame.columns[column - self.column_offset]
-        if column_name not in self._allowed_columns.keys():
+        if column_name not in self._allowed_columns:
             return True, column_name
         return self._allowed_columns[column_name]["optional"], column_name
 

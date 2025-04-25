@@ -78,7 +78,8 @@ class PEtabGuiApp(QApplication):
             bool: Result of the event handling from the parent class
 
         Notes:
-            Currently handles FileOpen events to open files dropped on the application.
+            Currently handles FileOpen events to open files dropped on
+            the application.
         """
         if event.type() == QEvent.FileOpen:
             openEvent = QFileOpenEvent(event)

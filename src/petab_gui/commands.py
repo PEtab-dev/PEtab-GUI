@@ -256,11 +256,11 @@ class ModifyDataFrameCommand(QUndoCommand):
                 df[col] = df[col].astype(dtype)
 
         rows = [
-            df.index.get_loc(row_key) for (row_key, _) in self.changes.keys()
+            df.index.get_loc(row_key) for (row_key, _) in self.changes
         ]
         cols = [
             df.columns.get_loc(col) + col_offset
-            for (_, col) in self.changes.keys()
+            for (_, col) in self.changes
         ]
 
         top_left = self.model.index(min(rows), min(cols))

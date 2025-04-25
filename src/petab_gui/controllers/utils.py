@@ -30,9 +30,9 @@ def linter_wrapper(_func=None, additional_error_check: bool = False):
             except Exception as e:
                 err_msg = filtered_error(e)
                 err_msg = html.escape(err_msg)
-                if additional_error_check:
-                    if "Missing parameter(s)" in err_msg:
-                        match = re.search(r"\{(.+?)\}", err_msg)
+                if (additional_error_check and "Missing parameter(s)" in
+                    err_msg):
+                        match = re.search(r"\{(.+?)}", err_msg)
                         missing_params = {
                             s.strip(" '") for s in match.group(1).split(",")
                         }
@@ -44,7 +44,7 @@ def linter_wrapper(_func=None, additional_error_check: bool = False):
                         if not remain:
                             return True
                         err_msg = re.sub(
-                            r"\{.*?\}",
+                            r"\{.*?}",
                             "{" + ", ".join(sorted(remain)) + "}",
                             err_msg,
                         )

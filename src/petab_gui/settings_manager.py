@@ -299,7 +299,7 @@ class SettingsDialog(QDialog):
             table_type: settings_manager.get_value(
                 f"table_defaults/{table_type}", {}
             )
-            for table_type in table_columns.keys()
+            for table_type in table_columns
         }
 
         self.main_layout = QHBoxLayout(self)
