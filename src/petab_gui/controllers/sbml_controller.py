@@ -1,16 +1,19 @@
 """Class for handling SBML files in the GUI."""
-from PySide6.QtWidgets import QFileDialog
+from pathlib import Path
+
 import libsbml
 from petab.models.sbml_model import SbmlModel
-from PySide6.QtCore import Signal, QObject
-from pathlib import Path
+from PySide6.QtCore import QObject, Signal
+from PySide6.QtWidgets import QFileDialog
+
 from ..models.sbml_model import SbmlViewerModel
-from ..views.sbml_view import SbmlViewer
 from ..utils import sbmlToAntimony
+from ..views.sbml_view import SbmlViewer
 
 
 class SbmlController(QObject):
     """Class for handling SBML files in the GUI."""
+
     overwritten_model = Signal()
 
     def __init__(
@@ -67,7 +70,7 @@ class SbmlController(QObject):
         self.view.antimony_text_edit.setPlainText(self.model.antimony_text)
 
     def update_antimony_from_sbml(self):
-        "Convert current SBML to Antimony and update the Antimony text."
+        """Convert current SBML to Antimony and update the Antimony text."""
         self.model.sbml_text = self.view.sbml_text_edit.toPlainText()
         try:
             self.model.convert_sbml_to_antimony()

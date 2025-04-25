@@ -1,17 +1,40 @@
 """Create a SettingsManager class to handle application settings with
 persistent storage.
 
-Creates a single instance that will be imported and used."""
-from PySide6.QtCore import QSettings, QObject, Signal, Qt
+Creates a single instance that will be imported and used.
+"""
+from PySide6.QtCore import QObject, QSettings, Qt, Signal
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QListWidget, QStackedWidget, QWidget,
-    QLabel, QGridLayout, QFormLayout, QComboBox, QLineEdit,
-    QScrollArea, QGroupBox, QSizePolicy, QSpacerItem, QPushButton
+    QComboBox,
+    QDialog,
+    QFormLayout,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QSpacerItem,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
 )
-from .C import (DEFAULT_CONFIGS, COPY_FROM, USE_DEFAULT, NO_DEFAULT,
-                SOURCE_COLUMN, DEFAULT_VALUE, ALLOWED_STRATEGIES,
-                MODE, STRATEGY_TOOLTIP,
-                STRATEGIES_DEFAULT_ALL)
+
+from .C import (
+    ALLOWED_STRATEGIES,
+    COPY_FROM,
+    DEFAULT_CONFIGS,
+    DEFAULT_VALUE,
+    MODE,
+    NO_DEFAULT,
+    SOURCE_COLUMN,
+    STRATEGIES_DEFAULT_ALL,
+    STRATEGY_TOOLTIP,
+    USE_DEFAULT,
+)
 
 
 class SettingsManager(QObject):

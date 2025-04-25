@@ -1,7 +1,13 @@
 """Widget for viewing the SBML model"""
-from PySide6.QtWidgets import QVBoxLayout, QPlainTextEdit, QSplitter, \
-    QWidget, QPushButton, QLabel
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QLabel,
+    QPlainTextEdit,
+    QPushButton,
+    QSplitter,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class SbmlViewer(QWidget):

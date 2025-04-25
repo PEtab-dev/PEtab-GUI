@@ -1,34 +1,50 @@
-from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, \
-    QLineEdit, QPushButton, QCompleter, QCheckBox, QGridLayout, QTableView,
-                               QWidget, QToolButton, QMenu)
-from PySide6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QAction
-from PySide6.QtCore import QObject, Signal, Qt
-import re
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
-import pandas as pd
 import logging
-from .C import ROW, COLUMN, INDEX
-import antimony
-import os
 import math
+import os
+import re
+
+import antimony
 import numpy as np
+import pandas as pd
 import qtawesome as qta
+from matplotlib.backends.backend_qt5agg import (
+    FigureCanvasQTAgg as FigureCanvas,
+)
+from matplotlib.figure import Figure
+from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtGui import QAction, QColor, QSyntaxHighlighter, QTextCharFormat
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QCompleter,
+    QDialog,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMenu,
+    QPushButton,
+    QTableView,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
+
+from .C import COLUMN, INDEX, ROW
 
 
 def _checkAntimonyReturnCode(code):
-    """ Helper for checking the antimony response code.
+    """Helper for checking the antimony response code.
     Raises Exception if error in antimony.
 
     :param code: antimony response
     :type code: int
     """
     if code < 0:
-        raise Exception('Antimony: {}'.format(antimony.getLastError()))
+        raise Exception(f'Antimony: {antimony.getLastError()}')
 
 
 def sbmlToAntimony(sbml):
-    """ Convert SBML to antimony string.
+    """Convert SBML to antimony string.
 
     :param sbml: SBML string or file
     :type sbml: str | file
@@ -51,7 +67,7 @@ def sbmlToAntimony(sbml):
 
 
 def antimonyToSBML(ant):
-    """ Convert Antimony to SBML string.
+    """Convert Antimony to SBML string.
 
     :param ant: Antimony string or file
     :type ant: str | file
@@ -518,6 +534,7 @@ class PlotWidget(FigureCanvas):
 
 class SignalForwarder(QObject):
     """Forward signals from one object to another."""
+
     forwarded_signal = Signal()
     def __init__(self, original_signal):
         super().__init__()
@@ -554,6 +571,7 @@ def create_empty_dataframe(column_dict: dict, table_type: str):
 
 class CaptureLogHandler(logging.Handler):
     """A logging handler to capture log messages with levels."""
+
     def __init__(self):
         super().__init__()
         self.records = []  # Store full log records
@@ -656,7 +674,7 @@ def process_file(filepath, logger):
         for sep in separators:
             # read the first line of the file
             try:
-                with open(filepath, "r", encoding="utf-8") as file:
+                with open(filepath, encoding="utf-8") as file:
                     header = file.readline().strip().split(sep)
                 if len(header) > 1:
                     separator = sep

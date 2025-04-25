@@ -1,26 +1,42 @@
-from functools import partial
-
-from PySide6.QtWidgets import QMessageBox, QFileDialog, QLineEdit, QWidget, \
-    QHBoxLayout, QToolButton, QTableView
-from PySide6.QtGui import QAction, QDesktopServices, QUndoStack, QKeySequence
-import zipfile
-import tempfile
-import os
-from io import BytesIO
 import logging
-import yaml
-import qtawesome as qta
-from ..utils import FindReplaceDialog, CaptureLogHandler, process_file
-from PySide6.QtCore import Qt, QUrl
+import os
+import tempfile
+import zipfile
+from functools import partial
+from io import BytesIO
 from pathlib import Path
+
+import qtawesome as qta
+import yaml
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QAction, QDesktopServices, QKeySequence, QUndoStack
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QHBoxLayout,
+    QLineEdit,
+    QMessageBox,
+    QTableView,
+    QToolButton,
+    QWidget,
+)
+
 from ..models import PEtabModel
-from .sbml_controller import SbmlController
-from .table_controllers import MeasurementController, ObservableController, \
-    ConditionController, ParameterController
-from .logger_controller import LoggerController
-from ..views import TaskBar
-from .utils import prompt_overwrite_or_append, RecentFilesManager, filtered_error
 from ..settings_manager import SettingsDialog, settings_manager
+from ..utils import CaptureLogHandler, FindReplaceDialog, process_file
+from ..views import TaskBar
+from .logger_controller import LoggerController
+from .sbml_controller import SbmlController
+from .table_controllers import (
+    ConditionController,
+    MeasurementController,
+    ObservableController,
+    ParameterController,
+)
+from .utils import (
+    RecentFilesManager,
+    filtered_error,
+    prompt_overwrite_or_append,
+)
 
 
 class MainController:
@@ -311,11 +327,11 @@ class MainController:
         filter_layout.addWidget(self.filter_input)
         for table_n, table_name in zip(
             ["m", "p", "o", "c"],
-            ["measurement", "parameter", "observable", "condition"]
+            ["measurement", "parameter", "observable", "condition"], strict=False
         ):
             tool_button = QToolButton()
             icon = qta.icon(
-                "mdi6.alpha-{}".format(table_n), "mdi6.filter",
+                f"mdi6.alpha-{table_n}", "mdi6.filter",
                 options=[
                     {'scale_factor': 1.5, 'offset': (-0.2, -0.2)},
                     {'off': 'mdi6.filter-off', 'offset': (0.3, 0.3)},
@@ -413,7 +429,6 @@ class MainController:
 
     def sync_visibility_with_actions(self):
         """Sync dock visibility and QAction states in both directions."""
-
         dock_map = {
             "measurement": self.view.measurement_dock,
             "observable": self.view.observable_dock,
@@ -626,7 +641,7 @@ class MainController:
                     continue
                 controller.release_completers()
             # Load the YAML content
-            with open(yaml_path, 'r') as file:
+            with open(yaml_path) as file:
                 yaml_content = yaml.safe_load(file)
 
             # Resolve the directory of the YAML file to handle relative paths

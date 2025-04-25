@@ -2,9 +2,16 @@
 from __future__ import annotations
 
 from pathlib import Path
+
 import petab.v1 as petab
+
+from .pandas_table_model import (
+    ConditionModel,
+    MeasurementModel,
+    ObservableModel,
+    ParameterModel,
+)
 from .sbml_model import SbmlViewerModel
-from .pandas_table_model import MeasurementModel, ObservableModel, ParameterModel, ConditionModel
 
 
 class PEtabModel:

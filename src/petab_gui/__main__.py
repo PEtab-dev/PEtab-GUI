@@ -1,5 +1,6 @@
 from petab_gui import app
 
+
 def main():
     app.main()
 

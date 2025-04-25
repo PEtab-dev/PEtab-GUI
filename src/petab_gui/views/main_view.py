@@ -1,14 +1,22 @@
 """Main Window View."""
-from PySide6.QtWidgets import (QMainWindow, QDockWidget,
-                               QWidget, QVBoxLayout, QTabWidget, QSizePolicy)
-from PySide6.QtCore import Qt, QSettings
-from .sbml_view import SbmlViewer
-from .table_view import TableViewer
+import copy
+
+from PySide6.QtCore import QSettings, Qt
+from PySide6.QtWidgets import (
+    QDockWidget,
+    QMainWindow,
+    QSizePolicy,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
+
+from ..settings_manager import settings_manager
 from ..utils import FindReplaceBar
 from .logger import Logger
 from .measurement_plot import MeasuremenPlotter
-from ..settings_manager import settings_manager
-import copy
+from .sbml_view import SbmlViewer
+from .table_view import TableViewer
 
 
 class MainWindow(QMainWindow):
@@ -149,7 +157,7 @@ class MainWindow(QMainWindow):
             return
 
         event.ignore()
-    
+
     def setup_toolbar(self, actions):
         # add a toolbar with actions from self.task_bar
         tb = self.addToolBar("MainToolbar")
@@ -193,7 +201,8 @@ class MainWindow(QMainWindow):
 
     def set_docks_visible(self, index):
         """Slot to set all QDockWidget instances to their previous visibility
-        when the "Data Tables" tab is not selected."""
+        when the "Data Tables" tab is not selected.
+        """
         if index != 0:  # Another tab is selected
             for dock, visible in self.dock_visibility.items():
                 dock.setVisible(visible)

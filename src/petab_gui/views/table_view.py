@@ -1,8 +1,14 @@
-from PySide6.QtWidgets import (QDockWidget, QHeaderView, QTableView,
-                               QCompleter, QLineEdit, QStyledItemDelegate,
-                               QComboBox)
-from PySide6.QtCore import Qt, QPropertyAnimation, QRect
-from PySide6.QtGui import QGuiApplication, QColor
+from PySide6.QtCore import QPropertyAnimation, QRect, Qt
+from PySide6.QtGui import QColor, QGuiApplication
+from PySide6.QtWidgets import (
+    QComboBox,
+    QCompleter,
+    QDockWidget,
+    QHeaderView,
+    QLineEdit,
+    QStyledItemDelegate,
+    QTableView,
+)
 
 from ..utils import get_selected_rectangles
 from .context_menu_mananger import ContextMenuManager
@@ -92,7 +98,8 @@ class ComboBoxDelegate(QStyledItemDelegate):
 
 class SingleSuggestionDelegate(QStyledItemDelegate):
     """Suggest a single option based the current row and the value in
-    `column_name`."""
+    `column_name`.
+    """
 
     def __init__(self, model, suggestions_column, afix=None, parent=None):
         super().__init__(parent)
@@ -122,6 +129,7 @@ class SingleSuggestionDelegate(QStyledItemDelegate):
 
 class ColumnSuggestionDelegate(QStyledItemDelegate):
     """Suggest options based on all unique values in the specified column."""
+
     def __init__(
         self,
         model,
@@ -151,6 +159,7 @@ class ColumnSuggestionDelegate(QStyledItemDelegate):
 
 class ParameterIdSuggestionDelegate(QStyledItemDelegate):
     """Suggest options based on all unique values in the specified column."""
+
     def __init__(self, par_model, sbml_model, parent=None):
         super().__init__(parent)
         self.par_model = par_model

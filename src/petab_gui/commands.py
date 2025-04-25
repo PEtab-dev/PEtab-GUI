@@ -1,9 +1,8 @@
 """Store commands for the do/undo functionality."""
-from PySide6.QtGui import QUndoCommand
-from PySide6.QtCore import QModelIndex, Qt
-import pandas as pd
 import numpy as np
-
+import pandas as pd
+from PySide6.QtCore import QModelIndex, Qt
+from PySide6.QtGui import QUndoCommand
 
 pd.set_option('future.no_silent_downcasting', True)
 

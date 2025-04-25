@@ -1,15 +1,15 @@
-from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QFileOpenEvent, QIcon
-from PySide6.QtCore import QEvent
-from importlib.resources import files
-import sys
 import os
+import sys
+from importlib.resources import files
+from pathlib import Path
 
-from .views import MainWindow
+from PySide6.QtCore import QEvent
+from PySide6.QtGui import QFileOpenEvent, QIcon
+from PySide6.QtWidgets import QApplication
+
 from .controllers import MainController
 from .models import PEtabModel
-
-from pathlib import Path
+from .views import MainWindow
 
 
 def find_example(path: Path) -> Path:
@@ -17,7 +17,7 @@ def find_example(path: Path) -> Path:
         if (path / "example").is_dir():
             return path / "example"
         path = path.parent
-        
+
     raise FileNotFoundError("Could not find examples directory")
 
 
@@ -52,7 +52,7 @@ class PEtabGuiApp(QApplication):
 
     def event(self, event):
         if event.type() == QEvent.FileOpen:
-            openEvent = QFileOpenEvent(event)            
+            openEvent = QFileOpenEvent(event)
             self.controller.open_file(openEvent.file(), mode="overwrite")
 
         return super().event(event)
@@ -63,7 +63,7 @@ class PEtabGuiApp(QApplication):
             os.path.dirname(__file__), "stylesheet.css"
         )
         if os.path.exists(stylesheet_path):
-            with open(stylesheet_path, "r") as f:
+            with open(stylesheet_path) as f:
                 self.setStyleSheet(f.read())
         else:
             print(f"Warning: Stylesheet '{stylesheet_path}' not found!")

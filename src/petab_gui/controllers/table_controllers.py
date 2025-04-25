@@ -1,24 +1,39 @@
 """Classes for the controllers of the tables in the GUI."""
-from PySide6.QtWidgets import QInputDialog, QMessageBox, QFileDialog, \
-    QCompleter, QAbstractItemView
+import re
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import petab.v1 as petab
-from PySide6.QtCore import Signal, QObject, QModelIndex, Qt
-from pathlib import Path
-from ..models.pandas_table_model import PandasTableModel, \
-    PandasTableFilterProxy
-from ..settings_manager import settings_manager
-from ..views.table_view import TableViewer, SingleSuggestionDelegate, \
-    ColumnSuggestionDelegate, ComboBoxDelegate, ParameterIdSuggestionDelegate
-from ..utils import get_selected, process_file, ConditionInputDialog
-from .utils import prompt_overwrite_or_append, linter_wrapper
+from PySide6.QtCore import QModelIndex, QObject, Qt, Signal
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QCompleter,
+    QFileDialog,
+    QInputDialog,
+    QMessageBox,
+)
+
 from ..C import COLUMN, INDEX
-import re
+from ..models.pandas_table_model import (
+    PandasTableFilterProxy,
+    PandasTableModel,
+)
+from ..settings_manager import settings_manager
+from ..utils import ConditionInputDialog, get_selected, process_file
+from ..views.table_view import (
+    ColumnSuggestionDelegate,
+    ComboBoxDelegate,
+    ParameterIdSuggestionDelegate,
+    SingleSuggestionDelegate,
+    TableViewer,
+)
+from .utils import linter_wrapper, prompt_overwrite_or_append
 
 
 class TableController(QObject):
     """Base class for table controllers."""
+
     overwritten_df = Signal()  # Signal to mother controller
 
     def __init__(
@@ -744,6 +759,7 @@ class MeasurementController(TableController):
 
 class ConditionController(TableController):
     """Controller of the Condition table."""
+
     condition_2be_renamed = Signal(str, str)  # Signal to mother controller
 
     def update_handler_model(self):
@@ -846,6 +862,7 @@ class ConditionController(TableController):
 
 class ObservableController(TableController):
     """Controller of the Observable table."""
+
     observable_2be_renamed = Signal(str, str)  # Signal to mother controller
 
     def update_handler_model(self):

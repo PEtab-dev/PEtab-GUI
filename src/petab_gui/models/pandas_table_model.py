@@ -1,18 +1,34 @@
-from PySide6.QtCore import (Qt, QAbstractTableModel, QModelIndex, Signal,
-                            QSortFilterProxyModel, QMimeData)
-from PySide6.QtGui import QColor, QBrush, QPalette
+from PySide6.QtCore import (
+    QAbstractTableModel,
+    QMimeData,
+    QModelIndex,
+    QSortFilterProxyModel,
+    Qt,
+    Signal,
+)
+from PySide6.QtGui import QBrush, QColor, QPalette
 from PySide6.QtWidgets import QApplication
+
 from ..C import COLUMNS
-from ..utils import validate_value, create_empty_dataframe, is_invalid, \
-    get_selected
+from ..commands import (
+    ModifyColumnCommand,
+    ModifyDataFrameCommand,
+    ModifyRowCommand,
+    RenameIndexCommand,
+)
 from ..controllers.default_handler import DefaultHandlerModel
 from ..settings_manager import settings_manager
-from ..commands import (ModifyColumnCommand, ModifyRowCommand,
-                        ModifyDataFrameCommand, RenameIndexCommand)
+from ..utils import (
+    create_empty_dataframe,
+    get_selected,
+    is_invalid,
+    validate_value,
+)
 
 
 class PandasTableModel(QAbstractTableModel):
     """Basic table model for a pandas DataFrame."""
+
     # Signals
     relevant_id_changed = Signal(str, str, str)  # new_id, old_id, type
     new_log_message = Signal(str, str)  # message, color
@@ -537,9 +553,7 @@ class PandasTableModel(QAbstractTableModel):
         data:
             The data to fill the row with. Gets updated with default values.
         """
-        data_to_add = {
-            column_name: "" for column_name in self._data_frame.columns
-        }
+        data_to_add = dict.fromkeys(self._data_frame.columns, "")
         unknown_keys = set(data) - set(self._data_frame.columns)
         for key in unknown_keys:
             if key == self._data_frame.index.name:
@@ -572,6 +586,7 @@ class PandasTableModel(QAbstractTableModel):
 
 class IndexedPandasTableModel(PandasTableModel):
     """Table model for tables with named index."""
+
     condition_2be_renamed = Signal(str, str)  # Signal to mother controller
 
     def __init__(self, data_frame, allowed_columns, table_type, parent=None):
@@ -696,6 +711,7 @@ class IndexedPandasTableModel(PandasTableModel):
 
 class MeasurementModel(PandasTableModel):
     """Table model for the measurement data."""
+
     possibly_new_condition = Signal(str)  # Signal for new condition
     possibly_new_observable = Signal(str)  # Signal for new observable
 

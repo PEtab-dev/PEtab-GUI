@@ -1,11 +1,21 @@
 """The Default Handlers for the GUI."""
-import pandas as pd
-import numpy as np
 import copy
-
 from collections import Counter
-from ..C import (COPY_FROM, USE_DEFAULT, NO_DEFAULT, MIN_COLUMN, MAX_COLUMN,
-                 MODE, DEFAULT_VALUE, SOURCE_COLUMN, SBML_LOOK)
+
+import numpy as np
+import pandas as pd
+
+from ..C import (
+    COPY_FROM,
+    DEFAULT_VALUE,
+    MAX_COLUMN,
+    MIN_COLUMN,
+    MODE,
+    NO_DEFAULT,
+    SBML_LOOK,
+    SOURCE_COLUMN,
+    USE_DEFAULT,
+)
 
 
 class DefaultHandlerModel:

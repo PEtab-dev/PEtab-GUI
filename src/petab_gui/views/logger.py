@@ -2,7 +2,7 @@
 
 Contains logger widget as well as two helper buttons.
 """
-from PySide6.QtWidgets import QTextBrowser, QHBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QTextBrowser, QWidget
 
 
 class Logger(QWidget):

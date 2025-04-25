@@ -1,15 +1,16 @@
-from PySide6.QtWidgets import QMessageBox, QMenu
-from PySide6.QtCore import QObject, Signal
-from PySide6.QtGui import QAction
+import functools
+import html
+import re
 from collections import Counter
 from pathlib import Path
-import functools
-import pandas as pd
-import re
-import html
 
-from ..settings_manager import settings_manager
+import pandas as pd
+from PySide6.QtCore import QObject, Signal
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QMenu, QMessageBox
+
 from ..C import COMMON_ERRORS
+from ..settings_manager import settings_manager
 
 
 def linter_wrapper(_func=None, additional_error_check: bool = False):
@@ -91,6 +92,7 @@ def prompt_overwrite_or_append(controller):
 
 class RecentFilesManager(QObject):
     """Manage a list of recent files."""
+
     open_file = Signal(str)  # Signal to open a file
 
     def __init__(self, max_files=10):
@@ -132,7 +134,7 @@ class RecentFilesManager(QObject):
         short_paths = [short_name(f) for f in self.recent_files]
         counts = Counter(short_paths)
 
-        for full_path, short in zip(self.recent_files, short_paths):
+        for full_path, short in zip(self.recent_files, short_paths, strict=False):
             display = full_path if counts[short] > 1 else short
             action = QAction(display, self.tool_bar_menu)
             action.triggered.connect(lambda _, p=full_path: self.open_file.emit(p))

@@ -1,8 +1,10 @@
 """File containing the measurement plot widget."""
-from PySide6.QtWidgets import QDockWidget, QVBoxLayout, QWidget
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
+from PySide6.QtWidgets import QDockWidget, QVBoxLayout, QWidget
+
 from ..utils import PlotWidget
+
 
 class MeasuremenPlotter(QDockWidget):
     def __init__(self, parent=None):

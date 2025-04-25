@@ -3,6 +3,7 @@ from PySide6.QtWidgets import QMenu
 
 class ContextMenuManager:
     """Manage context menu actions for the tables."""
+
     def __init__(self, actions, table_view, parent=None):
         self.parent = parent()
         self.actions = actions
