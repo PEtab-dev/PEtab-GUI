@@ -133,7 +133,10 @@ class ModifyRowCommand(QUndoCommand):
             )
             restore_index_order = df.index
             for pos, index_name, row in zip(
-                self.row_indices, self.old_ind_names, self.old_rows.values
+                self.row_indices,
+                self.old_ind_names,
+                self.old_rows.values,
+                strict=False,
             ):
                 restore_index_order = restore_index_order.insert(
                     pos, index_name

@@ -1,4 +1,4 @@
-"""Widget for viewing the SBML model"""
+"""Widget for viewing the SBML model."""
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 
 
 class SbmlViewer(QWidget):
-    """Widget for viewing the SBML model"""
+    """Widget for viewing the SBML model."""
 
     def __init__(self, parent=None, logger_view=None):
         super().__init__(parent)

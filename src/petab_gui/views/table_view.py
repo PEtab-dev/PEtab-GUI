@@ -88,14 +88,17 @@ class ComboBoxDelegate(QStyledItemDelegate):
         self.options = options
 
     def createEditor(self, parent, option, index):
-        # Create a QComboBox for inline editing
+        """Create a QComboBox for inline editing."""
         editor = QComboBox(parent)
         editor.addItems(self.options)
         return editor
 
 
 class SingleSuggestionDelegate(QStyledItemDelegate):
-    """Suggest a single option based the current row and the value in
+    """
+    Single Option Suggestion Delegate.
+
+    Suggest a single option based the current row and the value in
     `column_name`.
     """
 
@@ -106,7 +109,7 @@ class SingleSuggestionDelegate(QStyledItemDelegate):
         self.afix = afix
 
     def createEditor(self, parent, option, index):
-        # Create a QLineEdit for inline editing
+        """Create a QLineEdit for inline editing with a single suggestion."""
         editor = QLineEdit(parent)
 
         # Get the conditionId of the current row
@@ -141,7 +144,7 @@ class ColumnSuggestionDelegate(QStyledItemDelegate):
         self.suggestion_mode = suggestion_mode
 
     def createEditor(self, parent, option, index):
-        # Create a QLineEdit for inline editing
+        """Create a QLineEdit for inline editing with suggestions."""
         editor = QLineEdit(parent)
 
         # Get unique suggestions from the specified column
@@ -164,7 +167,7 @@ class ParameterIdSuggestionDelegate(QStyledItemDelegate):
         self.sbml_model = sbml_model  # The main model to retrieve data from
 
     def createEditor(self, parent, option, index):
-        # Create a QLineEdit for inline editing
+        """Create an editor for the parameterId column."""
         editor = QLineEdit(parent)
 
         # Get unique suggestions from the specified column
@@ -218,7 +221,7 @@ class CustomTableView(QTableView):
         )
 
     def setModel(self, model):
-        """Ensures selection model exists before connecting signals"""
+        """Ensures selection model exists before connecting signals."""
         super().setModel(model)
         if self.selectionModel():
             self.selectionModel().currentColumnChanged.connect(
@@ -226,7 +229,7 @@ class CustomTableView(QTableView):
             )
 
     def reset_column_sizes(self):
-        """Resets column sizes with refinements"""
+        """Resets column sizes with refinements."""
         header = self.horizontalHeader()
         total_width = self.viewport().width()
         max_width = total_width // 4  # 1/4th of total table width
@@ -248,7 +251,7 @@ class CustomTableView(QTableView):
         self.updateGeometry()
 
     def adjust_for_empty_neighbors(self):
-        """Expands column if adjacent columns are empty"""
+        """Expands column if adjacent columns are empty."""
         model = self.model()
         for col in range(model.columnCount()):
             if (
@@ -267,7 +270,7 @@ class CustomTableView(QTableView):
                         self.setColumnWidth(next_col, 0)  # Hide empty column
 
     def collapse_empty_columns(self):
-        """Collapses columns that only contain empty values"""
+        """Collapses columns that only contain empty values."""
         model = self.model()
         for col in range(model.columnCount()):
             if all(
@@ -277,7 +280,7 @@ class CustomTableView(QTableView):
                 self.setColumnWidth(col, 10)  # Minimal width
 
     def autofit_column(self, col):
-        """Expands column width on double-click"""
+        """Expands column width on double-click."""
         self.horizontalHeader().setSectionResizeMode(
             col, QHeaderView.ResizeToContents
         )
@@ -287,7 +290,7 @@ class CustomTableView(QTableView):
         )
 
     def highlight_active_column(self, index):
-        """Highlights the active column"""
+        """Highlights the active column."""
         for row in range(self.model().rowCount()):
             self.model().setData(
                 self.model().index(row, index.column()),
@@ -296,7 +299,7 @@ class CustomTableView(QTableView):
             )
 
     def animate_column_resize(self, col, new_width):
-        """Smoothly animates column resizing"""
+        """Smoothly animates column resizing."""
         anim = QPropertyAnimation(self, b"geometry")
         anim.setDuration(200)
         anim.setStartValue(

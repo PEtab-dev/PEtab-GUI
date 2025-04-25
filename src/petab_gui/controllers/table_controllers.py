@@ -369,7 +369,7 @@ class TableController(QObject):
             )
 
         # Find matches
-        match_indices = list(zip(*mask.to_numpy().nonzero()))
+        match_indices = list(zip(*mask.to_numpy().nonzero(), strict=False))
         table_matches = [
             (row, col + self.model.column_offset) for row, col in match_indices
         ]

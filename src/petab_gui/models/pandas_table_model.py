@@ -696,7 +696,7 @@ class IndexedPandasTableModel(PandasTableModel):
 
     def handle_named_index(self, index, value):
         """Handle the named index column."""
-        row, column = index.row(), index.column()
+        row = index.row()
         old_value = self._data_frame.index[row]
         if value == old_value:
             return False

@@ -25,7 +25,7 @@ def linter_wrapper(_func=None, additional_error_check: bool = False):
             **kwargs,
         ):
             try:
-                result = func(
+                func(
                     self, row_data, row_name, col_name, *args, **kwargs
                 )
                 return True
