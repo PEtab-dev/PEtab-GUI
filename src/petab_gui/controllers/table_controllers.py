@@ -274,7 +274,8 @@ class TableController(QObject):
                 del self.completers[column_name]
             self.model.delete_column(column)
             self.logger.log_message(
-                f"Deleted column '{column_name}' from {self.model.table_type} table.",
+                f"Deleted column '{column_name}' from "
+                f"{self.model.table_type} table.",
                 color="orange",
             )
             deleted_columns.add(column)

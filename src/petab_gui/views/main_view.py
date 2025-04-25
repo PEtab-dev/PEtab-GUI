@@ -273,10 +273,8 @@ class MainWindow(QMainWindow):
 
     def toggle_find(self):
         """Toggles the find-part of the Find.Replace Bar."""
-        # self.find_replace_bar.toggle_find()
         self.find_replace_bar.toggle_find()
 
     def toggle_replace(self):
         """Toggles the replace-part of the Find.Replace Bar."""
-        # self.find_replace_bar.toggle_replace()
         self.find_replace_bar.toggle_replace()

@@ -371,7 +371,7 @@ class SettingsDialog(QDialog):
 
     def apply_settings(self):
         """Retrieve UI settings and save them in SettingsManager."""
-        for table_name, table_widget in self.table_widgets.items():
+        for _table_name, table_widget in self.table_widgets.items():
             table_widget.save_current_settings()
         settings_manager.new_log_message.emit("New settings applied.", "green")
         self.accept()

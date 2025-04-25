@@ -25,7 +25,8 @@ class DefaultHandlerModel:
         Initialize the handler for the model.
 
         :param model: The PandasTable Model containing the Data.
-        :param config: Dictionary containing strategies and settings for each column.
+        :param config: Dictionary containing strategies and settings for each 
+            column.
         """
         self._model = model
         # TODO: Check what happens with non inplace operations
@@ -45,9 +46,12 @@ class DefaultHandlerModel:
         Get the default value for a column based on its strategy.
 
         :param column_name: The name of the column to compute the default for.
-        :param row_index: Optional index of the row (needed for some strategies).
-        :param par_scale: Optional parameter scale (needed for some strategies).
-        :param changed: Optional tuple containing the column name and index of the changed cell.
+        :param row_index: Optional index of the row (needed for some 
+            strategies).
+        :param par_scale: Optional parameter scale (needed for some 
+            strategies).
+        :param changed: Optional tuple containing the column name and index of 
+            the changed cell.
         :return: The computed default value.
         """
         source_column = column_name
@@ -62,28 +66,27 @@ class DefaultHandlerModel:
         default_value = column_config.get(DEFAULT_VALUE, "")
 
         if strategy == USE_DEFAULT:
-            if self.model.dtypes[column_name] == float:
+            if np.issubdtype(self.model.dtypes[column_name], np.floating):
                 return float(default_value)
             return default_value
-        elif strategy == NO_DEFAULT:
+        if strategy == NO_DEFAULT:
             return ""
-        elif strategy == MIN_COLUMN:
+        if strategy == MIN_COLUMN:
             return self._min_column(column_name, par_scale)
-        elif strategy == MAX_COLUMN:
+        if strategy == MAX_COLUMN:
             return self._max_column(column_name, par_scale)
-        elif strategy == COPY_FROM:
+        if strategy == COPY_FROM:
             return self._copy_column(
                 column_name, column_config, row_index, changed
             )
-        elif strategy == MODE:
+        if strategy == MODE:
             column_config[SOURCE_COLUMN] = source_column
             return self._majority_vote(column_name, column_config)
-        elif strategy == SBML_LOOK:
+        if strategy == SBML_LOOK:
             return self._sbml_lookup(row_index)
-        else:
-            raise ValueError(
-                f"Unknown strategy '{strategy}' for column '{column_name}'."
-            )
+        raise ValueError(
+            f"Unknown strategy '{strategy}' for column '{column_name}'."
+        )
 
     def _min_column(self, column_name, par_scale=None):
         if column_name not in self.model:
@@ -95,6 +98,7 @@ class DefaultHandlerModel:
             ]
         if not column_data.empty:
             return column_data.min()
+        return None
 
     def _max_column(self, column_name, par_scale=None):
         if column_name not in self.model:
@@ -106,6 +110,7 @@ class DefaultHandlerModel:
             ]
         if not column_data.empty:
             return column_data.max()
+        return None
 
     def _copy_column(
         self, column_name, config, row_index, changed: dict | None = None

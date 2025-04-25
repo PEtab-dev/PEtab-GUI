@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
 
 from ..models import PEtabModel
 from ..settings_manager import SettingsDialog, settings_manager
-from ..utils import CaptureLogHandler, FindReplaceDialog, process_file
+from ..utils import CaptureLogHandler, process_file
 from ..views import TaskBar
 from .logger_controller import LoggerController
 from .sbml_controller import SbmlController
@@ -401,7 +401,8 @@ class MainController:
         for key, dock in dock_map.items():
             action = self.actions[f"show_{key}"]
 
-            # Initial sync: block signal to avoid triggering unwanted visibility changes
+            # Initial sync: block signal to avoid triggering unwanted
+            # visibility changes
             was_blocked = action.blockSignals(True)
             action.setChecked(dock.isVisible())
             action.blockSignals(was_blocked)
@@ -443,42 +444,27 @@ class MainController:
         )
         return True
 
-    def open_find_replace_dialog(self):
-        current_tab = self.view.tab_widget.currentIndex()
-        if current_tab == 0:
-            # TODO: rewrite functionality in FindReplaceDialoge
-            dialog = FindReplaceDialog(
-                self.view,
-                mode="petab",
-                checkbox_states=self.petab_checkbox_states,
-                controller=self,
-            )
-        elif current_tab == 1:
-            dialog = FindReplaceDialog(
-                self.view,
-                mode="sbml",
-                checkbox_states=self.sbml_checkbox_states,
-                controller=self,
-            )
-        dialog.exec()
-
     def handle_selection_changed(self):
-        # ??
+        """Update the plot when the selection in the measurement table changes."""
         self.update_plot()
 
     def handle_data_changed(self, top_left, bottom_right, roles):
-        # ??
+        """Update the plot when the data in the measurement table changes."""
         if not roles or Qt.DisplayRole in roles:
             self.update_plot()
 
     def update_plot(self):
-        # ??
+        """Update the plot with the selected measurement data.
+
+        Extracts the selected data points from the measurement table and
+        updates the plot visualization with this data.
+        """
         selection_model = (
             self.view.measurement_dock.table_view.selectionModel()
         )
         indexes = selection_model.selectedIndexes()
         if not indexes:
-            return None
+            return
 
         selected_points = {}
         for index in indexes:
@@ -499,7 +485,7 @@ class MainController:
                 }
             )
         if selected_points == {}:
-            return None
+            return
 
         measurement_data = self.model.measurement._data_frame
         plot_data = {"all_data": [], "selected_points": selected_points}
@@ -735,7 +721,6 @@ class MainController:
             return self.parameter_controller
         if active_widget == self.view.condition_dock.table_view:
             return self.condition_controller
-        print("No active controller found")
         return None
 
     def delete_rows(self):
@@ -802,9 +787,6 @@ class MainController:
         settings_dialog = SettingsDialog(table_columns, self.view)
         settings_dialog.exec()
 
-    def set_docks_visible(self):
-        """Handles Visibility of docks."""
-        pass
 
     def find(self):
         """Create a find replace bar if it is non existent."""

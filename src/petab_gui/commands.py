@@ -107,7 +107,7 @@ class ModifyRowCommand(QUndoCommand):
             self.model.beginInsertRows(
                 QModelIndex(), position, position + len(self.row_indices) - 1
             )
-            for i, idx in enumerate(self.row_indices):
+            for _i, idx in enumerate(self.row_indices):
                 df.loc[idx] = [np.nan] * df.shape[1]
             self.model.endInsertRows()
         else:

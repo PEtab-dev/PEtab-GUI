@@ -246,7 +246,6 @@ class CustomTableView(QTableView):
             else:
                 self.setColumnWidth(col, optimal_width)
 
-        # self.adjust_for_empty_neighbors()
         self.collapse_empty_columns()
         self.updateGeometry()
 

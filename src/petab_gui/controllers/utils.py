@@ -97,10 +97,11 @@ def prompt_overwrite_or_append(controller):
 
     if msg_box.clickedButton() == cancel_button:
         return None
-    elif msg_box.clickedButton() == overwrite_button:
+    if msg_box.clickedButton() == overwrite_button:
         return "overwrite"
-    elif msg_box.clickedButton() == append_button:
+    if msg_box.clickedButton() == append_button:
         return "append"
+    return None
 
 
 class RecentFilesManager(QObject):

@@ -26,8 +26,7 @@ def get_icon() -> QIcon:
     icon_path = files("petab_gui.assets").joinpath("PEtab.png")
     if not icon_path.is_file():
         raise FileNotFoundError(f"Icon file not found: {icon_path}")
-    icon = QIcon(str(icon_path))
-    return icon
+    return QIcon(str(icon_path))
 
 
 class PEtabGuiApp(QApplication):
@@ -35,14 +34,14 @@ class PEtabGuiApp(QApplication):
         super().__init__(sys.argv)
 
         # Load the stylesheet
-        # self.apply_stylesheet()
         self.setWindowIcon(get_icon())
+        self.apply_stylesheet()
         self.model = PEtabModel()
         self.view = MainWindow()
         self.view.setWindowIcon(get_icon())
         self.controller = MainController(self.view, self.model)
 
-        # hack to be discussed
+        # Connect the view to the controller
         self.view.controller = self.controller
 
         if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):
@@ -66,7 +65,7 @@ class PEtabGuiApp(QApplication):
             with open(stylesheet_path) as f:
                 self.setStyleSheet(f.read())
         else:
-            print(f"Warning: Stylesheet '{stylesheet_path}' not found!")
+            pass
 
 
 def main():

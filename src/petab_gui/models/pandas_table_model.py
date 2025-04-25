@@ -63,10 +63,14 @@ class PandasTableModel(QAbstractTableModel):
         self.default_handler = DefaultHandlerModel(self, self.config)
         self.undo_stack = undo_stack
 
-    def rowCount(self, parent=QModelIndex()):
+    def rowCount(self, parent=None):
+        if parent is None:
+            parent = QModelIndex()
         return self._data_frame.shape[0] + 1  # empty row at the end
 
-    def columnCount(self, parent=QModelIndex()):
+    def columnCount(self, parent=None):
+        if parent is None:
+            parent = QModelIndex()
         return self._data_frame.shape[1] + self.column_offset
 
     def data(self, index, role=Qt.DisplayRole):
@@ -86,9 +90,9 @@ class PandasTableModel(QAbstractTableModel):
             if is_invalid(value):
                 return ""
             return str(value)
-        elif role == Qt.BackgroundRole:
+        if role == Qt.BackgroundRole:
             return self.determine_background_color(row, column)
-        elif role == Qt.ForegroundRole:
+        if role == Qt.ForegroundRole:
             # Return yellow text if this cell is a match
             if (row, column) in self.highlighted_cells:
                 return QApplication.palette().color(QPalette.HighlightedText)
@@ -105,17 +109,15 @@ class PandasTableModel(QAbstractTableModel):
         """Return the header data for the given section, orientation."""
         if role != Qt.DisplayRole:
             return None
-        # role == Qt.DisplayRole
         if orientation == Qt.Horizontal:
             if section == 0:
                 return self._data_frame.index.name
-            else:
-                return self._data_frame.columns[section - 1]
+            return self._data_frame.columns[section - 1]
         if orientation == Qt.Vertical:
             return str(section)
         return None
 
-    def insertRows(self, position, rows, parent=QModelIndex()) -> bool:
+    def insertRows(self, position, rows, parent=None) -> bool:
         """
         Insert new rows at the end of the DataFrame in-place.
 
@@ -186,7 +188,7 @@ class PandasTableModel(QAbstractTableModel):
             self.undo_stack.endMacro()
             return success
         # multiple rows but only one column is selected
-        all_set = list()
+        all_set = []
         self.undo_stack.beginMacro("Set data")
         for index in selected:
             all_set.append(self._set_data_single(index, value))
@@ -455,8 +457,8 @@ class PandasTableModel(QAbstractTableModel):
         if self.view is None:
             return False
         selected = get_selected(self.view, mode="index")
-        cols = set([index.column() for index in selected])
-        rows = set([index.row() for index in selected])
+        cols = {index.column() for index in selected}
+        rows = {index.row() for index in selected}
         return len(rows) > 1 and len(cols) == 1, selected
 
     def reset_invalid_cells(self):
@@ -783,9 +785,9 @@ class MeasurementModel(PandasTableModel):
             if is_invalid(value):
                 return ""
             return str(value)
-        elif role == Qt.BackgroundRole:
+        if role == Qt.BackgroundRole:
             return self.determine_background_color(row, column)
-        elif role == Qt.ForegroundRole:
+        if role == Qt.ForegroundRole:
             # Return yellow text if this cell is a match
             if (row, column) in self.highlighted_cells:
                 return QApplication.palette().color(QPalette.HighlightedText)
@@ -796,7 +798,6 @@ class MeasurementModel(PandasTableModel):
         """Return the header data for the given section, orientation."""
         if role != Qt.DisplayRole:
             return None
-        # role == Qt.DisplayRole
         if orientation == Qt.Horizontal:
             return self._data_frame.columns[section]
         if orientation == Qt.Vertical:
