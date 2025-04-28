@@ -1,14 +1,23 @@
 """Main Window View."""
-from PySide6.QtWidgets import (QMainWindow, QDockWidget,
-                               QWidget, QVBoxLayout, QTabWidget, QSizePolicy)
-from PySide6.QtCore import Qt, QSettings
-from .sbml_view import SbmlViewer
-from .table_view import TableViewer
-from ..utils import FindReplaceBar
+
+import copy
+
+from PySide6.QtCore import QSettings, Qt
+from PySide6.QtWidgets import (
+    QDockWidget,
+    QMainWindow,
+    QSizePolicy,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
+
+from ..settings_manager import settings_manager
+from .find_replace_bar import FindReplaceBar
 from .logger import Logger
 from .measurement_plot import MeasuremenPlotter
-from ..settings_manager import settings_manager
-import copy
+from .sbml_view import SbmlViewer
+from .table_view import TableViewer
 
 
 class MainWindow(QMainWindow):
@@ -47,7 +56,6 @@ class MainWindow(QMainWindow):
         self.logger_dock.setWidget(self.logger_views[1])
         self.plot_dock = MeasuremenPlotter(self)
 
-        # Connect the visibility changes of the QDockWidget instances to a slot that saves their visibility status
         self.dock_visibility = {
             self.condition_dock: self.condition_dock.isVisible(),
             self.measurement_dock: self.measurement_dock.isVisible(),
@@ -69,17 +77,11 @@ class MainWindow(QMainWindow):
         self.parameter_dock.visibilityChanged.connect(
             self.save_dock_visibility
         )
-        self.logger_dock.visibilityChanged.connect(
-            self.save_dock_visibility
-        )
-        self.plot_dock.visibilityChanged.connect(
-            self.save_dock_visibility
-        )
+        self.logger_dock.visibilityChanged.connect(self.save_dock_visibility)
+        self.plot_dock.visibilityChanged.connect(self.save_dock_visibility)
 
         # Allow docking in multiple areas
-        self.data_tab.setDockOptions(
-            QMainWindow.AllowNestedDocks
-        )
+        self.data_tab.setDockOptions(QMainWindow.AllowNestedDocks)
 
         self.tab_widget.currentChanged.connect(self.set_docks_visible)
 
@@ -126,9 +128,7 @@ class MainWindow(QMainWindow):
                 dock.setGeometry(x, y, width, height)
                 dock.setFloating(False)
             if x == x_right:
-                self.data_tab.splitDockWidget(
-                    y, dock, Qt.Horizontal
-                )
+                self.data_tab.splitDockWidget(y, dock, Qt.Horizontal)
 
         if hasattr(self, "dock_visibility"):
             for dock in self.dock_visibility:
@@ -149,7 +149,7 @@ class MainWindow(QMainWindow):
             return
 
         event.ignore()
-    
+
     def setup_toolbar(self, actions):
         # add a toolbar with actions from self.task_bar
         tb = self.addToolBar("MainToolbar")
@@ -172,7 +172,7 @@ class MainWindow(QMainWindow):
         tb.addWidget(actions["filter_widget"])
 
     def add_menu_action(self, dock_widget, name):
-        """Helper function to add actions to the menu for showing dock widgets"""
+        """Add actions to the menu to show dock widgets."""
         action = self.view_menu.addAction(name)
         action.setCheckable(True)
         action.setChecked(True)
@@ -184,7 +184,7 @@ class MainWindow(QMainWindow):
         dock_widget.visibilityChanged.connect(action.setChecked)
 
     def save_dock_visibility(self, visible):
-        """Slot to save the visibility status of a QDockWidget when it changes"""
+        """Save the visibility status of a QDockWidget when it changes."""
         # if current tab is not the data tab return
         if self.tab_widget.currentIndex() != 0:
             return
@@ -192,15 +192,13 @@ class MainWindow(QMainWindow):
         self.dock_visibility[dock] = dock.isVisible()
 
     def set_docks_visible(self, index):
-        """Slot to set all QDockWidget instances to their previous visibility
-        when the "Data Tables" tab is not selected."""
+        """Set all QDockWidgets to their previous visibility on tab-change."""
         if index != 0:  # Another tab is selected
             for dock, visible in self.dock_visibility.items():
                 dock.setVisible(visible)
 
     def closeEvent(self, event):
-        """Override the closeEvent to emit a signal and let the controller handle it."""
-        # Emit the signal to let the controller decide what to do
+        """Override the closeEvent to emit additional signal."""
         self.controller.maybe_close()
 
         if self.allow_close:
@@ -215,7 +213,9 @@ class MainWindow(QMainWindow):
 
         # Load the visibility of the dock widgets
         for dock, _ in self.dock_visibility.items():
-            dock.setVisible(settings.value(f"docks/{dock.objectName()}", True, type=bool))
+            dock.setVisible(
+                settings.value(f"docks/{dock.objectName()}", True, type=bool)
+            )
 
         # Load the geometry of the main window
         self.restoreGeometry(settings.value("main_window/geometry"))
@@ -246,7 +246,10 @@ class MainWindow(QMainWindow):
         settings.setValue("data_tab/state", self.data_tab.saveState())
 
     def create_find_replace_bar(self):
-        """Create the find/replace bar and add it without replacing the tab widget."""
+        """Create the find/replace bar.
+
+        Add it without replacing the tab widget.
+        """
         self.find_replace_bar = FindReplaceBar(self.controller, self)
         # manually create a copy of the dock visibility
         dock_visibility_values = copy.deepcopy(
@@ -262,16 +265,16 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(container)
         # Restore the visibility of the docks
-        for dock, visible in zip(self.dock_visibility.keys(), dock_visibility_values):
+        for dock, visible in zip(
+            self.dock_visibility.keys(), dock_visibility_values, strict=False
+        ):
             self.dock_visibility[dock] = visible
             dock.setVisible(visible)
 
     def toggle_find(self):
         """Toggles the find-part of the Find.Replace Bar."""
-        # self.find_replace_bar.toggle_find()
         self.find_replace_bar.toggle_find()
 
     def toggle_replace(self):
         """Toggles the replace-part of the Find.Replace Bar."""
-        # self.find_replace_bar.toggle_replace()
         self.find_replace_bar.toggle_replace()

@@ -56,3 +56,21 @@ include-package-data = true
 
 [tool.setuptools.package-data]
 "petab_gui.assets" = ["PEtab.png"]
+
+[tool.ruff]
+line-length = 79
+lint.select = [
+    "F",  # Pyflakes
+    "I",  # isort
+    "D",  # pydocstyle (PEP 257)
+    "S",  # flake8-bandit
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "T20",  # flake8-print
+    "W",  # pycodestyle Warnings
+    "E",  # pycodestyle Errors
+    "UP",  # pyupgrade
+    # "ANN",  # flakes-annotations TODO: currently produces ~1500 errors to manual fix
+]
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"

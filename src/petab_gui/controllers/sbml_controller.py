@@ -1,16 +1,20 @@
 """Class for handling SBML files in the GUI."""
-from PySide6.QtWidgets import QFileDialog
+
+from pathlib import Path
+
 import libsbml
 from petab.models.sbml_model import SbmlModel
-from PySide6.QtCore import Signal, QObject
-from pathlib import Path
+from PySide6.QtCore import QObject, Signal
+from PySide6.QtWidgets import QFileDialog
+
 from ..models.sbml_model import SbmlViewerModel
-from ..views.sbml_view import SbmlViewer
 from ..utils import sbmlToAntimony
+from ..views.sbml_view import SbmlViewer
 
 
 class SbmlController(QObject):
     """Class for handling SBML files in the GUI."""
+
     overwritten_model = Signal()
 
     def __init__(
@@ -18,7 +22,7 @@ class SbmlController(QObject):
         view: SbmlViewer,
         model: SbmlViewerModel,
         logger,
-        mother_controller
+        mother_controller,
     ):
         """Initialize the SBML controller.
 
@@ -57,7 +61,7 @@ class SbmlController(QObject):
         """Reset the model to the original SBML and Antimony text."""
         self.logger.log_message(
             "Resetting the model to the original SBML and Antimony text",
-            color="orange"
+            color="orange",
         )
         self.model.sbml_text = libsbml.writeSBMLToString(
             self.model._sbml_model_original.sbml_model.getSBMLDocument()
@@ -67,20 +71,17 @@ class SbmlController(QObject):
         self.view.antimony_text_edit.setPlainText(self.model.antimony_text)
 
     def update_antimony_from_sbml(self):
-        "Convert current SBML to Antimony and update the Antimony text."
+        """Convert current SBML to Antimony and update the Antimony text."""
         self.model.sbml_text = self.view.sbml_text_edit.toPlainText()
         try:
             self.model.convert_sbml_to_antimony()
         except Exception as e:
             self.logger.log_message(
-                f"Failed to convert SBML to Antimony: {str(e)}",
-                color="red"
+                f"Failed to convert SBML to Antimony: {str(e)}", color="red"
             )
             return
         self.logger.log_message("Converting SBML to Antimony", color="green")
-        self.view.antimony_text_edit.setPlainText(
-            self.model.antimony_text
-        )
+        self.view.antimony_text_edit.setPlainText(self.model.antimony_text)
         self.model.something_changed.emit(True)
 
     def update_sbml_from_antimony(self):
@@ -90,8 +91,7 @@ class SbmlController(QObject):
             self.model.convert_antimony_to_sbml()
         except Exception as e:
             self.logger.log_message(
-                f"Failed to convert Antimony to SBML: {str(e)}",
-                color="red"
+                f"Failed to convert Antimony to SBML: {str(e)}", color="red"
             )
             return
         self.logger.log_message("Converting Antimony to SBML", color="green")
@@ -114,20 +114,15 @@ class SbmlController(QObject):
                 self.model._sbml_model_original.sbml_model.getSBMLDocument()
             )
             self.model.convert_sbml_to_antimony()
-            self.view.sbml_text_edit.setPlainText(
-                self.model.sbml_text
-            )
-            self.view.antimony_text_edit.setPlainText(
-                self.model.antimony_text
-            )
+            self.view.sbml_text_edit.setPlainText(self.model.sbml_text)
+            self.view.antimony_text_edit.setPlainText(self.model.antimony_text)
 
             self.overwritten_model.emit()
             self.logger.log_message(
                 "SBML model successfully opened and overwritten.",
-                color="green"
+                color="green",
             )
         except Exception as e:
             self.logger.log_message(
-                f"Failed to open SBML file: {str(e)}",
-                color="red"
+                f"Failed to open SBML file: {str(e)}", color="red"
             )

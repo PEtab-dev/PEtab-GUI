@@ -1,10 +1,10 @@
-from PySide6.QtCore import QObject, Signal
 import libsbml
-import tempfile
+import petab.v1 as petab
 from petab.v1.models.sbml_model import SbmlModel
 from petab.v1.sbml import load_sbml_from_string
-import petab.v1 as petab
-from ..utils import sbmlToAntimony, antimonyToSBML
+from PySide6.QtCore import QObject, Signal
+
+from ..utils import antimonyToSBML, sbmlToAntimony
 
 
 class SbmlViewerModel(QObject):
@@ -17,6 +17,7 @@ class SbmlViewerModel(QObject):
     antimony_text: str
         The SBML model converted to Antimony.
     """
+
     something_changed = Signal(bool)
 
     def __init__(self, sbml_model: petab.models.Model, parent=None):
@@ -43,7 +44,7 @@ class SbmlViewerModel(QObject):
         """Temporary write SBML to file and turn into petab.models.Model."""
         if self.sbml_text == "":
             return None
-        
+
         sbml_reader, sbml_document, sbml_model = load_sbml_from_string(
             self.sbml_text
         )

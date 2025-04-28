@@ -1,10 +1,11 @@
-from PySide6.QtWidgets import QMenu
-from PySide6.QtGui import QAction
 import qtawesome as qta
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QMenu
 
 
 class BasicMenu:
     """Base class for a TaskBar Menu."""
+
     def __init__(self, parent, actions):
         self.menu = QMenu(self.menu_name(), parent)
         self.parent = parent
@@ -14,7 +15,8 @@ class BasicMenu:
     ):
         """Add an action or a menu to the menu.
 
-        If no menu is provided, the action is added to the main menu."""
+        If no menu is provided, the action is added to the main menu.
+        """
         if menu is None:
             menu = self.menu
         if is_action:
@@ -39,6 +41,7 @@ class BasicMenu:
 
 class FileMenu(BasicMenu):
     """Class for the file menu."""
+
     def menu_name(self):
         return "&File"
 
@@ -59,6 +62,7 @@ class EditMenu(BasicMenu):
     # TODO: Add actions to the setup actions (Requires fix of those, will be
     #  done in the next PR)
     """Edit Menu of the TaskBar."""
+
     def menu_name(self):
         return "&Edit"
 
@@ -95,6 +99,7 @@ class EditMenu(BasicMenu):
 
 class ViewMenu(BasicMenu):
     """View Menu of the TaskBar."""
+
     def menu_name(self):
         return "&View"
 
@@ -102,9 +107,7 @@ class ViewMenu(BasicMenu):
         super().__init__(parent, actions)
 
         # Add actions to the menu for re-adding tables
-        visibility_header = QAction(
-            qta.icon("fa5s.eye"), "Visibility", parent
-        )
+        visibility_header = QAction(qta.icon("fa5s.eye"), "Visibility", parent)
         visibility_header.setEnabled(False)
         self.menu.addAction(visibility_header)
         self.menu.addSeparator()
@@ -121,6 +124,7 @@ class ViewMenu(BasicMenu):
 
 class HelpMenu(BasicMenu):
     """Help Menu of the TaskBar."""
+
     def menu_name(self):
         return "&Help"
 
@@ -131,9 +135,9 @@ class HelpMenu(BasicMenu):
         self.menu.addAction(actions["open_documentation"])
 
 
-
 class TaskBar:
     """TaskBar of the PEtab Editor."""
+
     def add_menu(self, menu_class, actions):
         """Add a menu to the task bar."""
         menu = menu_class(self.parent, actions)
