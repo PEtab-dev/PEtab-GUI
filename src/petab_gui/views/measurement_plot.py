@@ -1,8 +1,11 @@
 """File containing the measurement plot widget."""
-from PySide6.QtWidgets import QDockWidget, QVBoxLayout, QWidget
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
+
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
+from PySide6.QtWidgets import QDockWidget, QVBoxLayout, QWidget
+
 from ..utils import PlotWidget
+
 
 class MeasuremenPlotter(QDockWidget):
     def __init__(self, parent=None):
@@ -38,24 +41,31 @@ class MeasuremenPlotter(QDockWidget):
         # Plot all data points with lower alpha for unselected points
         for idx, data in enumerate(plot_data["all_data"]):
             color = color_map(idx)
-            handle, = self.plot_widget.axes.plot(
-                data["x"], data["y"], 'o--',
-                color=color, alpha=0.5,
-                label=data["observable_id"]
+            (handle,) = self.plot_widget.axes.plot(
+                data["x"],
+                data["y"],
+                "o--",
+                color=color,
+                alpha=0.5,
+                label=data["observable_id"],
             )
             handles.append(handle)
             labels.append(data["observable_id"])
 
         # Plot selected points with full alpha
-        for idx, (observable_id, points) in enumerate(plot_data["selected_points"].items()):
+        for idx, (observable_id, points) in enumerate(
+            plot_data["selected_points"].items()
+        ):
             color = color_map(idx)
             selected_x = [point["x"] for point in points]
             selected_y = [point["y"] for point in points]
-            selected_handle, = self.plot_widget.axes.plot(
+            (selected_handle,) = self.plot_widget.axes.plot(
                 selected_x,
-                selected_y, 'o',
-                color=color, alpha=1,
-                label=f"{observable_id} (selected)"
+                selected_y,
+                "o",
+                color=color,
+                alpha=1,
+                label=f"{observable_id} (selected)",
             )
             handles.append(selected_handle)
             labels.append(f"{observable_id} (selected)")

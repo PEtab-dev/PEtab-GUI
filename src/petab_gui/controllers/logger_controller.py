@@ -1,7 +1,6 @@
 """File containing the controller of the logger widget."""
-from datetime import datetime
 
-from pyarrow import timestamp
+from datetime import datetime
 
 
 class LoggerController:
@@ -31,9 +30,9 @@ class LoggerController:
         if loglevel > self.logger_level:
             return
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        full_message = \
-            (f"[{timestamp}]\t <span style='color: {color};'>"
-             f"{message}</span>")
+        full_message = (
+            f"[{timestamp}]\t <span style='color: {color};'>{message}</span>"
+        )
         for view in self.views:
             view.logger.append(full_message)
 

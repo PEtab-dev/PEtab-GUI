@@ -1,10 +1,18 @@
 """Contains the overarching PEtab model class."""
+
 from __future__ import annotations
 
 from pathlib import Path
+
 import petab.v1 as petab
+
+from .pandas_table_model import (
+    ConditionModel,
+    MeasurementModel,
+    ObservableModel,
+    ParameterModel,
+)
 from .sbml_model import SbmlViewerModel
-from .pandas_table_model import MeasurementModel, ObservableModel, ParameterModel, ConditionModel
 
 
 class PEtabModel:
@@ -56,8 +64,7 @@ class PEtabModel:
             data_frame=self.problem.observable_df,
         )
         self.parameter = ParameterModel(
-            data_frame=self.problem.parameter_df,
-            sbml_model=self.sbml
+            data_frame=self.problem.parameter_df, sbml_model=self.sbml
         )
         self.condition = ConditionModel(
             data_frame=self.problem.condition_df,
@@ -137,4 +144,3 @@ class PEtabModel:
             parameter_df=self.parameter.get_df(),
             model=self.sbml.get_current_sbml_model(),
         )
-

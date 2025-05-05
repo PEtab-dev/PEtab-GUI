@@ -1,17 +1,40 @@
-"""Create a SettingsManager class to handle application settings with
-persistent storage.
+"""SettingsManager class to handle application setting's persistent storage.
 
-Creates a single instance that will be imported and used."""
-from PySide6.QtCore import QSettings, QObject, Signal, Qt
+Creates a single instance that will be imported and used.
+"""
+
+from PySide6.QtCore import QObject, QSettings, Qt, Signal
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QListWidget, QStackedWidget, QWidget,
-    QLabel, QGridLayout, QFormLayout, QComboBox, QDoubleSpinBox, QLineEdit,
-    QScrollArea, QGroupBox, QSizePolicy, QSpacerItem, QPushButton
+    QComboBox,
+    QDialog,
+    QFormLayout,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QSpacerItem,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
 )
-from .C import (DEFAULT_CONFIGS, COPY_FROM, USE_DEFAULT, NO_DEFAULT,
-                SOURCE_COLUMN, DEFAULT_VALUE, ALLOWED_STRATEGIES,
-                MODE, STRATEGY_TOOLTIP,
-                STRATEGIES_DEFAULT_ALL)
+
+from .C import (
+    ALLOWED_STRATEGIES,
+    COPY_FROM,
+    DEFAULT_CONFIGS,
+    DEFAULT_VALUE,
+    MODE,
+    NO_DEFAULT,
+    SOURCE_COLUMN,
+    STRATEGIES_DEFAULT_ALL,
+    STRATEGY_TOOLTIP,
+    USE_DEFAULT,
+)
 
 
 class SettingsManager(QObject):
@@ -39,8 +62,12 @@ class SettingsManager(QObject):
     def load_ui_settings(self, main_window):
         """Load UI-related settings such as main window and dock states."""
         # Restore main window geometry and state
-        main_window.restoreGeometry(self.get_value("main_window/geometry", main_window.saveGeometry()))
-        main_window.restoreState(self.get_value("main_window/state", main_window.saveState()))
+        main_window.restoreGeometry(self.get_value(
+            "main_window/geometry", main_window.saveGeometry()
+        ))
+        main_window.restoreState(
+            self.get_value("main_window/state", main_window.saveState())
+        )
 
         # Restore dock widget visibility
         for dock, _ in main_window.dock_visibility.items():
@@ -48,9 +75,11 @@ class SettingsManager(QObject):
                 f"docks/{dock.objectName()}", True, value_type=bool
             ))
 
-        main_window.data_tab.restoreGeometry(self.get_value(
-            "data_tab/geometry", main_window.data_tab.saveGeometry()
-        ))
+        main_window.data_tab.restoreGeometry(
+            self.get_value(
+                "data_tab/geometry", main_window.data_tab.saveGeometry()
+            )
+        )
         main_window.data_tab.restoreState(self.get_value(
             "data_tab/state", main_window.data_tab.saveState()
         ))
@@ -69,15 +98,12 @@ class SettingsManager(QObject):
         self.set_value(
             "data_tab/geometry", main_window.data_tab.saveGeometry()
         )
-        self.set_value(
-            "data_tab/state", main_window.data_tab.saveState()
-        )
+        self.set_value("data_tab/state", main_window.data_tab.saveState())
 
     def get_table_defaults(self, table_name):
         """Retrieve default configuration for a specific table."""
         return self.settings.value(
-            f"table_defaults/{table_name}",
-            DEFAULT_CONFIGS.get(table_name, {})
+            f"table_defaults/{table_name}", DEFAULT_CONFIGS.get(table_name, {})
         )
 
     def set_table_defaults(self, table_name, config):
@@ -93,12 +119,18 @@ settings_manager = SettingsManager()
 class ColumnConfigWidget(QWidget):
     """Widget for editing a single column's configuration."""
 
-    def __init__(self, column_name, config, table_columns,
-                 strategies=None, parent=None):
+    def __init__(
+        self, column_name, config, table_columns, strategies=None, parent=None
+    ):
         """
-        :param column_name: Name of the column
-        :param config: Dictionary containing settings for the column
-        :param table_columns: List of columns in the same table (used for dropdown)
+        Initialize the column configuration widget.
+
+        :param column_name:
+            Name of the column
+        :param config:
+            Dictionary containing settings for the column
+        :param table_columns:
+            List of columns in the same table (used for dropdown)
         """
         super().__init__(parent)
         self.setWindowTitle(column_name)
@@ -150,8 +182,11 @@ class ColumnConfigWidget(QWidget):
             "Source Column:", self.source_column_dropdown
         )
 
-        for widget in [self.strategy_choice, self.default_value,
-                       self.source_column_dropdown]:
+        for widget in [
+            self.strategy_choice,
+            self.default_value,
+            self.source_column_dropdown,
+        ]:
             widget.setFixedWidth(150)
             widget.setMinimumHeight(24)
 
@@ -199,6 +234,8 @@ class TableDefaultsWidget(QWidget):
 
     def __init__(self, table_name, table_columns, settings, parent=None):
         """
+        Initialize the table defaults widget.
+
         :param table_name: The name of the table
         :param table_columns: List of column names in this table
         :param settings: Dictionary of settings for this table
@@ -215,16 +252,22 @@ class TableDefaultsWidget(QWidget):
         allowed_strats = ALLOWED_STRATEGIES.get(table_name, {})
         # Iterate over columns and create widgets
         for column_name in table_columns:
-            column_settings = settings.get(column_name, self.default_col_config())
+            column_settings = settings.get(
+                column_name, self.default_col_config()
+            )
             strategies = allowed_strats.get(column_name, None)
             column_widget = ColumnConfigWidget(
                 column_name, column_settings, table_columns, strategies
             )
-            column_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+            column_widget.setSizePolicy(
+                QSizePolicy.Expanding, QSizePolicy.Minimum
+            )
             group_layout.addWidget(column_widget)
             self.column_widgets[column_name] = column_widget
 
-        group_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
+        group_layout.addSpacerItem(
+            QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        )
 
         # Apply layout
         main_layout = QVBoxLayout(self)
@@ -241,9 +284,7 @@ class TableDefaultsWidget(QWidget):
 
     def default_col_config(self):
         """Return default config for new columns."""
-        return {
-            "strategy": NO_DEFAULT
-        }
+        return {"strategy": NO_DEFAULT}
 
 
 class SettingsDialog(QDialog):
@@ -257,7 +298,8 @@ class SettingsDialog(QDialog):
         self.settings = {
             table_type: settings_manager.get_value(
                 f"table_defaults/{table_type}", {}
-            ) for table_type in table_columns.keys()
+            )
+            for table_type in table_columns
         }
 
         self.main_layout = QHBoxLayout(self)
@@ -301,8 +343,12 @@ class SettingsDialog(QDialog):
 
         self.table_widgets = {}
         # Add tables in a 2x2 grid
-        for i_table, (table_name, column_list) in enumerate(self.table_columns.items()):
-            table_widget = TableDefaultsWidget(table_name, column_list, self.settings.get(table_name, {}))
+        for i_table, (table_name, column_list) in enumerate(
+            self.table_columns.items()
+        ):
+            table_widget = TableDefaultsWidget(
+                table_name, column_list, self.settings.get(table_name, {})
+            )
             grid_layout.addWidget(table_widget, i_table // 2, i_table % 2)
             self.table_widgets[table_name] = table_widget
 
@@ -325,8 +371,7 @@ class SettingsDialog(QDialog):
 
     def apply_settings(self):
         """Retrieve UI settings and save them in SettingsManager."""
-        for table_name, table_widget in self.table_widgets.items():
+        for _table_name, table_widget in self.table_widgets.items():
             table_widget.save_current_settings()
         settings_manager.new_log_message.emit("New settings applied.", "green")
         self.accept()
-
