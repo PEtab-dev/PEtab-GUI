@@ -1,27 +1,47 @@
-from functools import partial
-
-from PySide6.QtWidgets import QMessageBox, QFileDialog, QLineEdit, QWidget, \
-    QHBoxLayout, QToolButton, QTableView
-from PySide6.QtGui import QAction, QDesktopServices, QUndoStack, QKeySequence
-import zipfile
-import tempfile
-import os
-from io import BytesIO
 import logging
-import yaml
-import qtawesome as qta
-from ..utils import FindReplaceDialog, CaptureLogHandler, process_file
-from PySide6.QtCore import Qt, QUrl
-from pathlib import Path
-from ..models import PEtabModel
-from .sbml_controller import SbmlController
-from .table_controllers import MeasurementController, ObservableController, \
-    ConditionController, ParameterController
-from .logger_controller import LoggerController
-from ..views import TaskBar
-from .utils import prompt_overwrite_or_append, RecentFilesManager, filtered_error
+import os
+import tempfile
+import zipfile
 from functools import partial
+from io import BytesIO
+from pathlib import Path
+
+import qtawesome as qta
+import yaml
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QAction, QDesktopServices, QKeySequence, QUndoStack
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QHBoxLayout,
+    QLineEdit,
+    QMessageBox,
+    QTableView,
+    QToolButton,
+    QWidget,
+)
+
+from ..models import PEtabModel
 from ..settings_manager import SettingsDialog, settings_manager
+from ..utils import (
+    CaptureLogHandler,
+    FindReplaceDialog,
+    get_selected,
+    process_file,
+)
+from ..views import TaskBar
+from .logger_controller import LoggerController
+from .sbml_controller import SbmlController
+from .table_controllers import (
+    ConditionController,
+    MeasurementController,
+    ObservableController,
+    ParameterController,
+)
+from .utils import (
+    RecentFilesManager,
+    filtered_error,
+    prompt_overwrite_or_append,
+)
 
 
 class MainController:
@@ -111,13 +131,15 @@ class MainController:
         self.setup_connections()
         self.setup_task_bar()
         self.setup_context_menu()
+        self.plotter = None
+        self.init_plotter()
 
     def setup_context_menu(self):
         """Sets up context menus for the tables."""
-        self.measurement_controller.setup_context_menu(self.actions)
-        self.observable_controller.setup_context_menu(self.actions)
-        self.parameter_controller.setup_context_menu(self.actions)
-        self.condition_controller.setup_context_menu(self.actions)
+        for controller in self.controllers:
+            if controller == self.sbml_controller:
+                continue
+            controller.setup_context_menu(self.actions)
 
     def setup_task_bar(self):
         """Create shortcuts for the main window."""
@@ -155,10 +177,7 @@ class MainController:
         )
         # Maybe Move to a Plot Model
         self.view.measurement_dock.table_view.selectionModel().selectionChanged.connect(
-            self.handle_selection_changed
-        )
-        self.model.measurement.dataChanged.connect(
-            self.handle_data_changed
+            self._on_table_selection_changed
         )
         # Unsaved Changes
         self.model.measurement.something_changed.connect(
@@ -190,6 +209,11 @@ class MainController:
         self.sbml_controller.overwritten_model.connect(
             self.parameter_controller.update_handler_sbml
         )
+        # overwrite signals
+        for controller in [self.measurement_controller, self.condition_controller]:
+            controller.overwritten_df.connect(
+                self.init_plotter
+            )
 
     def setup_actions(self):
         """Setup actions for the main controller."""
@@ -312,11 +336,11 @@ class MainController:
         filter_layout.addWidget(self.filter_input)
         for table_n, table_name in zip(
             ["m", "p", "o", "c"],
-            ["measurement", "parameter", "observable", "condition"]
+            ["measurement", "parameter", "observable", "condition"], strict=False
         ):
             tool_button = QToolButton()
             icon = qta.icon(
-                "mdi6.alpha-{}".format(table_n), "mdi6.filter",
+                f"mdi6.alpha-{table_n}", "mdi6.filter",
                 options=[
                     {'scale_factor': 1.5, 'offset': (-0.2, -0.2)},
                     {'off': 'mdi6.filter-off', 'offset': (0.3, 0.3)},
@@ -414,7 +438,6 @@ class MainController:
 
     def sync_visibility_with_actions(self):
         """Sync dock visibility and QAction states in both directions."""
-
         dock_map = {
             "measurement": self.view.measurement_dock,
             "observable": self.view.observable_dock,
@@ -504,7 +527,7 @@ class MainController:
             self.view.measurement_dock.table_view.selectionModel()
         indexes = selection_model.selectedIndexes()
         if not indexes:
-            return None
+            return
 
         selected_points = {}
         for index in indexes:
@@ -521,14 +544,14 @@ class MainController:
                     "measurement"]
             })
         if selected_points == {}:
-            return None
+            return
 
         measurement_data = self.model.measurement._data_frame
         plot_data = {
             "all_data": [],
             "selected_points": selected_points
         }
-        for observable_id in selected_points.keys():
+        for observable_id in selected_points:
             observable_data = measurement_data[
                 measurement_data["observableId"] == observable_id]
             plot_data["all_data"].append({
@@ -627,7 +650,7 @@ class MainController:
                     continue
                 controller.release_completers()
             # Load the YAML content
-            with open(yaml_path, 'r') as file:
+            with open(yaml_path) as file:
                 yaml_content = yaml.safe_load(file)
 
             # Resolve the directory of the YAML file to handle relative paths
@@ -846,3 +869,53 @@ class MainController:
         if self.view.find_replace_bar is None:
             self.view.create_find_replace_bar()
         self.view.toggle_replace()
+
+    def init_plotter(self):
+        """(Re-)initialize the plotter."""
+        self.view.plot_dock.initialize(
+            self.measurement_controller.proxy_model,
+            self.condition_controller.proxy_model,
+        )
+        self.plotter = self.view.plot_dock
+        self.plotter.highlighter.click_callback = self._on_plot_point_clicked
+
+    def _on_plot_point_clicked(self, x, y, label):
+        # Extract observable ID from label, if formatted like 'obsId (label)'
+        meas_proxy = self.measurement_controller.proxy_model
+        obs = label
+
+        x_axis_col = "time"
+        y_axis_col = "measurement"
+        observable_col = "observableId"
+
+        def column_index(name):
+            for col in range(meas_proxy.columnCount()):
+                if (
+                    meas_proxy.headerData(col, Qt.Horizontal)
+                    == name
+                ):
+                    return col
+            raise ValueError(f"Column '{name}' not found.")
+
+        x_col = column_index(x_axis_col)
+        y_col = column_index(y_axis_col)
+        obs_col = column_index(observable_col)
+
+        for row in range(meas_proxy.rowCount()):
+            row_obs = meas_proxy.index(row, obs_col).data()
+            row_x = meas_proxy.index(row, x_col).data()
+            row_y = meas_proxy.index(row, y_col).data()
+            try:
+                row_x, row_y = float(row_x), float(row_y)
+            except ValueError:
+                continue
+            if row_obs == obs and row_x == x and row_y == y:
+                self.measurement_controller.view.table_view.selectRow(row)
+                break
+
+    def _on_table_selection_changed(self, selected, deselected):
+        """Highlight the cells selected in measurement table."""
+        selected_rows = get_selected(
+            self.measurement_controller.view.table_view
+        )
+        self.plotter.highlight_from_selection(selected_rows)
