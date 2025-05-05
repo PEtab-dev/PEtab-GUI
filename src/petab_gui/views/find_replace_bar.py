@@ -267,6 +267,7 @@ class FindReplaceBar(QWidget):
                 self.controller_map[table_name]
                 for table_name, action in self.filter_actions.items()
                 if action.isChecked() and (table_name != "All")
+            }
         self.run_find()
 
     def keyPressEvent(self, event):

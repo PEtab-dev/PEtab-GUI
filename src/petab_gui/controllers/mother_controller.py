@@ -24,7 +24,6 @@ from ..models import PEtabModel
 from ..settings_manager import SettingsDialog, settings_manager
 from ..utils import (
     CaptureLogHandler,
-    FindReplaceDialog,
     get_selected,
     process_file,
 )
