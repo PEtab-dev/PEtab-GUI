@@ -1,0 +1,23 @@
+{
+  "title": "PEtab GUI",
+  "description": "Graphical user interface for the PEtab format",
+  "creators": [
+    {
+      "name": "Paul Jonas Jost",
+      "affiliation": "University Bonn",
+      "orcid": "0000-0001-7613-6244"
+    },
+    {
+      "name": "Frank T. Bergman",
+      "affiliation": "University Heidelberg",
+      "orcid": "0000-0001-5553-4702"
+    }
+  ],
+  "keywords": [
+    "PEtab",
+    "GUI",
+    "Python",
+    "Biological Modeling",
+    "Parameter Estimation"
+  ]
+}

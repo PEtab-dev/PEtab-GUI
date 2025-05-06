@@ -70,7 +70,25 @@ lint.select = [
     "W",  # pycodestyle Warnings
     "E",  # pycodestyle Errors
     "UP",  # pyupgrade
-    # "ANN",  # flakes-annotations TODO: currently produces ~1500 errors to manual fix
+    "ERA",
+    "A",  # flake8-builtins
+    "RET",  # flake8-return
+    "SIM",  # flake8-simplify
+]
+lint.ignore = [
+    "D107",  # Ignore missing docstring in __init__.py files
+    "D102",  # Ignore missing docstring in public methods
+    "D103",  # Ignore missing docstring in public functions
+    "D401",  # Ignore imperative mood in docstrings
+    "D100",  # Ignore missing docstring in public modules
+    "D101",  # Ignore missing docstring in public classes
+    "F401",
+]
+[tool.ruff.lint.per-file-ignores]
+"*/__init__.py" = [
+    "F401",
+    "D400",
+    "D205",
 ]
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
