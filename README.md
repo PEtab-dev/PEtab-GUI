@@ -1,4 +1,6 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15355753.svg)](https://doi.org/10.5281/zenodo.15355753)
 # PEtabGUI
+
 
 This is a graphical user interface to create parameter estimation problems. It is 
 based on the [PEtab](https://petab.readthedocs.io/en/latest/#) format.
