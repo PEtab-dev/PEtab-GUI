@@ -60,6 +60,11 @@ class PEtabModel:
         )
         self.measurement = MeasurementModel(
             data_frame=self.problem.measurement_df,
+            type="measurement",
+        )
+        self.simulation = MeasurementModel(
+            data_frame=None,
+            type="simulation",
         )
         self.observable = ObservableModel(
             data_frame=self.problem.observable_df,
@@ -146,5 +151,6 @@ class PEtabModel:
             measurement_df=self.measurement.get_df(),
             observable_df=self.observable.get_df(),
             parameter_df=self.parameter.get_df(),
+            visualization_df=self.visualization.get_df(),
             model=self.sbml.get_current_sbml_model(),
         )

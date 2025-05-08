@@ -14,6 +14,17 @@ COLUMNS = {
         "datasetId": {"type": np.object_, "optional": True},
         "replicateId": {"type": np.object_, "optional": True},
     },
+    "simulation": {
+        "observableId": {"type": np.object_, "optional": False},
+        "preequilibrationConditionId": {"type": np.object_, "optional": True},
+        "simulationConditionId": {"type": np.object_, "optional": False},
+        "time": {"type": np.float64, "optional": False},
+        "simulation": {"type": np.float64, "optional": False},
+        "observableParameters": {"type": np.object_, "optional": True},
+        "noiseParameters": {"type": np.object_, "optional": True},
+        "datasetId": {"type": np.object_, "optional": True},
+        "replicateId": {"type": np.object_, "optional": True},
+    },
     "observable": {
         "observableId": {"type": np.object_, "optional": False},
         "observableName": {"type": np.object_, "optional": True},
@@ -44,6 +55,22 @@ COLUMNS = {
     },
     "visualization": {
         "plotId": {"type": np.object_, "optional": False},
+        "plotName": {"type": np.object_, "optional": True},
+        "plotTypeSimulation": {
+            "type": np.object_,
+            "optional": True,
+        },
+        "plotTypeData": {"type": np.object_, "optional": True},
+        "datasetId": {"type": np.object_, "optional": True},
+        "xValues": {"type": np.object_, "optional": True},
+        "xOffset": {"type": np.float64, "optional": True},
+        "xLabel": {"type": np.object_, "optional": True},
+        "xScale": {"type": np.object_, "optional": True},
+        "yValues": {"type": np.object_, "optional": True},
+        "yOffset": {"type": np.float64, "optional": True},
+        "yLabel": {"type": np.object_, "optional": True},
+        "yScale": {"type": np.object_, "optional": True},
+        "legendEntry": {"type": np.object_, "optional": True},
     }
 }
 

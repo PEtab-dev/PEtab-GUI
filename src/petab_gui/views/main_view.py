@@ -55,7 +55,8 @@ class MainWindow(QMainWindow):
         self.logger_dock.setObjectName("logger_dock")
         self.logger_dock.setWidget(self.logger_views[1])
         self.plot_dock = MeasurementPlotter(self)
-        self.vis_dock = TableViewer("Visualization Table")
+        self.visualization_dock = TableViewer("Visualization Table")
+        self.simulation_dock = TableViewer("Simulation Table")
 
         self.dock_visibility = {
             self.condition_dock: self.condition_dock.isVisible(),
@@ -64,6 +65,8 @@ class MainWindow(QMainWindow):
             self.parameter_dock: self.parameter_dock.isVisible(),
             self.logger_dock: self.logger_dock.isVisible(),
             self.plot_dock: self.plot_dock.isVisible(),
+            self.visualization_dock: self.visualization_dock.isVisible(),
+            self.simulation_dock: self.simulation_dock.isVisible(),
         }
         self.default_view()
         self.condition_dock.visibilityChanged.connect(
@@ -80,6 +83,12 @@ class MainWindow(QMainWindow):
         )
         self.logger_dock.visibilityChanged.connect(self.save_dock_visibility)
         self.plot_dock.visibilityChanged.connect(self.save_dock_visibility)
+        self.visualization_dock.visibilityChanged.connect(
+            self.save_dock_visibility
+        )
+        self.simulation_dock.visibilityChanged.connect(
+            self.save_dock_visibility
+        )
 
         # Allow docking in multiple areas
         self.data_tab.setDockOptions(QMainWindow.AllowNestedDocks)
@@ -106,19 +115,21 @@ class MainWindow(QMainWindow):
         # Get available geometry
         available_rect = self.data_tab.contentsRect()
         width = available_rect.width() // 2
-        height = available_rect.height() // 3
+        height = available_rect.height() // 4
         x_left = available_rect.left()
         x_right = x_left + width
-        y_positions = [available_rect.top() + i * height for i in range(3)]
+        y_positions = [available_rect.top() + i * height for i in range(4)]
 
         # Define dock + positions
         layout = [
             (self.measurement_dock, x_left, y_positions[0]),
             (self.parameter_dock, x_left, y_positions[1]),
             (self.logger_dock, x_left, y_positions[2]),
+            (self.visualization_dock, x_left, y_positions[3]),
             (self.observable_dock, x_right, self.measurement_dock),
             (self.condition_dock, x_right, self.parameter_dock),
             (self.plot_dock, x_right, self.logger_dock),
+            (self.simulation_dock, x_right, self.visualization_dock),
         ]
 
         for dock, x, y in layout:

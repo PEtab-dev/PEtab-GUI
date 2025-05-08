@@ -149,7 +149,9 @@ class TableController(QObject):
             if actionable in ["yaml", "sbml", "data_matrix", None]:  # no table
                 return
         try:
-            if self.model.table_type == "measurement":
+            if self.model.table_type in [
+                "measurement", "visualization", "simulation"
+            ]:
                 new_df = pd.read_csv(file_path, sep=separator)
             else:
                 new_df = pd.read_csv(file_path, sep=separator, index_col=0)
@@ -1132,3 +1134,28 @@ class ParameterController(TableController):
             condition_df=condition_df,
             model=sbml_model,
         )
+
+
+class VisualizationController(TableController):
+    """Controller of the Visualization table."""
+
+    def __init__(
+        self,
+        view: TableViewer,
+        model: PandasTableModel,
+        logger,
+        undo_stack,
+        mother_controller,
+    ):
+        """Initialize the table controller.
+
+        See class:`TableController` for details.
+        """
+        super().__init__(
+            view=view,
+            model=model,
+            logger=logger,
+            undo_stack=undo_stack,
+            mother_controller=mother_controller
+        )
+        self.check_petab_lint_mode = True  # TODO: temporary

@@ -35,6 +35,7 @@ from .table_controllers import (
     MeasurementController,
     ObservableController,
     ParameterController,
+    VisualizationController,
 )
 from .utils import (
     RecentFilesManager,
@@ -95,6 +96,20 @@ class MainController:
             self.undo_stack,
             self,
         )
+        self.visualization_controller = VisualizationController(
+            self.view.visualization_dock,
+            self.model.visualization,
+            self.logger,
+            self.undo_stack,
+            self,
+        )
+        self.simulation_controller = MeasurementController(
+            self.view.simulation_dock,
+            self.model.simulation,
+            self.logger,
+            self.undo_stack,
+            self,
+        )
         self.sbml_controller = SbmlController(
             self.view.sbml_viewer, self.model.sbml, self.logger, self
         )
@@ -104,6 +119,8 @@ class MainController:
             self.parameter_controller,
             self.condition_controller,
             self.sbml_controller,
+            self.visualization_controller,
+            self.simulation_controller,
         ]
         # Recent Files
         self.recent_files_manager = RecentFilesManager(max_files=10)
@@ -113,6 +130,8 @@ class MainController:
             "observable": False,
             "parameter": False,
             "condition": False,
+            "visualization": False,
+            "simulation": False,
         }
         self.sbml_checkbox_states = {"sbml": False, "antimony": False}
         self.unsaved_changes = False
@@ -190,6 +209,12 @@ class MainController:
         self.model.condition.something_changed.connect(
             self.unsaved_changes_change
         )
+        self.model.visualization.something_changed.connect(
+            self.unsaved_changes_change
+        )
+        self.model.simulation.something_changed.connect(
+            self.unsaved_changes_change
+        )
         self.model.sbml.something_changed.connect(self.unsaved_changes_change)
         # Visibility
         self.sync_visibility_with_actions()
@@ -204,7 +229,10 @@ class MainController:
             self.parameter_controller.update_handler_sbml
         )
         # overwrite signals
-        for controller in [self.measurement_controller, self.condition_controller]:
+        for controller in [
+            # self.measurement_controller,
+            self.condition_controller
+        ]:
             controller.overwritten_df.connect(
                 self.init_plotter
             )
@@ -311,8 +339,9 @@ class MainController:
         self.filter_input.setPlaceholderText("Filter...")
         filter_layout.addWidget(self.filter_input)
         for table_n, table_name in zip(
-            ["m", "p", "o", "c"],
-            ["measurement", "parameter", "observable", "condition"],
+            ["m", "p", "o", "c", "v", "s"],
+            ["measurement", "parameter", "observable", "condition",
+             "visualization", "simulation"],
             strict=False,
         ):
             tool_button = QToolButton()
@@ -335,7 +364,8 @@ class MainController:
         self.filter_input.textChanged.connect(self.filter_table)
 
         # show/hide elements
-        for element in ["measurement", "observable", "parameter", "condition"]:
+        for element in ["measurement", "observable", "parameter",
+                        "condition", "visualization", "simulation"]:
             actions[f"show_{element}"] = QAction(
                 f"{element.capitalize()} Table", self.view
             )
@@ -406,6 +436,8 @@ class MainController:
             "condition": self.view.condition_dock,
             "logger": self.view.logger_dock,
             "plot": self.view.plot_dock,
+            "visualization": self.view.visualization_dock,
+            "simulation": self.view.simulation_dock,
         }
 
         for key, dock in dock_map.items():
@@ -614,6 +646,14 @@ class MainController:
             self.condition_controller.open_table(
                 yaml_dir / yaml_content["problems"][0]["condition_files"][0]
             )
+            # Visualization is optional
+            vis_path = yaml_content["problems"][0].get("visualization_files")
+            if vis_path:
+                self.visualization_controller.open_table(
+                    yaml_dir / vis_path[0]
+                )
+            else:
+                self.visualization_controller.clear_table()
             self.logger.log_message(
                 "All files opened successfully from the YAML configuration.",
                 color="green",
@@ -731,6 +771,10 @@ class MainController:
             return self.parameter_controller
         if active_widget == self.view.condition_dock.table_view:
             return self.condition_controller
+        if active_widget == self.view.visualization_dock.table_view:
+            return self.visualization_controller
+        if active_widget == self.view.simulation_dock.table_view:
+            return self.simulation_controller
         return None
 
     def delete_rows(self):

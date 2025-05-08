@@ -410,12 +410,16 @@ def process_file(filepath, logger):
         # Case 3.2: Identify the table type based on header content
         if {"observableId", "measurement", "time"}.issubset(header):
             return "measurement", separator
+        if {"observableId", "simulation", "time"}.issubset(header):
+            return "simulation", separator
         if {"observableId", "observableFormula"}.issubset(header):
             return "observable", separator
         if "parameterId" in header:
             return "parameter", separator
         if "conditionId" in header or "\ufeffconditionId" in header:
             return "condition", separator
+        if "plotId" in header:
+            return "visualization", separator
         logger.log_message(
             f"Unrecognized table type for file: {filepath}. Uploading as "
             f"data matrix.",
