@@ -141,12 +141,19 @@ class ModifyRowCommand(QUndoCommand):
         df = self.model._data_frame
 
         if self.add_mode:
-            position = df.shape[0] - 1  # insert *before* the auto-row
+            position = 0 if df.empty else df.shape[0] - 1  # insert *before* the auto-row
             self.model.beginInsertRows(
                 QModelIndex(), position, position + len(self.row_indices) - 1
             )
+            # save dtypes
+            dtypes = df.dtypes.copy()
             for _i, idx in enumerate(self.row_indices):
                 df.loc[idx] = [np.nan] * df.shape[1]
+            # set dtypes
+            if np.any(dtypes != df.dtypes):
+                for col, dtype in dtypes.items():
+                    if dtype != df.dtypes[col]:
+                        df[col] = df[col].astype(dtype)
             self.model.endInsertRows()
         else:
             self.model.beginRemoveRows(

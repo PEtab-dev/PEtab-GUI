@@ -1059,7 +1059,7 @@ class MeasurementModel(PandasTableModel):
         super().__init__(
             data_frame=data_frame,
             allowed_columns=allowed_columns,
-            table_type="measurement",
+            table_type=type,
             parent=parent,
         )
 

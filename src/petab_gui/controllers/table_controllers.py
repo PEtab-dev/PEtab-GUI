@@ -68,6 +68,8 @@ class TableController(QObject):
         self.undo_stack = undo_stack
         self.model.undo_stack = undo_stack
         self.check_petab_lint_mode = True
+        if model.table_type in ["simulation", "visualization"]:
+            self.check_petab_lint_mode = False
         self.mother_controller = mother_controller
         self.view.table_view.setModel(self.proxy_model)
         self.setup_connections()
@@ -318,9 +320,10 @@ class TableController(QObject):
 
     def paste_from_clipboard(self):
         """Paste the clipboard content to the currently selected cells."""
+        old_lint = self.check_petab_lint_mode
         self.check_petab_lint_mode = False
         self.view.paste_from_clipboard()
-        self.check_petab_lint_mode = True
+        self.check_petab_lint_mode = old_lint
         try:
             self.check_petab_lint()
         except Exception as e:
@@ -1158,4 +1161,3 @@ class VisualizationController(TableController):
             undo_stack=undo_stack,
             mother_controller=mother_controller
         )
-        self.check_petab_lint_mode = True  # TODO: temporary
