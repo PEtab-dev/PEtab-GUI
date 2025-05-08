@@ -10,6 +10,7 @@ from .pandas_table_model import (
     IndexedPandasTableModel,
     MeasurementModel,
     ObservableModel,
+    PandasTableFilterProxy,
     PandasTableModel,
     ParameterModel,
 )

@@ -1196,3 +1196,15 @@ class PandasTableFilterProxy(QSortFilterProxyModel):
     @property
     def _invalid_cells(self):
         return self.source_model._invalid_cells
+
+
+class VisualizationModel(PandasTableModel):
+    """Table model for the visualization data."""
+
+    def __init__(self, data_frame, parent=None):
+        super().__init__(
+            data_frame=data_frame,
+            allowed_columns=COLUMNS["visualization"],
+            table_type="visualization",
+            parent=parent,
+        )

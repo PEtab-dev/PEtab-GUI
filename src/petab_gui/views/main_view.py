@@ -55,6 +55,7 @@ class MainWindow(QMainWindow):
         self.logger_dock.setObjectName("logger_dock")
         self.logger_dock.setWidget(self.logger_views[1])
         self.plot_dock = MeasurementPlotter(self)
+        self.vis_dock = TableViewer("Visualization Table")
 
         self.dock_visibility = {
             self.condition_dock: self.condition_dock.isVisible(),

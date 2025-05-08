@@ -1,10 +1,18 @@
 from collections import defaultdict
 
+import qtawesome as qta
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
 from PySide6.QtCore import QObject, QRunnable, Qt, QThreadPool, QTimer, Signal
-from PySide6.QtWidgets import QDockWidget, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QDockWidget,
+    QMenu,
+    QTabWidget,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from .utils import proxy_to_dataframe
 
@@ -47,7 +55,6 @@ class PlotWorker(QRunnable):
         petab_vis.plot_without_vis_spec(
             self.cond_df,
             measurements_df=self.meas_df,
-            group_by="observable"
         )
         fig = plt.gcf()
         fig.subplots_adjust(left=0.12, bottom=0.15, right=0.95, top=0.9, wspace=0.3, hspace=0.4)
@@ -71,6 +78,8 @@ class MeasurementPlotter(QDockWidget):
 
         self.dock_widget = QWidget(self)
         self.layout = QVBoxLayout(self.dock_widget)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(2)
         self.setWidget(self.dock_widget)
         self.tab_widget = QTabWidget()
         self.layout.addWidget(self.tab_widget)
@@ -112,10 +121,12 @@ class MeasurementPlotter(QDockWidget):
             # Fallback: show one empty plot tab
             empty_fig, _ = plt.subplots()
             empty_canvas = FigureCanvas(empty_fig)
-            empty_toolbar = NavigationToolbar2QT(empty_canvas, self)
+            empty_toolbar = CustomNavigationToolbar(empty_canvas, self)
 
             tab = QWidget()
             layout = QVBoxLayout(tab)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(2)
             layout.addWidget(empty_toolbar)
             layout.addWidget(empty_canvas)
 
@@ -124,10 +135,12 @@ class MeasurementPlotter(QDockWidget):
 
         # Full figure tab
         full_canvas = FigureCanvas(fig)
-        full_toolbar = NavigationToolbar2QT(full_canvas, self)
+        full_toolbar = CustomNavigationToolbar(full_canvas, self)
 
         full_tab = QWidget()
         full_layout = QVBoxLayout(full_tab)
+        full_layout.setContentsMargins(0, 0, 0, 0)
+        full_layout.setSpacing(2)
         full_layout.addWidget(full_toolbar)
         full_layout.addWidget(full_canvas)
 
@@ -156,10 +169,12 @@ class MeasurementPlotter(QDockWidget):
                 sub_ax.legend(handles=handles, labels=labels, loc="best")
 
             sub_canvas = FigureCanvas(sub_fig)
-            sub_toolbar = NavigationToolbar2QT(sub_canvas, self)
+            sub_toolbar = CustomNavigationToolbar(sub_canvas, self)
 
             sub_tab = QWidget()
             sub_layout = QVBoxLayout(sub_tab)
+            sub_layout.setContentsMargins(0, 0, 0, 0)
+            sub_layout.setSpacing(2)
             sub_layout.addWidget(sub_toolbar)
             sub_layout.addWidget(sub_canvas)
 
@@ -269,3 +284,18 @@ class MeasurementHighlighter:
             x = xdata[i]
             y = ydata[i]
             self.click_callback(x, y, label)
+
+
+class CustomNavigationToolbar(NavigationToolbar2QT):
+    def __init__(self, canvas, parent):
+        super().__init__(canvas, parent)
+
+        self.settings_btn = QToolButton(self)
+        self.settings_btn.setIcon(qta.icon("mdi6.cog-outline"))
+        self.settings_btn.setPopupMode(QToolButton.InstantPopup)
+        self.settings_menu = QMenu(self.settings_btn)
+        self.settings_menu.addAction("Option 1")
+        self.settings_menu.addAction("Option 2")
+        self.settings_btn.setMenu(self.settings_menu)
+
+        self.addWidget(self.settings_btn)

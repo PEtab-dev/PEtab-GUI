@@ -11,6 +11,7 @@ from .pandas_table_model import (
     MeasurementModel,
     ObservableModel,
     ParameterModel,
+    VisualizationModel,
 )
 from .sbml_model import SbmlViewerModel
 
@@ -68,6 +69,9 @@ class PEtabModel:
         )
         self.condition = ConditionModel(
             data_frame=self.problem.condition_df,
+        )
+        self.visualization = VisualizationModel(
+            data_frame=self.problem.visualization_df,
         )
 
     @property
