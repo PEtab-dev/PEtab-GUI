@@ -13,6 +13,7 @@ from .pandas_table_model import (
     PandasTableFilterProxy,
     PandasTableModel,
     ParameterModel,
+    VisualizationModel,
 )
 from .petab_model import PEtabModel
 from .sbml_model import SbmlViewerModel

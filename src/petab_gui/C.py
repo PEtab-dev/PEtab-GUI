@@ -42,6 +42,9 @@ COLUMNS = {
         "conditionId": {"type": np.object_, "optional": False},
         "conditionName": {"type": np.object_, "optional": False},
     },
+    "visualization": {
+        "plotId": {"type": np.object_, "optional": False},
+    }
 }
 
 CONFIG = {

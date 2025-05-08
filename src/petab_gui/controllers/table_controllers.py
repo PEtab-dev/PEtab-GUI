@@ -175,8 +175,6 @@ class TableController(QObject):
             self.model.reset_invalid_cells()
 
     def overwrite_df(self, new_df: pd.DataFrame):
-        # TODO: Mother controller connects to overwritten_df signal. Set df
-        #  in petabProblem and unsaved changes to True
         """Overwrite the DataFrame of the model with the data from the view."""
         self.proxy_model.setSourceModel(None)
         self.model.beginResetModel()
