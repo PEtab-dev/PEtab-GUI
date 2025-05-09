@@ -68,6 +68,8 @@ class TableController(QObject):
         self.undo_stack = undo_stack
         self.model.undo_stack = undo_stack
         self.check_petab_lint_mode = True
+        if model.table_type in ["simulation", "visualization"]:
+            self.check_petab_lint_mode = False
         self.mother_controller = mother_controller
         self.view.table_view.setModel(self.proxy_model)
         self.setup_connections()
@@ -149,7 +151,9 @@ class TableController(QObject):
             if actionable in ["yaml", "sbml", "data_matrix", None]:  # no table
                 return
         try:
-            if self.model.table_type == "measurement":
+            if self.model.table_type in [
+                "measurement", "visualization", "simulation"
+            ]:
                 new_df = pd.read_csv(file_path, sep=separator)
             else:
                 new_df = pd.read_csv(file_path, sep=separator, index_col=0)
@@ -175,8 +179,6 @@ class TableController(QObject):
             self.model.reset_invalid_cells()
 
     def overwrite_df(self, new_df: pd.DataFrame):
-        # TODO: Mother controller connects to overwritten_df signal. Set df
-        #  in petabProblem and unsaved changes to True
         """Overwrite the DataFrame of the model with the data from the view."""
         self.proxy_model.setSourceModel(None)
         self.model.beginResetModel()
@@ -318,9 +320,10 @@ class TableController(QObject):
 
     def paste_from_clipboard(self):
         """Paste the clipboard content to the currently selected cells."""
+        old_lint = self.check_petab_lint_mode
         self.check_petab_lint_mode = False
         self.view.paste_from_clipboard()
-        self.check_petab_lint_mode = True
+        self.check_petab_lint_mode = old_lint
         try:
             self.check_petab_lint()
         except Exception as e:
@@ -1133,4 +1136,28 @@ class ParameterController(TableController):
             measurement_df=measurement_df,
             condition_df=condition_df,
             model=sbml_model,
+        )
+
+
+class VisualizationController(TableController):
+    """Controller of the Visualization table."""
+
+    def __init__(
+        self,
+        view: TableViewer,
+        model: PandasTableModel,
+        logger,
+        undo_stack,
+        mother_controller,
+    ):
+        """Initialize the table controller.
+
+        See class:`TableController` for details.
+        """
+        super().__init__(
+            view=view,
+            model=model,
+            logger=logger,
+            undo_stack=undo_stack,
+            mother_controller=mother_controller
         )

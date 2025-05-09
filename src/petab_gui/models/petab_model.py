@@ -11,6 +11,7 @@ from .pandas_table_model import (
     MeasurementModel,
     ObservableModel,
     ParameterModel,
+    VisualizationModel,
 )
 from .sbml_model import SbmlViewerModel
 
@@ -59,6 +60,11 @@ class PEtabModel:
         )
         self.measurement = MeasurementModel(
             data_frame=self.problem.measurement_df,
+            type="measurement",
+        )
+        self.simulation = MeasurementModel(
+            data_frame=None,
+            type="simulation",
         )
         self.observable = ObservableModel(
             data_frame=self.problem.observable_df,
@@ -68,6 +74,9 @@ class PEtabModel:
         )
         self.condition = ConditionModel(
             data_frame=self.problem.condition_df,
+        )
+        self.visualization = VisualizationModel(
+            data_frame=self.problem.visualization_df,
         )
 
     @property
@@ -142,5 +151,6 @@ class PEtabModel:
             measurement_df=self.measurement.get_df(),
             observable_df=self.observable.get_df(),
             parameter_df=self.parameter.get_df(),
+            visualization_df=self.visualization.get_df(),
             model=self.sbml.get_current_sbml_model(),
         )

@@ -22,7 +22,11 @@ from PySide6.QtWidgets import (
 
 from ..models import PEtabModel
 from ..settings_manager import SettingsDialog, settings_manager
-from ..utils import CaptureLogHandler, process_file
+from ..utils import (
+    CaptureLogHandler,
+    get_selected,
+    process_file,
+)
 from ..views import TaskBar
 from .logger_controller import LoggerController
 from .sbml_controller import SbmlController
@@ -31,6 +35,7 @@ from .table_controllers import (
     MeasurementController,
     ObservableController,
     ParameterController,
+    VisualizationController,
 )
 from .utils import (
     RecentFilesManager,
@@ -91,6 +96,20 @@ class MainController:
             self.undo_stack,
             self,
         )
+        self.visualization_controller = VisualizationController(
+            self.view.visualization_dock,
+            self.model.visualization,
+            self.logger,
+            self.undo_stack,
+            self,
+        )
+        self.simulation_controller = MeasurementController(
+            self.view.simulation_dock,
+            self.model.simulation,
+            self.logger,
+            self.undo_stack,
+            self,
+        )
         self.sbml_controller = SbmlController(
             self.view.sbml_viewer, self.model.sbml, self.logger, self
         )
@@ -100,6 +119,8 @@ class MainController:
             self.parameter_controller,
             self.condition_controller,
             self.sbml_controller,
+            self.visualization_controller,
+            self.simulation_controller,
         ]
         # Recent Files
         self.recent_files_manager = RecentFilesManager(max_files=10)
@@ -109,6 +130,8 @@ class MainController:
             "observable": False,
             "parameter": False,
             "condition": False,
+            "visualization": False,
+            "simulation": False,
         }
         self.sbml_checkbox_states = {"sbml": False, "antimony": False}
         self.unsaved_changes = False
@@ -120,13 +143,15 @@ class MainController:
         self.setup_connections()
         self.setup_task_bar()
         self.setup_context_menu()
+        self.plotter = None
+        self.init_plotter()
 
     def setup_context_menu(self):
         """Sets up context menus for the tables."""
-        self.measurement_controller.setup_context_menu(self.actions)
-        self.observable_controller.setup_context_menu(self.actions)
-        self.parameter_controller.setup_context_menu(self.actions)
-        self.condition_controller.setup_context_menu(self.actions)
+        for controller in self.controllers:
+            if controller == self.sbml_controller:
+                continue
+            controller.setup_context_menu(self.actions)
 
     def setup_task_bar(self):
         """Create shortcuts for the main window."""
@@ -169,9 +194,11 @@ class MainController:
         )
         # Maybe Move to a Plot Model
         self.view.measurement_dock.table_view.selectionModel().selectionChanged.connect(
-            self.handle_selection_changed
+            self._on_table_selection_changed
         )
-        self.model.measurement.dataChanged.connect(self.handle_data_changed)
+        self.view.simulation_dock.table_view.selectionModel().selectionChanged.connect(
+            self._on_simulation_selection_changed
+        )
         # Unsaved Changes
         self.model.measurement.something_changed.connect(
             self.unsaved_changes_change
@@ -183,6 +210,12 @@ class MainController:
             self.unsaved_changes_change
         )
         self.model.condition.something_changed.connect(
+            self.unsaved_changes_change
+        )
+        self.model.visualization.something_changed.connect(
+            self.unsaved_changes_change
+        )
+        self.model.simulation.something_changed.connect(
             self.unsaved_changes_change
         )
         self.model.sbml.something_changed.connect(self.unsaved_changes_change)
@@ -198,6 +231,14 @@ class MainController:
         self.sbml_controller.overwritten_model.connect(
             self.parameter_controller.update_handler_sbml
         )
+        # overwrite signals
+        for controller in [
+            # self.measurement_controller,
+            self.condition_controller
+        ]:
+            controller.overwritten_df.connect(
+                self.init_plotter
+            )
 
     def setup_actions(self):
         """Setup actions for the main controller."""
@@ -301,8 +342,9 @@ class MainController:
         self.filter_input.setPlaceholderText("Filter...")
         filter_layout.addWidget(self.filter_input)
         for table_n, table_name in zip(
-            ["m", "p", "o", "c"],
-            ["measurement", "parameter", "observable", "condition"],
+            ["m", "p", "o", "c", "v", "s"],
+            ["measurement", "parameter", "observable", "condition",
+             "visualization", "simulation"],
             strict=False,
         ):
             tool_button = QToolButton()
@@ -325,7 +367,8 @@ class MainController:
         self.filter_input.textChanged.connect(self.filter_table)
 
         # show/hide elements
-        for element in ["measurement", "observable", "parameter", "condition"]:
+        for element in ["measurement", "observable", "parameter",
+                        "condition", "visualization", "simulation"]:
             actions[f"show_{element}"] = QAction(
                 f"{element.capitalize()} Table", self.view
             )
@@ -396,6 +439,8 @@ class MainController:
             "condition": self.view.condition_dock,
             "logger": self.view.logger_dock,
             "plot": self.view.plot_dock,
+            "visualization": self.view.visualization_dock,
+            "simulation": self.view.simulation_dock,
         }
 
         for key, dock in dock_map.items():
@@ -558,6 +603,10 @@ class MainController:
             self.parameter_controller.open_table(file_path, sep, mode)
         elif actionable == "condition":
             self.condition_controller.open_table(file_path, sep, mode)
+        elif actionable == "visualization":
+            self.visualization_controller.open_table(file_path, sep, mode)
+        elif actionable == "simulation":
+            self.simulation_controller.open_table(file_path, sep, mode)
         elif actionable == "data_matrix":
             self.measurement_controller.process_data_matrix_file(
                 file_path, mode, sep
@@ -604,6 +653,14 @@ class MainController:
             self.condition_controller.open_table(
                 yaml_dir / yaml_content["problems"][0]["condition_files"][0]
             )
+            # Visualization is optional
+            vis_path = yaml_content["problems"][0].get("visualization_files")
+            if vis_path:
+                self.visualization_controller.open_table(
+                    yaml_dir / vis_path[0]
+                )
+            else:
+                self.visualization_controller.clear_table()
             self.logger.log_message(
                 "All files opened successfully from the YAML configuration.",
                 color="green",
@@ -721,6 +778,10 @@ class MainController:
             return self.parameter_controller
         if active_widget == self.view.condition_dock.table_view:
             return self.condition_controller
+        if active_widget == self.view.visualization_dock.table_view:
+            return self.visualization_controller
+        if active_widget == self.view.simulation_dock.table_view:
+            return self.simulation_controller
         return None
 
     def delete_rows(self):
@@ -799,3 +860,62 @@ class MainController:
         if self.view.find_replace_bar is None:
             self.view.create_find_replace_bar()
         self.view.toggle_replace()
+
+    def init_plotter(self):
+        """(Re-)initialize the plotter."""
+        self.view.plot_dock.initialize(
+            self.measurement_controller.proxy_model,
+            self.simulation_controller.proxy_model,
+            self.condition_controller.proxy_model,
+        )
+        self.plotter = self.view.plot_dock
+        self.plotter.highlighter.click_callback = self._on_plot_point_clicked
+
+    def _on_plot_point_clicked(self, x, y, label):
+        # Extract observable ID from label, if formatted like 'obsId (label)'
+        meas_proxy = self.measurement_controller.proxy_model
+        obs = label
+
+        x_axis_col = "time"
+        y_axis_col = "measurement"
+        observable_col = "observableId"
+
+        def column_index(name):
+            for col in range(meas_proxy.columnCount()):
+                if (
+                    meas_proxy.headerData(col, Qt.Horizontal)
+                    == name
+                ):
+                    return col
+            raise ValueError(f"Column '{name}' not found.")
+
+        x_col = column_index(x_axis_col)
+        y_col = column_index(y_axis_col)
+        obs_col = column_index(observable_col)
+
+        for row in range(meas_proxy.rowCount()):
+            row_obs = meas_proxy.index(row, obs_col).data()
+            row_x = meas_proxy.index(row, x_col).data()
+            row_y = meas_proxy.index(row, y_col).data()
+            try:
+                row_x, row_y = float(row_x), float(row_y)
+            except ValueError:
+                continue
+            if row_obs == obs and row_x == x and row_y == y:
+                self.measurement_controller.view.table_view.selectRow(row)
+                break
+
+    def _on_table_selection_changed(self, selected, deselected):
+        """Highlight the cells selected in measurement table."""
+        selected_rows = get_selected(
+            self.measurement_controller.view.table_view
+        )
+        self.plotter.highlight_from_selection(selected_rows)
+
+    def _on_simulation_selection_changed(self, selected, deselected):
+        selected_rows = get_selected(self.simulation_controller.view.table_view)
+        self.plotter.highlight_from_selection(
+            selected_rows,
+            proxy=self.simulation_controller.proxy_model,
+            y_axis_col="simulation"
+        )

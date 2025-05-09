@@ -138,10 +138,10 @@ class PandasTableModel(QAbstractTableModel):
                 if column == 0:
                     return f"New {self.table_type}"
                 return ""
-            if column == 0:
+            if column == 0 and self._has_named_index:
                 value = self._data_frame.index[row]
                 return str(value)
-            value = self._data_frame.iloc[row, column - 1]
+            value = self._data_frame.iloc[row, column - self.column_offset]
             if is_invalid(value):
                 return ""
             return str(value)
@@ -188,9 +188,9 @@ class PandasTableModel(QAbstractTableModel):
         if role != Qt.DisplayRole:
             return None
         if orientation == Qt.Horizontal:
-            if section == 0:
+            if section == 0 and self._has_named_index:
                 return self._data_frame.index.name
-            return self._data_frame.columns[section - 1]
+            return self._data_frame.columns[section - self.column_offset]
         if orientation == Qt.Vertical:
             return str(section)
         return None
@@ -1054,11 +1054,12 @@ class MeasurementModel(PandasTableModel):
     possibly_new_condition = Signal(str)  # Signal for new condition
     possibly_new_observable = Signal(str)  # Signal for new observable
 
-    def __init__(self, data_frame, parent=None):
+    def __init__(self, data_frame, type: str = "measurement", parent=None):
+        allowed_columns = COLUMNS[type]
         super().__init__(
             data_frame=data_frame,
-            allowed_columns=COLUMNS["measurement"],
-            table_type="measurement",
+            allowed_columns=allowed_columns,
+            table_type=type,
             parent=parent,
         )
 
@@ -1079,39 +1080,6 @@ class MeasurementModel(PandasTableModel):
             self.undo_stack.push(command)
         else:
             command.redo()
-
-    def data(self, index, role=Qt.DisplayRole):
-        """Return the data at the given index and role for the View."""
-        if not index.isValid():
-            return None
-        row, column = index.row(), index.column()
-        if role == Qt.DisplayRole or role == Qt.EditRole:
-            if row == self._data_frame.shape[0]:
-                if column == 0:
-                    return f"New {self.table_type}"
-                return ""
-            value = self._data_frame.iloc[row, column]
-            if is_invalid(value):
-                return ""
-            return str(value)
-        if role == Qt.BackgroundRole:
-            return self.determine_background_color(row, column)
-        if role == Qt.ForegroundRole:
-            # Return yellow text if this cell is a match
-            if (row, column) in self.highlighted_cells:
-                return QApplication.palette().color(QPalette.HighlightedText)
-            return QBrush(QColor(0, 0, 0))  # Default black text
-        return None
-
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        """Return the header data for the given section, orientation."""
-        if role != Qt.DisplayRole:
-            return None
-        if orientation == Qt.Horizontal:
-            return self._data_frame.columns[section]
-        if orientation == Qt.Vertical:
-            return str(section)
-        return None
 
     def return_column_index(self, column_name):
         """Return the index of a column."""
@@ -1196,3 +1164,15 @@ class PandasTableFilterProxy(QSortFilterProxyModel):
     @property
     def _invalid_cells(self):
         return self.source_model._invalid_cells
+
+
+class VisualizationModel(PandasTableModel):
+    """Table model for the visualization data."""
+
+    def __init__(self, data_frame, parent=None):
+        super().__init__(
+            data_frame=data_frame,
+            allowed_columns=COLUMNS["visualization"],
+            table_type="visualization",
+            parent=parent,
+        )
