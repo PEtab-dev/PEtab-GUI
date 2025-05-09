@@ -196,6 +196,9 @@ class MainController:
         self.view.measurement_dock.table_view.selectionModel().selectionChanged.connect(
             self._on_table_selection_changed
         )
+        self.view.simulation_dock.table_view.selectionModel().selectionChanged.connect(
+            self._on_simulation_selection_changed
+        )
         # Unsaved Changes
         self.model.measurement.something_changed.connect(
             self.unsaved_changes_change
@@ -600,6 +603,10 @@ class MainController:
             self.parameter_controller.open_table(file_path, sep, mode)
         elif actionable == "condition":
             self.condition_controller.open_table(file_path, sep, mode)
+        elif actionable == "visualization":
+            self.visualization_controller.open_table(file_path, sep, mode)
+        elif actionable == "simulation":
+            self.simulation_controller.open_table(file_path, sep, mode)
         elif actionable == "data_matrix":
             self.measurement_controller.process_data_matrix_file(
                 file_path, mode, sep
@@ -858,6 +865,7 @@ class MainController:
         """(Re-)initialize the plotter."""
         self.view.plot_dock.initialize(
             self.measurement_controller.proxy_model,
+            self.simulation_controller.proxy_model,
             self.condition_controller.proxy_model,
         )
         self.plotter = self.view.plot_dock
@@ -903,3 +911,11 @@ class MainController:
             self.measurement_controller.view.table_view
         )
         self.plotter.highlight_from_selection(selected_rows)
+
+    def _on_simulation_selection_changed(self, selected, deselected):
+        selected_rows = get_selected(self.simulation_controller.view.table_view)
+        self.plotter.highlight_from_selection(
+            selected_rows,
+            proxy=self.simulation_controller.proxy_model,
+            y_axis_col="simulation"
+        )

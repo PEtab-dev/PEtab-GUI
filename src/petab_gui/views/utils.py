@@ -31,5 +31,10 @@ def proxy_to_dataframe(proxy_model):
         data = pd.DataFrame(data)
         data["measurement"] = data["measurement"].astype(float)
         data["time"] = data["time"].astype(float)
+    elif proxy_model.source_model.table_type == "simulation":
+        # turn simulation and time to float
+        data = pd.DataFrame(data)
+        data["simulation"] = data["simulation"].astype(float)
+        data["time"] = data["time"].astype(float)
 
     return data

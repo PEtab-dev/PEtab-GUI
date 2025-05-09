@@ -22,11 +22,12 @@ class PlotWorkerSignals(QObject):
 
 
 class PlotWorker(QRunnable):
-    def __init__(self, vis_df, cond_df, meas_df):
+    def __init__(self, vis_df, cond_df, meas_df, sim_df):
         super().__init__()
         self.vis_df = vis_df
         self.cond_df = cond_df
         self.meas_df = meas_df
+        self.sim_df = sim_df
         self.signals = PlotWorkerSignals()
 
     def run(self):
@@ -36,6 +37,9 @@ class PlotWorker(QRunnable):
         if self.meas_df.empty or self.cond_df.empty:
             self.signals.finished.emit(None)
             return
+        sim_df = self.sim_df.copy()
+        if sim_df.empty:
+            sim_df = None
 
         try:
             if self.vis_df is not None:
@@ -43,6 +47,7 @@ class PlotWorker(QRunnable):
                     self.vis_df,
                     self.cond_df,
                     self.meas_df,
+                    sim_df,
                 )
                 fig = plt.gcf()
                 self.signals.finished.emit(fig)
@@ -55,6 +60,7 @@ class PlotWorker(QRunnable):
         petab_vis.plot_without_vis_spec(
             self.cond_df,
             measurements_df=self.meas_df,
+            simulations_df=sim_df,
         )
         fig = plt.gcf()
         fig.subplots_adjust(left=0.12, bottom=0.15, right=0.95, top=0.9, wspace=0.3, hspace=0.4)
@@ -72,7 +78,8 @@ class MeasurementPlotter(QDockWidget):
         super().__init__("Measurement Plot", parent)
         self.setObjectName("plot_dock")
 
-        self.data_proxy = None
+        self.meas_proxy = None
+        self.sim_proxy = None
         self.cond_proxy = None
         self.highlighter = MeasurementHighlighter()
 
@@ -88,29 +95,36 @@ class MeasurementPlotter(QDockWidget):
         self.update_timer.timeout.connect(self.plot_it)
         self.observable_to_subplot = {}
 
-    def initialize(self, data_proxy, cond_proxy):
-        self.data_proxy = data_proxy
+    def initialize(self, meas_proxy, sim_proxy, cond_proxy):
+        self.meas_proxy = meas_proxy
         self.cond_proxy = cond_proxy
+        self.sim_proxy = sim_proxy
         self.vis_df = None
 
         # Connect data changes
-        self.data_proxy.dataChanged.connect(self._debounced_plot)
-        self.data_proxy.rowsInserted.connect(self._debounced_plot)
-        self.data_proxy.rowsRemoved.connect(self._debounced_plot)
+        self.meas_proxy.dataChanged.connect(self._debounced_plot)
+        self.meas_proxy.rowsInserted.connect(self._debounced_plot)
+        self.meas_proxy.rowsRemoved.connect(self._debounced_plot)
         self.cond_proxy.dataChanged.connect(self._debounced_plot)
         self.cond_proxy.rowsInserted.connect(self._debounced_plot)
         self.cond_proxy.rowsRemoved.connect(self._debounced_plot)
+        self.sim_proxy.dataChanged.connect(self._debounced_plot)
+        self.sim_proxy.rowsInserted.connect(self._debounced_plot)
+        self.sim_proxy.rowsRemoved.connect(self._debounced_plot)
 
         self.plot_it()
 
     def plot_it(self):
-        if not self.data_proxy or not self.cond_proxy:
+        if not self.meas_proxy or not self.cond_proxy:
             return
 
-        measurements_df = proxy_to_dataframe(self.data_proxy)
+        measurements_df = proxy_to_dataframe(self.meas_proxy)
+        simulations_df = proxy_to_dataframe(self.sim_proxy)
         conditions_df = proxy_to_dataframe(self.cond_proxy)
 
-        worker = PlotWorker(self.vis_df, conditions_df, measurements_df)
+        worker = PlotWorker(
+            self.vis_df, conditions_df, measurements_df, simulations_df
+        )
         worker.signals.finished.connect(self._update_tabs)
         QThreadPool.globalInstance().start(worker)
 
@@ -194,18 +208,19 @@ class MeasurementPlotter(QDockWidget):
             self.highlighter.register_subplot(sub_ax, idx)
             self.highlighter.connect_picking(sub_canvas)
 
-    def highlight_from_selection(self, selected_rows: list[int]):
-        if not self.data_proxy:
+    def highlight_from_selection(self, selected_rows: list[int], proxy=None, y_axis_col="measurement"):
+        proxy = proxy or self.meas_proxy
+        if not proxy:
             return
 
         # x_axis_col = self.x_axis_selector.currentText()
         x_axis_col = "time"
-        y_axis_col = "measurement"
+        y_axis_col = "measurement" if proxy == self.meas_proxy else "simulation"
         observable_col = "observableId"
 
         def column_index(name):
-            for col in range(self.data_proxy.columnCount()):
-                if self.data_proxy.headerData(col, Qt.Horizontal) == name:
+            for col in range(proxy.columnCount()):
+                if proxy.headerData(col, Qt.Horizontal) == name:
                     return col
             raise ValueError(f"Column '{name}' not found in proxy.")
 
@@ -216,14 +231,14 @@ class MeasurementPlotter(QDockWidget):
         grouped_points = {}  # subplot_idx → list of (x, y)
 
         for row in selected_rows:
-            x = self.data_proxy.index(row, x_col).data()
-            y = self.data_proxy.index(row, y_col).data()
+            x = proxy.index(row, x_col).data()
+            y = proxy.index(row, y_col).data()
             try:
                 x = float(x)
                 y = float(y)
             except ValueError:
                 pass
-            obs = self.data_proxy.index(row, obs_col).data()
+            obs = proxy.index(row, obs_col).data()
             subplot_idx = self.observable_to_subplot.get(obs)
             if subplot_idx is not None:
                 grouped_points.setdefault(subplot_idx, []).append((x, y))
@@ -278,7 +293,7 @@ class MeasurementHighlighter:
         ax = artist.axes
 
         # Try to recover the label from the legend (handle → label mapping)
-        label = ax.get_legend().texts[0].get_text().split()[-1]
+        label = ax.get_legend().texts[1].get_text().split()[-1]
 
         for i in ind:
             x = xdata[i]
