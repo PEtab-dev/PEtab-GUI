@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
 from PySide6.QtCore import QObject, QRunnable, Qt, QThreadPool, QTimer, Signal
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QDockWidget,
     QMenu,
@@ -22,12 +23,13 @@ class PlotWorkerSignals(QObject):
 
 
 class PlotWorker(QRunnable):
-    def __init__(self, vis_df, cond_df, meas_df, sim_df):
+    def __init__(self, vis_df, cond_df, meas_df, sim_df, group_by):
         super().__init__()
         self.vis_df = vis_df
         self.cond_df = cond_df
         self.meas_df = meas_df
         self.sim_df = sim_df
+        self.group_by = group_by
         self.signals = PlotWorkerSignals()
 
     def run(self):
@@ -61,6 +63,7 @@ class PlotWorker(QRunnable):
             self.cond_df,
             measurements_df=self.meas_df,
             simulations_df=sim_df,
+            group_by=self.group_by,
         )
         fig = plt.gcf()
         fig.subplots_adjust(left=0.12, bottom=0.15, right=0.95, top=0.9, wspace=0.3, hspace=0.4)
@@ -77,6 +80,7 @@ class MeasurementPlotter(QDockWidget):
     def __init__(self, parent=None):
         super().__init__("Measurement Plot", parent)
         self.setObjectName("plot_dock")
+        self.options_manager = ToolbarOptionManager()
 
         self.meas_proxy = None
         self.sim_proxy = None
@@ -102,6 +106,7 @@ class MeasurementPlotter(QDockWidget):
         self.vis_df = None
 
         # Connect data changes
+        self.options_manager.option_changed.connect(self._debounced_plot)
         self.meas_proxy.dataChanged.connect(self._debounced_plot)
         self.meas_proxy.rowsInserted.connect(self._debounced_plot)
         self.meas_proxy.rowsRemoved.connect(self._debounced_plot)
@@ -121,9 +126,17 @@ class MeasurementPlotter(QDockWidget):
         measurements_df = proxy_to_dataframe(self.meas_proxy)
         simulations_df = proxy_to_dataframe(self.sim_proxy)
         conditions_df = proxy_to_dataframe(self.cond_proxy)
+        group_by = self.options_manager.get_option()
+        # group_by different value in petab.visualize
+        if group_by == "condition":
+            group_by = "simulation"
 
         worker = PlotWorker(
-            self.vis_df, conditions_df, measurements_df, simulations_df
+            self.vis_df,
+            conditions_df,
+            measurements_df,
+            simulations_df,
+            group_by
         )
         worker.signals.finished.connect(self._update_tabs)
         QThreadPool.globalInstance().start(worker)
@@ -301,16 +314,57 @@ class MeasurementHighlighter:
             self.click_callback(x, y, label)
 
 
+class ToolbarOptionManager(QObject):
+    """A Manager, synchronizing the selected option across all toolbars."""
+
+    option_changed = Signal(str)
+    _instance = None
+    _initialized = False
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(ToolbarOptionManager, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        # Ensure QObject.__init__ runs only once
+        if not self._initialized:
+            super().__init__()
+            self._selected_option = "observable"
+            ToolbarOptionManager._initialized = True
+
+    def set_option(self, option):
+        if option != self._selected_option:
+            self._selected_option = option
+            self.option_changed.emit(option)
+
+    def get_option(self):
+        return self._selected_option
+
+
 class CustomNavigationToolbar(NavigationToolbar2QT):
     def __init__(self, canvas, parent):
         super().__init__(canvas, parent)
+        self.manager = ToolbarOptionManager()
 
         self.settings_btn = QToolButton(self)
         self.settings_btn.setIcon(qta.icon("mdi6.cog-outline"))
         self.settings_btn.setPopupMode(QToolButton.InstantPopup)
         self.settings_menu = QMenu(self.settings_btn)
-        self.settings_menu.addAction("Option 1")
-        self.settings_menu.addAction("Option 2")
+        self.groupy_by_options = {
+            grp: QAction(f"Groupy by {grp}", self)
+            for grp in ["observable", "dataset", "condition"]
+        }
+        for grp, action in self.groupy_by_options.items():
+            action.setCheckable(True)
+            action.triggered.connect(lambda _, grp=grp: self.manager.set_option(grp))
+            self.settings_menu.addAction(action)
+        self.manager.option_changed.connect(self.update_checked_state)
+        self.update_checked_state(self.manager.get_option())
         self.settings_btn.setMenu(self.settings_menu)
 
         self.addWidget(self.settings_btn)
+
+    def update_checked_state(self, selected_option):
+        for action in self.groupy_by_options.values():
+            action.setChecked(action.text() == f"Groupy by {selected_option}")
