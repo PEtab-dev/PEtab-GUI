@@ -333,6 +333,12 @@ class MainController:
         # Recent Files
         actions["recent_files"] = self.recent_files_manager.tool_bar_menu
 
+        # simulate action
+        actions["simulate"] = QAction(
+            qta.icon("mdi6.play"), "Simulate", self.view
+        )
+        actions["simulate"].triggered.connect(self.simulate)
+
         # Filter widget
         filter_widget = QWidget()
         filter_layout = QHBoxLayout()
@@ -919,3 +925,31 @@ class MainController:
             proxy=self.simulation_controller.proxy_model,
             y_axis_col="simulation"
         )
+
+    def simulate(self):
+        """Simulate the model."""
+        # obtain petab problem
+        petab_problem = self.model.current_petab_problem
+
+        # import petabsimualtor
+        from basico.petab import PetabSimulator
+        import basico
+
+        # report current basico / COPASI version 
+        self.logger.log_message(f"Simulate with basico: {basico.__version__}, COPASI: {basico.COPASI.__version__}", color="green")
+
+        import tempfile
+
+        # create temp directory in temp folder: 
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # settings is only current solution statistic for now: 
+            settings = {'method' : {'name': basico.PE.CURRENT_SOLUTION}}
+            # create simulator
+            simulator = PetabSimulator(petab_problem, settings=settings, working_dir=temp_dir)
+
+            # simulate
+            sim_df = simulator.simulate()
+
+        # assign to simulation table
+        self.simulation_controller.overwrite_df(sim_df)
+        self.simulation_controller.model.reset_invalid_cells()
