@@ -4,6 +4,7 @@ import qtawesome as qta
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
+from matplotlib.container import ErrorbarContainer
 from PySide6.QtCore import QObject, QRunnable, Qt, QThreadPool, QTimer, Signal
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
@@ -144,6 +145,8 @@ class MeasurementPlotter(QDockWidget):
     def _update_tabs(self, fig: plt.Figure):
         # Clean previous tabs
         self.tab_widget.clear()
+        # Clear Highlighter
+        self.highlighter.clear_highlight()
         if fig is None:
             # Fallback: show one empty plot tab
             empty_fig, _ = plt.subplots()
@@ -177,11 +180,18 @@ class MeasurementPlotter(QDockWidget):
         for idx, ax in enumerate(fig.axes):
             # Create a new figure and copy Axes content
             sub_fig, sub_ax = plt.subplots(constrained_layout=True)
-            for line in ax.get_lines():
+            handles, labels = ax.get_legend_handles_labels()
+            for handle, label in zip(handles, labels, strict=False):
+                if isinstance(handle, ErrorbarContainer):
+                    line = handle.lines[0]
+                elif isinstance(handle, plt.Line2D):
+                    line = handle
+                else:
+                    continue
                 sub_ax.plot(
                     line.get_xdata(),
                     line.get_ydata(),
-                    label=line.get_label(),
+                    label=label,
                     linestyle=line.get_linestyle(),
                     marker=line.get_marker(),
                     color=line.get_color(),
@@ -191,9 +201,7 @@ class MeasurementPlotter(QDockWidget):
             sub_ax.set_title(ax.get_title())
             sub_ax.set_xlabel(ax.get_xlabel())
             sub_ax.set_ylabel(ax.get_ylabel())
-            handles, labels = ax.get_legend_handles_labels()
-            if handles:
-                sub_ax.legend(handles=handles, labels=labels, loc="best")
+            sub_ax.legend()
 
             sub_canvas = FigureCanvas(sub_fig)
             sub_toolbar = CustomNavigationToolbar(sub_canvas, self)
@@ -215,10 +223,10 @@ class MeasurementPlotter(QDockWidget):
                 obs_id = f"subplot_{idx}"
 
             self.observable_to_subplot[obs_id] = idx
-            # Also register the original ax from the full figure (main tab)
             self.highlighter.register_subplot(ax, idx)
             # Register subplot canvas
             self.highlighter.register_subplot(sub_ax, idx)
+            # Also register the original ax from the full figure (main tab)
             self.highlighter.connect_picking(sub_canvas)
 
     def highlight_from_selection(self, selected_rows: list[int], proxy=None, y_axis_col="measurement"):
@@ -226,9 +234,7 @@ class MeasurementPlotter(QDockWidget):
         if not proxy:
             return
 
-        # x_axis_col = self.x_axis_selector.currentText()
         x_axis_col = "time"
-        y_axis_col = "measurement" if proxy == self.meas_proxy else "simulation"
         observable_col = "observableId"
 
         def column_index(name):
@@ -273,6 +279,9 @@ class MeasurementHighlighter:
         self.point_index_map = {}     # (subplot index, observableId, x, y) → row index
         self.click_callback = None
 
+    def clear_highlight(self):
+        self.highlight_scatters = defaultdict(list)
+
     def register_subplot(self, ax, subplot_idx):
         scatter = ax.scatter(
             [], [], s=80, edgecolors='black', facecolors='none', zorder=5
@@ -306,12 +315,23 @@ class MeasurementHighlighter:
         ax = artist.axes
 
         # Try to recover the label from the legend (handle → label mapping)
-        label = ax.get_legend().texts[1].get_text().split()[-1]
+        handles, labels = ax.get_legend_handles_labels()
+        label = None
+        for h, l in zip(handles, labels, strict=False):
+            if h is artist:
+                label_parts = l.split()
+                if label_parts[-1] == "simulation":
+                    data_type = "simulation"
+                    label = label_parts[-2]
+                else:
+                    data_type = "measurement"
+                    label = label_parts[-1]
+                break
 
         for i in ind:
             x = xdata[i]
             y = ydata[i]
-            self.click_callback(x, y, label)
+            self.click_callback(x, y, label, data_type)
 
 
 class ToolbarOptionManager(QObject):

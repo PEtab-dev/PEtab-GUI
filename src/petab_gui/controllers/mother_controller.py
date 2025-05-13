@@ -871,19 +871,23 @@ class MainController:
         self.plotter = self.view.plot_dock
         self.plotter.highlighter.click_callback = self._on_plot_point_clicked
 
-    def _on_plot_point_clicked(self, x, y, label):
+    def _on_plot_point_clicked(self, x, y, label, data_type):
         # Extract observable ID from label, if formatted like 'obsId (label)'
-        meas_proxy = self.measurement_controller.proxy_model
+        proxy = self.measurement_controller.proxy_model
+        view = self.measurement_controller.view.table_view
+        if data_type == "simulation":
+            proxy = self.simulation_controller.proxy_model
+            view = self.simulation_controller.view.table_view
         obs = label
 
         x_axis_col = "time"
-        y_axis_col = "measurement"
+        y_axis_col = data_type
         observable_col = "observableId"
 
         def column_index(name):
-            for col in range(meas_proxy.columnCount()):
+            for col in range(proxy.columnCount()):
                 if (
-                    meas_proxy.headerData(col, Qt.Horizontal)
+                    proxy.headerData(col, Qt.Horizontal)
                     == name
                 ):
                     return col
@@ -893,16 +897,16 @@ class MainController:
         y_col = column_index(y_axis_col)
         obs_col = column_index(observable_col)
 
-        for row in range(meas_proxy.rowCount()):
-            row_obs = meas_proxy.index(row, obs_col).data()
-            row_x = meas_proxy.index(row, x_col).data()
-            row_y = meas_proxy.index(row, y_col).data()
+        for row in range(proxy.rowCount()):
+            row_obs = proxy.index(row, obs_col).data()
+            row_x = proxy.index(row, x_col).data()
+            row_y = proxy.index(row, y_col).data()
             try:
                 row_x, row_y = float(row_x), float(row_y)
             except ValueError:
                 continue
             if row_obs == obs and row_x == x and row_y == y:
-                self.measurement_controller.view.table_view.selectRow(row)
+                view.selectRow(row)
                 break
 
     def _on_table_selection_changed(self, selected, deselected):
