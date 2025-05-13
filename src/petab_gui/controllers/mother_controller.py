@@ -8,7 +8,7 @@ from pathlib import Path
 
 import qtawesome as qta
 import yaml
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QAction, QDesktopServices, QKeySequence, QUndoStack
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -231,13 +231,19 @@ class MainController:
         self.sbml_controller.overwritten_model.connect(
             self.parameter_controller.update_handler_sbml
         )
-        # overwrite signals
+        # Plotting update. Regulated through a Timer
+        self._plot_update_timer = QTimer()
+        self._plot_update_timer.setSingleShot(True)
+        self._plot_update_timer.setInterval(0)
+        self._plot_update_timer.timeout.connect(self.init_plotter)
         for controller in [
-            # self.measurement_controller,
-            self.condition_controller
+            self.measurement_controller,
+            self.condition_controller,
+            self.visualization_controller,
+            self.simulation_controller,
         ]:
             controller.overwritten_df.connect(
-                self.init_plotter
+                self._schedule_plot_update
             )
 
     def setup_actions(self):
@@ -923,3 +929,7 @@ class MainController:
             proxy=self.simulation_controller.proxy_model,
             y_axis_col="simulation"
         )
+
+    def _schedule_plot_update(self):
+        """Start the plot schedule timer."""
+        self._plot_update_timer.start()
