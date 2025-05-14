@@ -43,9 +43,11 @@ class PlotWorker(QRunnable):
         sim_df = self.sim_df.copy()
         if sim_df.empty:
             sim_df = None
-
-        try:
-            if self.vis_df is not None:
+        if self.group_by == "vis_df" and self.vis_df.empty:
+            print("Empty Vis DF. Falling back to grouping by observable.")
+            self.group_by = "observable"
+        if self.group_by == "vis_df":
+            try:
                 petab_vis.plot_with_vis_spec(
                     self.vis_df,
                     self.cond_df,
@@ -55,8 +57,11 @@ class PlotWorker(QRunnable):
                 fig = plt.gcf()
                 self.signals.finished.emit(fig)
                 return
-        except Exception as e:
-            print(f"Invalid Visualisation DF: {e}")
+            except Exception as e:
+                print(f"Invalid Visualisation DF: {e}")
+                plt.gcf()
+                self.signals.finished.emit(fig)
+                return
 
         # Fallback
         plt.close("all")
@@ -100,11 +105,11 @@ class MeasurementPlotter(QDockWidget):
         self.update_timer.timeout.connect(self.plot_it)
         self.observable_to_subplot = {}
 
-    def initialize(self, meas_proxy, sim_proxy, cond_proxy):
+    def initialize(self, meas_proxy, sim_proxy, cond_proxy, vis_proxy):
         self.meas_proxy = meas_proxy
         self.cond_proxy = cond_proxy
         self.sim_proxy = sim_proxy
-        self.vis_df = None
+        self.vis_proxy = vis_proxy
 
         # Connect data changes
         self.options_manager.option_changed.connect(self._debounced_plot)
@@ -127,13 +132,14 @@ class MeasurementPlotter(QDockWidget):
         measurements_df = proxy_to_dataframe(self.meas_proxy)
         simulations_df = proxy_to_dataframe(self.sim_proxy)
         conditions_df = proxy_to_dataframe(self.cond_proxy)
+        visualisation_df = proxy_to_dataframe(self.vis_proxy)
         group_by = self.options_manager.get_option()
         # group_by different value in petab.visualize
         if group_by == "condition":
             group_by = "simulation"
 
         worker = PlotWorker(
-            self.vis_df,
+            visualisation_df,
             conditions_df,
             measurements_df,
             simulations_df,
@@ -375,6 +381,9 @@ class CustomNavigationToolbar(NavigationToolbar2QT):
             grp: QAction(f"Groupy by {grp}", self)
             for grp in ["observable", "dataset", "condition"]
         }
+        self.groupy_by_options["vis_df"] = QAction(
+            "Use Visualization DF", self
+        )
         for grp, action in self.groupy_by_options.items():
             action.setCheckable(True)
             action.triggered.connect(lambda _, grp=grp: self.manager.set_option(grp))
