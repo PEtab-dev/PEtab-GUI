@@ -702,12 +702,10 @@ class MainController:
             )
             if reply == QMessageBox.Save:
                 self.save_model()
-        for controller in [
-            self.measurement_controller,
-            self.observable_controller,
-            self.parameter_controller,
-            self.condition_controller,
-        ]:
+        for controller in self.controllers:
+            if controller == self.sbml_controller:
+                controller.clear_model()
+                continue
             controller.clear_table()
 
     def check_model(self):
@@ -942,8 +940,8 @@ class MainController:
         petab_problem = self.model.current_petab_problem
 
         # import petabsimualtor
-        from basico.petab import PetabSimulator
         import basico
+        from basico.petab import PetabSimulator
 
         # report current basico / COPASI version
         self.logger.log_message(f"Simulate with basico: {basico.__version__}, COPASI: {basico.COPASI.__version__}", color="green")
