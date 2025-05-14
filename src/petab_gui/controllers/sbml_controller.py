@@ -126,3 +126,12 @@ class SbmlController(QObject):
             self.logger.log_message(
                 f"Failed to open SBML file: {str(e)}", color="red"
             )
+
+    def clear_model(self):
+        """Clear the model in case the user wants to start a new problem"""
+        self.model.antimony_text = ""
+        self.model.convert_antimony_to_sbml()
+        self.view.sbml_text_edit.setPlainText(self.model.sbml_text)
+        self.view.antimony_text_edit.setPlainText(self.model.antimony_text)
+        self.overwritten_model.emit()
+
