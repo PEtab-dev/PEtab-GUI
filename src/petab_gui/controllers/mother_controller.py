@@ -8,7 +8,7 @@ from pathlib import Path
 
 import qtawesome as qta
 import yaml
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QAction, QDesktopServices, QKeySequence, QUndoStack
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -231,13 +231,19 @@ class MainController:
         self.sbml_controller.overwritten_model.connect(
             self.parameter_controller.update_handler_sbml
         )
-        # overwrite signals
+        # Plotting update. Regulated through a Timer
+        self._plot_update_timer = QTimer()
+        self._plot_update_timer.setSingleShot(True)
+        self._plot_update_timer.setInterval(0)
+        self._plot_update_timer.timeout.connect(self.init_plotter)
         for controller in [
-            # self.measurement_controller,
-            self.condition_controller
+            self.measurement_controller,
+            self.condition_controller,
+            self.visualization_controller,
+            self.simulation_controller,
         ]:
             controller.overwritten_df.connect(
-                self.init_plotter
+                self._schedule_plot_update
             )
 
     def setup_actions(self):
@@ -877,19 +883,23 @@ class MainController:
         self.plotter = self.view.plot_dock
         self.plotter.highlighter.click_callback = self._on_plot_point_clicked
 
-    def _on_plot_point_clicked(self, x, y, label):
+    def _on_plot_point_clicked(self, x, y, label, data_type):
         # Extract observable ID from label, if formatted like 'obsId (label)'
-        meas_proxy = self.measurement_controller.proxy_model
+        proxy = self.measurement_controller.proxy_model
+        view = self.measurement_controller.view.table_view
+        if data_type == "simulation":
+            proxy = self.simulation_controller.proxy_model
+            view = self.simulation_controller.view.table_view
         obs = label
 
         x_axis_col = "time"
-        y_axis_col = "measurement"
+        y_axis_col = data_type
         observable_col = "observableId"
 
         def column_index(name):
-            for col in range(meas_proxy.columnCount()):
+            for col in range(proxy.columnCount()):
                 if (
-                    meas_proxy.headerData(col, Qt.Horizontal)
+                    proxy.headerData(col, Qt.Horizontal)
                     == name
                 ):
                     return col
@@ -899,16 +909,16 @@ class MainController:
         y_col = column_index(y_axis_col)
         obs_col = column_index(observable_col)
 
-        for row in range(meas_proxy.rowCount()):
-            row_obs = meas_proxy.index(row, obs_col).data()
-            row_x = meas_proxy.index(row, x_col).data()
-            row_y = meas_proxy.index(row, y_col).data()
+        for row in range(proxy.rowCount()):
+            row_obs = proxy.index(row, obs_col).data()
+            row_x = proxy.index(row, x_col).data()
+            row_y = proxy.index(row, y_col).data()
             try:
                 row_x, row_y = float(row_x), float(row_y)
             except ValueError:
                 continue
             if row_obs == obs and row_x == x and row_y == y:
-                self.measurement_controller.view.table_view.selectRow(row)
+                view.selectRow(row)
                 break
 
     def _on_table_selection_changed(self, selected, deselected):
@@ -935,14 +945,14 @@ class MainController:
         from basico.petab import PetabSimulator
         import basico
 
-        # report current basico / COPASI version 
+        # report current basico / COPASI version
         self.logger.log_message(f"Simulate with basico: {basico.__version__}, COPASI: {basico.COPASI.__version__}", color="green")
 
         import tempfile
 
-        # create temp directory in temp folder: 
+        # create temp directory in temp folder:
         with tempfile.TemporaryDirectory() as temp_dir:
-            # settings is only current solution statistic for now: 
+            # settings is only current solution statistic for now:
             settings = {'method' : {'name': basico.PE.CURRENT_SOLUTION}}
             # create simulator
             simulator = PetabSimulator(petab_problem, settings=settings, working_dir=temp_dir)
@@ -953,3 +963,7 @@ class MainController:
         # assign to simulation table
         self.simulation_controller.overwrite_df(sim_df)
         self.simulation_controller.model.reset_invalid_cells()
+
+    def _schedule_plot_update(self):
+        """Start the plot schedule timer."""
+        self._plot_update_timer.start()
