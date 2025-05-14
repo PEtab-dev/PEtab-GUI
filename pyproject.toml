@@ -25,7 +25,9 @@ dependencies = [
     "python-libsbml",
     "matplotlib",
     "petab",
-    "qtawesome"
+    "qtawesome",
+    "copasi-basico",
+    "copasi-petab-importer"
 ]
 
 [build-system]

@@ -91,6 +91,7 @@ class EditMenu(BasicMenu):
         self.menu.addSeparator()
         # Reset Model
         self.menu.addAction(actions["reset_model"])
+        self.menu.addAction(actions["simulate"])
         self.menu.addSeparator()
         # Settings
         self.menu.addAction(actions["settings"])

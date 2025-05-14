@@ -180,6 +180,7 @@ class MainWindow(QMainWindow):
         tb.addAction(actions["delete_row"])
         tb.addAction(actions["add_column"])
         tb.addAction(actions["delete_column"])
+        tb.addAction(actions["simulate"])
         tb.addWidget(spacer)
         tb.addWidget(actions["filter_widget"])
 
