@@ -877,6 +877,7 @@ class MainController:
             self.measurement_controller.proxy_model,
             self.simulation_controller.proxy_model,
             self.condition_controller.proxy_model,
+            self.visualization_controller.proxy_model
         )
         self.plotter = self.view.plot_dock
         self.plotter.highlighter.click_callback = self._on_plot_point_clicked
