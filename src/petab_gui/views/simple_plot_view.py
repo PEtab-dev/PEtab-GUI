@@ -122,6 +122,9 @@ class MeasurementPlotter(QDockWidget):
         self.sim_proxy.dataChanged.connect(self._debounced_plot)
         self.sim_proxy.rowsInserted.connect(self._debounced_plot)
         self.sim_proxy.rowsRemoved.connect(self._debounced_plot)
+        self.vis_proxy.dataChanged.connect(self._debounced_plot)
+        self.vis_proxy.rowsInserted.connect(self._debounced_plot)
+        self.vis_proxy.rowsRemoved.connect(self._debounced_plot)
 
         self.plot_it()
 
