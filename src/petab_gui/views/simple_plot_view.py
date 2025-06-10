@@ -91,6 +91,7 @@ class MeasurementPlotter(QDockWidget):
         self.meas_proxy = None
         self.sim_proxy = None
         self.cond_proxy = None
+        self.petab_model = None
         self.highlighter = MeasurementHighlighter()
 
         self.dock_widget = QWidget(self)
@@ -105,11 +106,15 @@ class MeasurementPlotter(QDockWidget):
         self.update_timer.timeout.connect(self.plot_it)
         self.observable_to_subplot = {}
 
-    def initialize(self, meas_proxy, sim_proxy, cond_proxy, vis_proxy):
+    def initialize(
+        self, meas_proxy, sim_proxy, cond_proxy, vis_proxy,
+        petab_model
+    ):
         self.meas_proxy = meas_proxy
         self.cond_proxy = cond_proxy
         self.sim_proxy = sim_proxy
         self.vis_proxy = vis_proxy
+        self.petab_model = petab_model
 
         # Connect data changes
         self.options_manager.option_changed.connect(self._debounced_plot)
@@ -173,17 +178,7 @@ class MeasurementPlotter(QDockWidget):
             return
 
         # Full figure tab
-        full_canvas = FigureCanvas(fig)
-        full_toolbar = CustomNavigationToolbar(full_canvas, self)
-
-        full_tab = QWidget()
-        full_layout = QVBoxLayout(full_tab)
-        full_layout.setContentsMargins(0, 0, 0, 0)
-        full_layout.setSpacing(2)
-        full_layout.addWidget(full_toolbar)
-        full_layout.addWidget(full_canvas)
-
-        self.tab_widget.addTab(full_tab, "All Plots")
+        create_plot_tab(fig, self, plot_title="All Plots")
 
         # One tab per Axes
         for idx, ax in enumerate(fig.axes):
@@ -212,17 +207,12 @@ class MeasurementPlotter(QDockWidget):
             sub_ax.set_ylabel(ax.get_ylabel())
             sub_ax.legend()
 
-            sub_canvas = FigureCanvas(sub_fig)
-            sub_toolbar = CustomNavigationToolbar(sub_canvas, self)
+            sub_canvas = create_plot_tab(
+                sub_fig,
+                self,
+                plot_title=f"Subplot {idx + 1}",
+            )
 
-            sub_tab = QWidget()
-            sub_layout = QVBoxLayout(sub_tab)
-            sub_layout.setContentsMargins(0, 0, 0, 0)
-            sub_layout.setSpacing(2)
-            sub_layout.addWidget(sub_toolbar)
-            sub_layout.addWidget(sub_canvas)
-
-            self.tab_widget.addTab(sub_tab, f"Subplot {idx + 1}")
             if ax.get_title():
                 obs_id = ax.get_title()
             elif ax.get_legend_handles_labels()[1]:
@@ -237,6 +227,8 @@ class MeasurementPlotter(QDockWidget):
             self.highlighter.register_subplot(sub_ax, idx)
             # Also register the original ax from the full figure (main tab)
             self.highlighter.connect_picking(sub_canvas)
+        # Plot residuals if necessary
+        self.plot_residuals()
 
     def highlight_from_selection(self, selected_rows: list[int], proxy=None, y_axis_col="measurement"):
         proxy = proxy or self.meas_proxy
@@ -277,9 +269,43 @@ class MeasurementPlotter(QDockWidget):
     def _debounced_plot(self):
         self.update_timer.start(1000)
 
-    def update_visualization(self, plot_data):
-        print("OK")
-        return
+    def plot_residuals(self):
+        """Plot residuals between measurements and simulations."""
+        if not self.petab_model or not self.sim_proxy:
+            return
+
+        problem = self.petab_model.current_petab_problem
+        simulations_df = proxy_to_dataframe(self.sim_proxy)
+
+        if simulations_df.empty:
+            return
+
+        from petab.v1.visualize.plot_residuals import (
+            plot_goodness_of_fit,
+            plot_residuals_vs_simulation,
+        )
+        fig_res, axes = plt.subplots(
+            1, 2,
+            sharey=True, constrained_layout=True, width_ratios=[2, 1]
+        )
+        try:
+            plot_residuals_vs_simulation(
+                problem,
+                simulations_df,
+                axes = axes,
+            )
+            create_plot_tab(fig_res, self, "Residuals vs Simulation")
+        except ValueError as e:
+            print(f"Error plotting residuals: {e}")
+        fig_fit, axes_fit = plt.subplots(constrained_layout=False)
+        fig_fit.subplots_adjust(left=0.05, right=0.98, bottom=0.05, top=0.98)
+        plot_goodness_of_fit(
+            problem,
+            simulations_df,
+            ax = axes_fit,
+        )
+        fig_fit.tight_layout()
+        create_plot_tab(fig_fit, self, "Goodness of Fit")
 
 
 class MeasurementHighlighter:
@@ -400,3 +426,23 @@ class CustomNavigationToolbar(NavigationToolbar2QT):
     def update_checked_state(self, selected_option):
         for action in self.groupy_by_options.values():
             action.setChecked(action.text() == f"Groupy by {selected_option}")
+
+
+def create_plot_tab(
+    figure,
+    plotter: MeasurementPlotter,
+    plot_title: str = "New Plot"
+) -> FigureCanvas:
+    """Create a new tab with the given figure and plotter."""
+    canvas = FigureCanvas(figure)
+    toolbar = CustomNavigationToolbar(canvas, plotter)
+
+    tab = QWidget()
+    layout = QVBoxLayout(tab)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(2)
+    layout.addWidget(toolbar)
+    layout.addWidget(canvas)
+
+    plotter.tab_widget.addTab(tab, plot_title)
+    return canvas

@@ -700,6 +700,8 @@ class MainController:
                 )
             else:
                 self.visualization_controller.clear_table()
+            # Simulation should be cleared
+            self.simulation_controller.clear_table()
             self.logger.log_message(
                 "All files opened successfully from the YAML configuration.",
                 color="green",
@@ -904,7 +906,8 @@ class MainController:
             self.measurement_controller.proxy_model,
             self.simulation_controller.proxy_model,
             self.condition_controller.proxy_model,
-            self.visualization_controller.proxy_model
+            self.visualization_controller.proxy_model,
+            self.model
         )
         self.plotter = self.view.plot_dock
         self.plotter.highlighter.click_callback = self._on_plot_point_clicked
