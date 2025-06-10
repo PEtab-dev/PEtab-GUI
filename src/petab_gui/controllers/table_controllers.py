@@ -29,7 +29,7 @@ from ..views.table_view import (
     SingleSuggestionDelegate,
     TableViewer,
 )
-from .utils import linter_wrapper, prompt_overwrite_or_append
+from .utils import linter_wrapper, prompt_overwrite_or_append, save_petab_table
 
 
 class TableController(QObject):
@@ -549,6 +549,28 @@ class TableController(QObject):
         self.model.default_handler.config = (
             settings_manager.get_table_defaults(self.model.table_type)
         )
+
+    def save_table(self, file_name):
+        """Save the table as a tsv file to ``file_name``."""
+        if not file_name:
+            file_name, _ = QFileDialog.getSaveFileName(
+                self.view,
+                "Save Table",
+                "",
+                "TSV Files (*.tsv);;CSV Files (*.csv);;All Files (*)",
+            )
+        if not file_name:
+            return
+        if not file_name.endswith((".tsv", ".csv")):
+            file_name += ".tsv"
+        try:
+            save_petab_table(self.model.get_df(), file_name, self.model.table_type)
+        except Exception as e:
+            QMessageBox.critical(
+                self.view,
+                "Error Saving Table",
+                f"Failed to save table: {str(e)}",
+            )
 
 
 class MeasurementController(TableController):
