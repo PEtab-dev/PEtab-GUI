@@ -198,3 +198,29 @@ COMMON_ERRORS = {
     r"Error parsing '': Syntax error at \d+:\d+: mismatched input '<EOF>' "
     r"expecting \{[^}]+\}": "Invalid empty cell!"
 }
+
+DEFAULT_ANTIMONY_TEXT = """model *New_File
+
+  // Compartments and Species:
+
+  // Assignment Rules:
+
+  // Reactions:
+
+  // Species initializations:
+
+  // Compartment initializations:
+
+  // Variable initializations:
+
+  // Other declarations:
+
+  // Unit definitions:
+
+  // Display Names:
+
+  // Notes:
+
+
+end
+"""

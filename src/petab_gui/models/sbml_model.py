@@ -1,9 +1,12 @@
+import re
+
 import libsbml
 import petab.v1 as petab
 from petab.v1.models.sbml_model import SbmlModel
 from petab.v1.sbml import load_sbml_from_string
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, QSignalBlocker, Signal
 
+from ..C import DEFAULT_ANTIMONY_TEXT
 from ..utils import antimonyToSBML, sbmlToAntimony
 
 
@@ -29,15 +32,19 @@ class SbmlViewerModel(QObject):
             )
             self.antimony_text = sbmlToAntimony(self.sbml_text)
         else:
-            self.sbml_text = ""
-            self.antimony_text = ""
+            self.antimony_text = DEFAULT_ANTIMONY_TEXT
+            with QSignalBlocker(self) as blocker:
+                self.convert_antimony_to_sbml()
+        self.model_id = self._get_model_id()
 
     def convert_sbml_to_antimony(self):
         self.antimony_text = sbmlToAntimony(self.sbml_text)
+        self.model_id = self._get_model_id()
         self.something_changed.emit(True)
 
     def convert_antimony_to_sbml(self):
         self.sbml_text = antimonyToSBML(self.antimony_text)
+        self.model_id = self._get_model_id()
         self.something_changed.emit(True)
 
     def get_current_sbml_model(self):
@@ -57,3 +64,10 @@ class SbmlViewerModel(QObject):
             sbml_document=sbml_document,
             model_id=model_id,
         )
+
+    def _get_model_id(self):
+        """Extract the model ID from the SBML text."""
+        document =  libsbml.readSBMLFromString(self.sbml_text)
+        model = document.getModel()
+        model_id = model.getIdAttribute() or "New_File"
+        return model_id
