@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..models import PEtabModel
+from ..models import PEtabModel, SbmlViewerModel
 from ..settings_manager import SettingsDialog, settings_manager
 from ..utils import (
     CaptureLogHandler,
@@ -145,6 +145,13 @@ class MainController:
         self.setup_context_menu()
         self.plotter = None
         self.init_plotter()
+
+    @property
+    def window_title(self):
+        """Return the window title based on the model."""
+        if isinstance(self.model.sbml, SbmlViewerModel):
+            return self.model.sbml.model_id
+        return "PEtab Editor"
 
     def setup_context_menu(self):
         """Sets up context menus for the tables."""
@@ -712,7 +719,7 @@ class MainController:
                 if controller == self.sbml_controller:
                     continue
                 controller.setup_completers()
-            self.unsaved_changes = False
+            self.unsaved_changes_change(False)
 
         except Exception as e:
             self.logger.log_message(
@@ -776,9 +783,9 @@ class MainController:
     def unsaved_changes_change(self, unsaved_changes: bool):
         self.unsaved_changes = unsaved_changes
         if unsaved_changes:
-            self.view.setWindowTitle("PEtab Editor - Unsaved Changes")
+            self.view.setWindowTitle(f"{self.window_title} - Unsaved Changes")
         else:
-            self.view.setWindowTitle("PEtab Editor")
+            self.view.setWindowTitle(self.window_title)
 
     def maybe_close(self):
         if not self.unsaved_changes:

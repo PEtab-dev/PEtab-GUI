@@ -7,6 +7,7 @@ from petab.models.sbml_model import SbmlModel
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QFileDialog
 
+from ..C import DEFAULT_ANTIMONY_TEXT
 from ..models.sbml_model import SbmlViewerModel
 from ..utils import sbmlToAntimony
 from ..views.sbml_view import SbmlViewer
@@ -129,7 +130,7 @@ class SbmlController(QObject):
 
     def clear_model(self):
         """Clear the model in case the user wants to start a new problem"""
-        self.model.antimony_text = ""
+        self.model.antimony_text = DEFAULT_ANTIMONY_TEXT
         self.model.convert_antimony_to_sbml()
         self.view.sbml_text_edit.setPlainText(self.model.sbml_text)
         self.view.antimony_text_edit.setPlainText(self.model.antimony_text)
