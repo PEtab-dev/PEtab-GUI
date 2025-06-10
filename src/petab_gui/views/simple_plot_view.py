@@ -178,17 +178,7 @@ class MeasurementPlotter(QDockWidget):
             return
 
         # Full figure tab
-        full_canvas = FigureCanvas(fig)
-        full_toolbar = CustomNavigationToolbar(full_canvas, self)
-
-        full_tab = QWidget()
-        full_layout = QVBoxLayout(full_tab)
-        full_layout.setContentsMargins(0, 0, 0, 0)
-        full_layout.setSpacing(2)
-        full_layout.addWidget(full_toolbar)
-        full_layout.addWidget(full_canvas)
-
-        self.tab_widget.addTab(full_tab, "All Plots")
+        create_plot_tab(fig, self, plot_title="All Plots")
 
         # One tab per Axes
         for idx, ax in enumerate(fig.axes):
@@ -217,17 +207,12 @@ class MeasurementPlotter(QDockWidget):
             sub_ax.set_ylabel(ax.get_ylabel())
             sub_ax.legend()
 
-            sub_canvas = FigureCanvas(sub_fig)
-            sub_toolbar = CustomNavigationToolbar(sub_canvas, self)
+            sub_canvas = create_plot_tab(
+                sub_fig,
+                self,
+                plot_title=f"Subplot {idx + 1}",
+            )
 
-            sub_tab = QWidget()
-            sub_layout = QVBoxLayout(sub_tab)
-            sub_layout.setContentsMargins(0, 0, 0, 0)
-            sub_layout.setSpacing(2)
-            sub_layout.addWidget(sub_toolbar)
-            sub_layout.addWidget(sub_canvas)
-
-            self.tab_widget.addTab(sub_tab, f"Subplot {idx + 1}")
             if ax.get_title():
                 obs_id = ax.get_title()
             elif ax.get_legend_handles_labels()[1]:
@@ -303,12 +288,15 @@ class MeasurementPlotter(QDockWidget):
             1, 2,
             sharey=True, constrained_layout=True, width_ratios=[2, 1]
         )
-        plot_residuals_vs_simulation(
-            problem,
-            simulations_df,
-            axes = axes,
-        )
-        create_plot_tab(fig_res, self, "Residuals vs Simulation")
+        try:
+            plot_residuals_vs_simulation(
+                problem,
+                simulations_df,
+                axes = axes,
+            )
+            create_plot_tab(fig_res, self, "Residuals vs Simulation")
+        except ValueError as e:
+            print(f"Error plotting residuals: {e}")
         fig_fit, axes_fit = plt.subplots(constrained_layout=False)
         fig_fit.subplots_adjust(left=0.05, right=0.98, bottom=0.05, top=0.98)
         plot_goodness_of_fit(
@@ -444,7 +432,7 @@ def create_plot_tab(
     figure,
     plotter: MeasurementPlotter,
     plot_title: str = "New Plot"
-):
+) -> FigureCanvas:
     """Create a new tab with the given figure and plotter."""
     canvas = FigureCanvas(figure)
     toolbar = CustomNavigationToolbar(canvas, plotter)
@@ -457,4 +445,4 @@ def create_plot_tab(
     layout.addWidget(canvas)
 
     plotter.tab_widget.addTab(tab, plot_title)
-    return tab
+    return canvas
