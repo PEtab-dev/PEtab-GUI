@@ -21,6 +21,8 @@ class ContextMenuManager:
         menu.addAction(self.actions["add_column"])
         menu.addAction(self.actions["delete_column"])
         menu.addSeparator()
+        menu.addAction(self.actions["save_single_table"])
+        menu.addSeparator()
 
         # execute the menu
         menu.exec_(self.table_view.viewport().mapToGlobal(position))

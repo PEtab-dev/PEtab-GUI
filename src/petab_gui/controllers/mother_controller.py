@@ -280,6 +280,12 @@ class MainController:
         )
         actions["save"].setShortcut(QKeySequence.Save)
         actions["save"].triggered.connect(self.save_model)
+        actions["save_single_table"] = QAction(
+            qta.icon("mdi6.table-arrow-down"), "Save This Table", self.view
+        )
+        actions["save_single_table"].triggered.connect(
+            self.save_single_table
+        )
         # Find + Replace
         actions["find"] = QAction(qta.icon("mdi6.magnify"), "Find", self.view)
         actions["find"].setShortcut(QKeySequence.Find)
@@ -499,6 +505,27 @@ class MainController:
             "Save Project",
             f"Project saved successfully to {file_name}",
         )
+        return True
+
+    def save_single_table(self):
+        """Save the currently active table to a tsv-file."""
+        active_controller = self.active_controller()
+        if not active_controller:
+            QMessageBox.warning(
+                self.view,
+                "Save Table",
+                "No active table to save.",
+            )
+            return None
+        file_name, _ = QFileDialog.getSaveFileName(
+            self.view,
+            "Save Table (as *.tsv)",
+            f"{active_controller.model.table_type}.tsv",
+            "TSV Files (*.tsv)",
+        )
+        if not file_name:
+            return False
+        active_controller.save_table(file_name)
         return True
 
     def handle_selection_changed(self):

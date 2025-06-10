@@ -5,6 +5,7 @@ from collections import Counter
 from pathlib import Path
 
 import pandas as pd
+import petab.v1 as petab
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu, QMessageBox
@@ -166,3 +167,19 @@ class RecentFilesManager(QObject):
         self.recent_files = []
         self.save_recent_files()
         self.update_tool_bar_menu()
+
+def save_petab_table(
+    df: pd.DataFrame, filename: str | Path, table_type: str
+):
+    """Save a PEtab table to a file. Function used based on table type."""
+    if table_type == "condition":
+        petab.write_condition_df(df, filename)
+    elif table_type in ["measurement", "simulation"]:
+        petab.write_measurement_df(df, filename)
+    elif table_type == "parameter":
+        petab.write_parameter_df(df, filename)
+    elif table_type == "observable":
+        petab.write_observable_df(df, filename)
+    else:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(filename, sep="\t", index=False)
