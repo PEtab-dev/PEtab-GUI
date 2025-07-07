@@ -130,11 +130,15 @@ class MeasurementPlotter(QDockWidget):
         self.vis_proxy.dataChanged.connect(self._debounced_plot)
         self.vis_proxy.rowsInserted.connect(self._debounced_plot)
         self.vis_proxy.rowsRemoved.connect(self._debounced_plot)
+        self.visibilityChanged.connect(self._debounced_plot)
 
         self.plot_it()
 
     def plot_it(self):
         if not self.meas_proxy or not self.cond_proxy:
+            return
+        if not self.isVisible():
+            # If the dock is not visible, do not plot
             return
 
         measurements_df = proxy_to_dataframe(self.meas_proxy)
@@ -272,6 +276,9 @@ class MeasurementPlotter(QDockWidget):
     def plot_residuals(self):
         """Plot residuals between measurements and simulations."""
         if not self.petab_model or not self.sim_proxy:
+            return
+        if not self.isVisible():
+            # If the dock is not visible, do not plot
             return
 
         problem = self.petab_model.current_petab_problem
