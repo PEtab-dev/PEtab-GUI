@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import tempfile
 
 import petab.v1 as petab
 
@@ -136,6 +137,20 @@ class PEtabModel:
             The directory to save the PEtab model to.
         """
         self.current_petab_problem.to_files_generic(prefix_path=directory)
+
+    def save_as_omex(self, file_name: str):
+        """Save the PEtab model as an OMEX file.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.save(temp_dir)
+            petab.create_combine_archive(
+                temp_dir,
+                file_name,
+                # family_name="", # read from settings
+                # given_name="", # read from settings
+                # email="", # read from settings
+                # organization="", # read from settings
+            )
 
     @property
     def current_petab_problem(self) -> petab.Problem:
