@@ -483,29 +483,34 @@ class MainController:
 
     def save_model(self):
         options = QFileDialog.Options()
-        file_name, _ = QFileDialog.getSaveFileName(
-            self.view, "Save Project", "", "Zip Files (*.zip)", options=options
+        file_name, filter = QFileDialog.getSaveFileName(
+            self.view, "Save Project", "", "COMBINE Archive (*.omex);;Zip Files (*.zip)", options=options
         )
         if not file_name:
             return False
-        if not file_name.endswith(".zip"):
-            file_name += ".zip"
 
-        # Create a temporary directory to save the model's files
-        with tempfile.TemporaryDirectory() as temp_dir:
-            self.model.save(temp_dir)
+        if filter == "COMBINE Archive (*.omex)":
+            self.model.save_as_omex(file_name)
+            
+        else:
+            if not file_name.endswith(".zip"):
+                file_name += ".zip"
 
-            # Create a bytes buffer to hold the zip file in memory
-            buffer = BytesIO()
-            with zipfile.ZipFile(buffer, "w") as zip_file:
-                # Add files to zip archive
-                for root, _, files in os.walk(temp_dir):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        with open(file_path, "rb") as f:
-                            zip_file.writestr(file, f.read())
-            with open(file_name, "wb") as f:
-                f.write(buffer.getvalue())
+            # Create a temporary directory to save the model's files
+            with tempfile.TemporaryDirectory() as temp_dir:
+                self.model.save(temp_dir)
+
+                # Create a bytes buffer to hold the zip file in memory
+                buffer = BytesIO()
+                with zipfile.ZipFile(buffer, "w") as zip_file:
+                    # Add files to zip archive
+                    for root, _, files in os.walk(temp_dir):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            with open(file_path, "rb") as f:
+                                zip_file.writestr(file, f.read())
+                with open(file_name, "wb") as f:
+                    f.write(buffer.getvalue())
 
         QMessageBox.information(
             self.view,
