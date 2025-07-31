@@ -38,8 +38,10 @@ def proxy_to_dataframe(proxy_model):
         data["time"] = data["time"].astype(float)
     elif proxy_model.source_model.table_type == "visualization":
         data = pd.DataFrame(data)
-        data["xOffset"] = data["xOffset"].astype(float)
-        data["yOffset"] = data["yOffset"].astype(float)
+        if "xOffset" in data.columns:
+            data["xOffset"] = data["xOffset"].astype(float)
+        if "yOffset" in data.columns:
+            data["yOffset"] = data["yOffset"].astype(float)
     else:
         data = pd.DataFrame(data)
 
