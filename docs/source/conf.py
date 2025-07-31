@@ -19,8 +19,8 @@ extensions = [
     'sphinx.ext.viewcode',      # Add links to highlighted source code
     'sphinx.ext.githubpages',   # For publishing on GitHub Pages
     'sphinx.ext.todo',          # Support todo items
-    'myst_parser'               # For Markdown support
     'sphinx.ext.mathjax',       # For LaTeX math rendering
+    'myst_parser'               # For Markdown support
 ]
 
 templates_path = ['_templates']
@@ -32,4 +32,4 @@ exclude_patterns = []
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'alabaster'
-html_static_path = ['_static']
+html_static_path = []

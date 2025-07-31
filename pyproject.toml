@@ -43,6 +43,13 @@ requires = [
     "qtawesome"
 ]
 
+[project.optional-dependencies]
+doc = [
+    "sphinx",
+    "sphinx-rtd-theme",
+    "myst-parser"
+]
+
 [project.urls]
 Repository = "https://github.com/PaulJonasJost/PEtab_GUI"
 Issues = "https://github.com/PaulJonasJost/PEtab_GUI/issues"
