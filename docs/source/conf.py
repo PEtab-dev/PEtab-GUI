@@ -20,7 +20,8 @@ extensions = [
     'sphinx.ext.githubpages',   # For publishing on GitHub Pages
     'sphinx.ext.todo',          # Support todo items
     'sphinx.ext.mathjax',       # For LaTeX math rendering
-    'myst_parser'               # For Markdown support
+    'myst_parser',               # For Markdown support
+    'sphinx_copybutton',         # To allow copying code snippets
 ]
 
 templates_path = ['_templates']
