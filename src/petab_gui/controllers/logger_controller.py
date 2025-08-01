@@ -16,6 +16,13 @@ class LoggerController:
         """
         self.views = views
         self.logger_level = 1
+        self.log_message("Welcome to PEtab-GUI!", color="green")
+        self.log_message(
+            'If you need help, click <b>Help</b> in the menu or visit the '
+            '<a href="https://petab-gui.readthedocs.io/en/latest/" '
+            'style="color:blue;" target="_blank">documentation</a>.',
+            color="green",
+        )
 
     def log_message(self, message, color="black", loglevel=1):
         """Log a message to the logger.

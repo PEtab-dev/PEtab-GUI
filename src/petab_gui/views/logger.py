@@ -4,6 +4,7 @@ Contains logger widget as well as two helper buttons.
 """
 
 from PySide6.QtWidgets import QHBoxLayout, QTextBrowser, QWidget
+from PySide6.QtCore import Qt
 
 
 class Logger(QWidget):
@@ -12,6 +13,9 @@ class Logger(QWidget):
 
         # Create the logger (QTextBrowser)
         self.logger = QTextBrowser(parent)
+
+        self.logger.setOpenExternalLinks(True)
+        self.logger.setTextInteractionFlags(Qt.TextBrowserInteraction)
 
         # Create the main layout for Logger
         main_layout = QHBoxLayout(self)
