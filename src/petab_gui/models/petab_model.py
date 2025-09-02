@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 import petab.v1 as petab
 
@@ -144,7 +144,7 @@ class PEtabModel:
         with tempfile.TemporaryDirectory() as temp_dir:
             self.save(temp_dir)
             petab.create_combine_archive(
-                temp_dir,
+                f"{temp_dir}/problem.yaml",
                 file_name,
                 # family_name="", # read from settings
                 # given_name="", # read from settings

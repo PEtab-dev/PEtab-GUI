@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import tempfile
 import zipfile
 from functools import partial
@@ -13,6 +14,7 @@ from PySide6.QtGui import QAction, QDesktopServices, QKeySequence, QUndoStack
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
+    QInputDialog,
     QLineEdit,
     QMessageBox,
     QTableView,
@@ -483,15 +485,25 @@ class MainController:
 
     def save_model(self):
         options = QFileDialog.Options()
-        file_name, filter = QFileDialog.getSaveFileName(
-            self.view, "Save Project", "", "COMBINE Archive (*.omex);;Zip Files (*.zip)", options=options
+        file_name, filtering = QFileDialog.getSaveFileName(
+            self.view,
+            "Save Project",
+            "",
+            "COMBINE Archive (*.omex);;Zip Files (*.zip);;Folder",
+            options=options,
         )
         if not file_name:
             return False
 
-        if filter == "COMBINE Archive (*.omex)":
+        if filtering == "COMBINE Archive (*.omex)":
             self.model.save_as_omex(file_name)
-            
+        elif filtering == "Folder":
+            if file_name.endswith("."):
+                file_name = file_name[:-1]
+            target = Path(file_name)
+            target.mkdir(parents=True, exist_ok=True)
+            self.model.save(str(target))
+            file_name = str(target)
         else:
             if not file_name.endswith(".zip"):
                 file_name += ".zip"
