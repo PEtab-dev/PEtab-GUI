@@ -34,46 +34,16 @@ class PlotWorker(QRunnable):
         self.signals = PlotWorkerSignals()
 
     def run(self):
-        import petab.v1.visualize as petab_vis  # Ensure this is thread-local
-        plt.close("all")
-
-        if self.meas_df.empty or self.cond_df.empty:
-            self.signals.finished.emit(None)
-            return
-        sim_df = self.sim_df.copy()
-        if sim_df.empty:
-            sim_df = None
-        if self.group_by == "vis_df" and self.vis_df.empty:
-            print("Empty Vis DF. Falling back to grouping by observable.")
-            self.group_by = "observable"
-        if self.group_by == "vis_df":
-            try:
-                petab_vis.plot_with_vis_spec(
-                    self.vis_df,
-                    self.cond_df,
-                    self.meas_df,
-                    sim_df,
-                )
-                fig = plt.gcf()
-                self.signals.finished.emit(fig)
-                return
-            except Exception as e:
-                print(f"Invalid Visualisation DF: {e}")
-                plt.gcf()
-                self.signals.finished.emit(fig)
-                return
-
-        # Fallback
-        plt.close("all")
-        petab_vis.plot_without_vis_spec(
-            self.cond_df,
-            measurements_df=self.meas_df,
-            simulations_df=sim_df,
-            group_by=self.group_by,
-        )
-        fig = plt.gcf()
-        fig.subplots_adjust(left=0.12, bottom=0.15, right=0.95, top=0.9, wspace=0.3, hspace=0.4)
-        self.signals.finished.emit(fig)
+        # Move all Matplotlib plotting to the GUI thread. Only prepare payload here.
+        sim_df = self.sim_df if not self.sim_df.empty else None
+        payload = {
+            "vis_df": self.vis_df,
+            "cond_df": self.cond_df,
+            "meas_df": self.meas_df,
+            "sim_df": sim_df,
+            "group_by": self.group_by,
+        }
+        self.signals.finished.emit(payload)
 
 
 class PlotWidget(FigureCanvas):
@@ -157,8 +127,43 @@ class MeasurementPlotter(QDockWidget):
             simulations_df,
             group_by
         )
-        worker.signals.finished.connect(self._update_tabs)
+        worker.signals.finished.connect(self._render_on_main_thread)
         QThreadPool.globalInstance().start(worker)
+
+    def _render_on_main_thread(self, payload):
+        import petab.v1.visualize as petab_vis
+        # GUI-thread plotting
+        plt.close('all')
+        meas_df = payload.get('meas_df')
+        cond_df = payload.get('cond_df')
+        if meas_df is None or meas_df.empty or cond_df is None or cond_df.empty:
+            self._update_tabs(None)
+            return
+        sim_df = payload.get('sim_df')
+        group_by = payload.get('group_by')
+        if group_by == 'vis_df':
+            vis_df = payload.get('vis_df')
+            if vis_df is not None and not vis_df.empty:
+                try:
+                    petab_vis.plot_with_vis_spec(vis_df, cond_df, meas_df, sim_df)
+                    fig = plt.gcf()
+                    self._update_tabs(fig)
+                    return
+                except Exception as e:
+                    print(f'Invalid Visualisation DF: {e}')
+            # fallback to observable grouping
+            plt.close('all')
+            petab_vis.plot_without_vis_spec(
+                cond_df, measurements_df=meas_df, simulations_df=sim_df, group_by='observable'
+            )
+        else:
+            plt.close('all')
+            petab_vis.plot_without_vis_spec(
+                cond_df, measurements_df=meas_df, simulations_df=sim_df, group_by=group_by
+            )
+        fig = plt.gcf()
+        fig.subplots_adjust(left=0.12, bottom=0.15, right=0.95, top=0.9, wspace=0.3, hspace=0.4)
+        self._update_tabs(fig)
 
     def _update_tabs(self, fig: plt.Figure):
         # Clean previous tabs
@@ -187,7 +192,7 @@ class MeasurementPlotter(QDockWidget):
         # One tab per Axes
         for idx, ax in enumerate(fig.axes):
             # Create a new figure and copy Axes content
-            sub_fig, sub_ax = plt.subplots(constrained_layout=True)
+            sub_fig, sub_ax = plt.subplots(constrained_layout=False)
             handles, labels = ax.get_legend_handles_labels()
             for handle, label in zip(handles, labels, strict=False):
                 if isinstance(handle, ErrorbarContainer):
@@ -311,7 +316,7 @@ class MeasurementPlotter(QDockWidget):
             simulations_df,
             ax = axes_fit,
         )
-        fig_fit.tight_layout()
+        # fig_fit.tight_layout()
         create_plot_tab(fig_fit, self, "Goodness of Fit")
 
 
