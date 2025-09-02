@@ -247,6 +247,8 @@ class ModifyDataFrameCommand(QUndoCommand):
             (row, col): val[1 if use_new else 0]
             for (row, col), val in self.changes.items()
         }
+        if not update_vals:
+            return
         update_df = pd.Series(update_vals).unstack()
         for col in update_df.columns:
             if col in df.columns:

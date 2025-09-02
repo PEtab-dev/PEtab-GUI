@@ -892,16 +892,13 @@ class PandasTableModel(QAbstractTableModel):
         """
         data_to_add = dict.fromkeys(self._data_frame.columns, "")
         unknown_keys = set(data) - set(self._data_frame.columns)
+        index_key = None
         for key in unknown_keys:
             if key == self._data_frame.index.name:
+                index_key = data.pop(key)
                 continue
             data.pop(key, None)
         data_to_add.update(data)
-        index_key = None
-        if self.table_type == "condition":
-            index_key = data_to_add.pop("conditionId")
-        elif self.table_type == "observable":
-            index_key = data_to_add.pop("observableId")
         if index_key and self._has_named_index:
             self.undo_stack.push(
                 RenameIndexCommand(
@@ -911,6 +908,8 @@ class PandasTableModel(QAbstractTableModel):
                     self.index(row_position, 0),
                 )
             )
+        if index_key is None:
+            index_key = self._data_frame.index.tolist()[row_position]
 
         changes = {
             (index_key, col): (self._data_frame.at[index_key, col], val)
@@ -919,6 +918,8 @@ class PandasTableModel(QAbstractTableModel):
         self.undo_stack.push(
             ModifyDataFrameCommand(self, changes, "Fill values")
         )
+        # rename changes keys to only the col names
+        changes = {col: val for (_, col), val in changes.items()}
         self.get_default_values(
             self.index(row_position, 0),
             changed=changes,

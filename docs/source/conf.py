@@ -3,6 +3,10 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+rst_prolog = """
+.. |petab_doc_url| replace:: https://petab.readthedocs.io/en/latest/index.html
+"""
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -20,8 +24,9 @@ extensions = [
     'sphinx.ext.githubpages',   # For publishing on GitHub Pages
     'sphinx.ext.todo',          # Support todo items
     'sphinx.ext.mathjax',       # For LaTeX math rendering
-    'myst_parser',               # For Markdown support
-    'sphinx_copybutton',         # To allow copying code snippets
+    'myst_parser',              # For Markdown support
+    'sphinx_copybutton',        # To allow copying code snippets
+    'sphinx_design',            # For better design elements
 ]
 
 templates_path = ['_templates']
