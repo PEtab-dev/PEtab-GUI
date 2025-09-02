@@ -187,7 +187,7 @@ class MeasurementPlotter(QDockWidget):
         # One tab per Axes
         for idx, ax in enumerate(fig.axes):
             # Create a new figure and copy Axes content
-            sub_fig, sub_ax = plt.subplots(constrained_layout=True)
+            sub_fig, sub_ax = plt.subplots(constrained_layout=False)
             handles, labels = ax.get_legend_handles_labels()
             for handle, label in zip(handles, labels, strict=False):
                 if isinstance(handle, ErrorbarContainer):
@@ -311,7 +311,7 @@ class MeasurementPlotter(QDockWidget):
             simulations_df,
             ax = axes_fit,
         )
-        fig_fit.tight_layout()
+        # fig_fit.tight_layout()
         create_plot_tab(fig_fit, self, "Goodness of Fit")
 
 
