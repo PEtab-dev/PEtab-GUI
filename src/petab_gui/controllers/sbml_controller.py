@@ -99,8 +99,23 @@ class SbmlController(QObject):
         self.view.sbml_text_edit.setPlainText(self.model.sbml_text)
         self.model.something_changed.emit(True)
 
-    def overwrite_sbml(self, file_path=None):
-        """Open a new SBML file and overwrite the existing SBML model."""
+    def overwrite_sbml(self, file_path=None, sbml_model=None):
+        """
+        Overwrite the existing SBML model.
+
+        Parameters
+        ----------
+        file_path: str, optional
+            Path to the SBML file to open.
+            If None, a file dialog will be opened
+        sbml_model: SbmlModel, optional
+            An SbmlModel instance to use directly.
+            If provided, file_path will be ignored.
+        """
+        if sbml_model:
+            self.model._sbml_model_original = sbml_model
+            self._overwrite_sbml_with_model(sbml_model)
+            return
         if not file_path:
             # Open a file dialog to select an SBML file
             file_path, _ = QFileDialog.getOpenFileName(
@@ -110,23 +125,32 @@ class SbmlController(QObject):
             return
         try:
             new_sbml_model = SbmlModel.from_file(Path(file_path))
-            self.model._sbml_model_original = new_sbml_model
-            self.model.sbml_text = libsbml.writeSBMLToString(
-                self.model._sbml_model_original.sbml_model.getSBMLDocument()
-            )
-            self.model.convert_sbml_to_antimony()
-            self.view.sbml_text_edit.setPlainText(self.model.sbml_text)
-            self.view.antimony_text_edit.setPlainText(self.model.antimony_text)
-
-            self.overwritten_model.emit()
-            self.logger.log_message(
-                "SBML model successfully opened and overwritten.",
-                color="green",
-            )
         except Exception as e:
             self.logger.log_message(
                 f"Failed to open SBML file: {str(e)}", color="red"
             )
+            return
+        self.model._sbml_model_original = new_sbml_model
+        self._overwrite_sbml_with_model(new_sbml_model)
+
+    def _overwrite_sbml_with_model(self, sbml_model: SbmlModel):
+        """Overwrite the existing SBML model with a given SbmlModel instance.
+
+        Parameters
+        ----------
+        sbml_model: SbmlModel
+            The SbmlModel instance to use.
+        """
+        self.model.sbml_text = sbml_model.to_sbml_str()
+        self.model.convert_sbml_to_antimony()
+        self.view.sbml_text_edit.setPlainText(self.model.sbml_text)
+        self.view.antimony_text_edit.setPlainText(self.model.antimony_text)
+
+        self.overwritten_model.emit()
+        self.logger.log_message(
+            "SBML model successfully overwritten.", color="green"
+        )
+
 
     def clear_model(self):
         """Clear the model in case the user wants to start a new problem"""
