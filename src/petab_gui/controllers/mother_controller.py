@@ -6,6 +6,7 @@ from functools import partial
 from io import BytesIO
 from pathlib import Path
 
+import petab.v1 as petab
 import qtawesome as qta
 import yaml
 from PySide6.QtCore import Qt, QTimer, QUrl
@@ -491,7 +492,7 @@ class MainController:
 
         if filter == "COMBINE Archive (*.omex)":
             self.model.save_as_omex(file_name)
-            
+
         else:
             if not file_name.endswith(".zip"):
                 file_name += ".zip"
@@ -610,16 +611,18 @@ class MainController:
                 self.view,
                 "Open File",
                 "",
-                "All supported (*.yaml *.yml *.xml *.sbml *.tsv *.csv *.txt);;"
+                "All supported (*.yaml *.yml *.xml *.sbml *.tsv *.csv *.txt "
+                "*.omex);;"
                 "PEtab Problems (*.yaml *.yml);;SBML Files (*.xml *.sbml);;"
                 "PEtab Tables or Data Matrix (*.tsv *.csv *.txt);;"
+                "COMBINE Archive (*.omex);;"
                 "All files (*)",
             )
         if not file_path:
             return
         # handle file appropriately
         actionable, sep = process_file(file_path, self.logger)
-        if actionable in ["yaml", "sbml"] and mode == "append":
+        if actionable in ["yaml", "sbml", "omex"] and mode == "append":
             self.logger.log_message(
                 f"Append mode is not supported for *.{actionable} files.",
                 color="red",
@@ -628,7 +631,7 @@ class MainController:
         if not actionable:
             return
         if mode is None:
-            if actionable in ["yaml", "sbml"]:
+            if actionable in ["yaml", "sbml", "omex"]:
                 mode = "overwrite"
             else:
                 mode = prompt_overwrite_or_append(self)
@@ -644,6 +647,8 @@ class MainController:
         """
         if actionable == "yaml":
             self.open_yaml_and_load_files(file_path)
+        elif actionable == "omex":
+            self.open_omex_and_load_files(file_path)
         elif actionable == "sbml":
             self.sbml_controller.overwrite_sbml(file_path)
         elif actionable == "measurement":
@@ -730,6 +735,44 @@ class MainController:
             self.logger.log_message(
                 f"Failed to open files from YAML: {str(e)}", color="red"
             )
+
+    def open_omex_and_load_files(self, omex_path=None):
+        """Opens a petab problem from a COMBINE Archive."""
+        if not omex_path:
+            omex_path, _ = QFileDialog.getOpenFileName(
+                self.view,
+                "Open COMBINE Archive",
+                "",
+                "COMBINE Archive (*.omex);;All files (*)",
+            )
+        if not omex_path:
+            return
+        try:
+            combine_archive = petab.problem.Problem.from_combine(omex_path)
+        except Exception as e:
+            self.logger.log_message(
+                f"Failed to open files from OMEX: {str(e)}", color="red"
+            )
+            return
+        # overwrite current model
+        self.measurement_controller.overwrite_df(
+            combine_archive.measurement_df
+        )
+        self.observable_controller.overwrite_df(
+            combine_archive.observable_df
+        )
+        self.condition_controller.overwrite_df(
+            combine_archive.condition_df
+        )
+        self.parameter_controller.overwrite_df(
+            combine_archive.parameter_df
+        )
+        self.visualization_controller.overwrite_df(
+            combine_archive.visualization_df
+        )
+        self.sbml_controller.overwrite_sbml(
+            sbml_model = combine_archive.model
+        )
 
     def new_file(self):
         """Empty all tables. In case of unsaved changes, ask to save."""

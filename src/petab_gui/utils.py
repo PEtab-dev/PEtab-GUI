@@ -426,6 +426,11 @@ def process_file(filepath, logger):
             color="orange",
         )
         return "data_matrix", separator
+
+    # Case 4: Combine Archive
+    if ext in {".omex"}:
+        return "omex", None
+
     logger.log_message(
         f"Unrecognized file type for file: {filepath}.", color="red"
     )
