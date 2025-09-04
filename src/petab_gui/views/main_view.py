@@ -12,6 +12,17 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..models.tooltips import (
+    COND_TABLE_TOOLTIP,
+    DATA_PLOT_TOOLTIP,
+    DATA_TABLES_TAB_TOOLTIP,
+    INFO_TOOLTIP,
+    MEAS_TABLE_TOOLTIP,
+    OBS_TABLE_TOOLTIP,
+    PAR_TABLE_TOOLTIP,
+    SBML_MODEL_TAB_TOOLTIP,
+    SIM_TABLE_TOOLTIP,
+)
 from ..settings_manager import settings_manager
 from .find_replace_bar import FindReplaceBar
 from .logger import Logger
@@ -37,26 +48,35 @@ class MainWindow(QMainWindow):
 
         # Tab for the data tables
         self.data_tab = QMainWindow()
-        self.tab_widget.addTab(self.data_tab, "Data Tables")
+        tab = self.tab_widget.addTab(self.data_tab, "Data Tables")
+        self.tab_widget.setTabToolTip(tab, DATA_TABLES_TAB_TOOLTIP)
 
         # Tab for the SBML model
         self.sbml_viewer = SbmlViewer(logger_view=self.logger_views[0])
-        self.tab_widget.addTab(self.sbml_viewer, "SBML Model")
+        tab = self.tab_widget.addTab(self.sbml_viewer, "SBML Model")
+        self.tab_widget.setTabToolTip(tab, SBML_MODEL_TAB_TOOLTIP)
 
         # Set the QTabWidget as the central widget
         self.setCentralWidget(self.tab_widget)
 
         # Create dock widgets for each table
         self.condition_dock = TableViewer("Condition Table")
+        self.condition_dock.setToolTip(COND_TABLE_TOOLTIP)
         self.measurement_dock = TableViewer("Measurement Table")
+        self.measurement_dock.setToolTip(MEAS_TABLE_TOOLTIP)
         self.observable_dock = TableViewer("Observable Table")
+        self.observable_dock.setToolTip(OBS_TABLE_TOOLTIP)
         self.parameter_dock = TableViewer("Parameter Table")
+        self.parameter_dock.setToolTip(PAR_TABLE_TOOLTIP)
         self.logger_dock = QDockWidget("Info")
+        self.logger_dock.setToolTip(INFO_TOOLTIP)
         self.logger_dock.setObjectName("logger_dock")
         self.logger_dock.setWidget(self.logger_views[1])
         self.plot_dock = MeasurementPlotter(self)
         self.visualization_dock = TableViewer("Visualization Table")
+        self.visualization_dock.setToolTip(DATA_PLOT_TOOLTIP)
         self.simulation_dock = TableViewer("Simulation Table")
+        self.simulation_dock.setToolTip(SIM_TABLE_TOOLTIP)
 
         self.dock_visibility = {
             self.condition_dock: self.condition_dock.isVisible(),
