@@ -227,3 +227,17 @@ DATA_PLOT_TOOLTIP = (
     "• Can also group by condition/observable."
 )
 
+DATA_TABLES_TAB_TOOLTIP = (
+    "<b>Data Tables</b><br>"
+    "• Edit PEtab tables: Measurement, Observable, Parameter, Condition,"
+    " Visualization.<br>"
+    "• Hover headers for definitions;"
+    " use toolbar to add/remove rows and import/export."
+)
+
+SBML_MODEL_TAB_TOOLTIP = (
+    "<b>SBML Model</b><br>"
+    "• Edit SBML (XML) and Antimony side-by-side.<br>"
+    "• Use <i>Forward Changes</i> buttons to sync; see logger for errors."
+)
+
