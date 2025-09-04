@@ -161,3 +161,69 @@ def cell_tip(table: str, column: str) -> str:
             return "Simulation result at the specified time point."
         table = "measurement"
     return _CELL_TIPS.get(table, {}).get(column) or _default_tip
+
+
+# SBML/Antimony View Tooltips
+SBML_VIEW_TOOLTIP = (
+    "<b>SBML (XML) view</b><br>"
+    "• Edit or paste valid SBML.<br>"
+    "• Use <i>Forward → Antimony</i> to sync.<br>"
+    "• Some constructs may not round-trip."
+)
+
+ANTIMONY_VIEW_TOOLTIP = (
+    "<b>Antimony view</b><br>"
+    "• Human-readable model syntax.<br>"
+    "• Use <i>Forward → SBML</i> to convert.<br>"
+    "• Check the logger for syntax/convert errors."
+)
+
+MEAS_TABLE_TOOLTIP = (
+    "<b>Measurement table</b><br>"
+    "• One row = one data point.<br>"
+    "• Specify observable, time, and conditions.<br>"
+    "• Optionally override observable/noise parameters."
+)
+
+OBS_TABLE_TOOLTIP = (
+    "<b>Observable table</b><br>"
+    "• Map model outputs to measurements.<br>"
+    "• Define formulas, transformation, and noise model."
+)
+
+PAR_TABLE_TOOLTIP = (
+    "<b>Parameter table</b><br>"
+    "• Define parameters and whether they are estimated (0/1).<br>"
+    "• Bounds in linear space; optional priors."
+)
+
+COND_TABLE_TOOLTIP = (
+    "<b>Condition table</b><br>"
+    "• Define condition IDs and names.<br>"
+    "• User-defined SBML ID columns override parameters/species initial "
+    "states (NaN keeps preeq/initial)."
+)
+
+VIS_TABLE_TOOLTIP = (
+    "<b>Visualization table</b><br>"
+    "• Group datasets with <code>plotId</code>.<br>"
+    "• Choose plot/data types; set axes labels/scales/offsets."
+)
+
+SIM_TABLE_TOOLTIP = (
+    "<b>Simulation table</b><br>"
+    "• Simulation results at measurement time points."
+)
+
+INFO_TOOLTIP = (
+    "<b>Info panel</b><br>"
+    "• Messages, warnings, and logs from operations.<br>"
+    "• Links to documentation when available."
+)
+
+DATA_PLOT_TOOLTIP = (
+    "<b>Data plot</b><br>"
+    "• Visualizes simulations and measurements.<br>"
+    "• Can also group by condition/observable."
+)
+
