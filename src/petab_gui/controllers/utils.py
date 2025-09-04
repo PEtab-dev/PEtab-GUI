@@ -6,12 +6,154 @@ from pathlib import Path
 
 import pandas as pd
 import petab.v1 as petab
-from PySide6.QtCore import QObject, Signal
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QMenu, QMessageBox
+from PySide6.QtCore import QEvent, QObject, Qt, Signal
+from PySide6.QtGui import QAction, QCursor
+from PySide6.QtWidgets import (
+    QApplication,
+    QHeaderView,
+    QMenu,
+    QMessageBox,
+    QScrollBar,
+    QTabBar,
+    QTableView,
+    QToolButton,
+    QWhatsThis,
+)
 
 from ..C import COMMON_ERRORS
 from ..settings_manager import settings_manager
+
+
+class _WhatsThisClickHelp(QObject):
+    """Global click-to-help controller.
+
+    While the action is checked:
+      • Left-click shows a What's This bubble for the target under cursor.
+      • Clicking the SAME target again closes the bubble (stays in help mode).
+      • ESC closes the bubble if one is open; if none is open, exits help mode.
+      • Special cases: QTabBar tabs and QHeaderView sections handled explicitly.
+    """
+
+    def __init__(self, action):
+        super().__init__()
+        self.action = action
+        self._has_bubble = False        # whether a bubble is currently visible
+        self._last = None               # ("kind", widget, extra) to toggle on repeated clicks
+
+    def _exit_mode(self):
+        """Uncheck action and remove filter."""
+        self.action.blockSignals(True)
+        self.action.setChecked(False)
+        self.action.blockSignals(False)
+        app = QApplication.instance()
+        if app:
+            app.removeEventFilter(self)
+
+    def eventFilter(self, _obj, ev):
+        if not self.action.isChecked():
+            return False
+        if QApplication.activeModalWidget():
+            return False
+
+        # ESC: close bubble if visible; otherwise leave help mode
+        if ev.type() == QEvent.KeyPress and ev.key() == Qt.Key_Escape:
+            if self._has_bubble:
+                QWhatsThis.hideText()
+                self._has_bubble = False
+                return True  # consume, stay in mode
+            self._exit_mode()
+            return True
+
+        if ev.type() == QEvent.Wheel:
+            return False
+
+        # Left-click: toggle/show help at the clicked target
+        if ev.type() == QEvent.MouseButtonPress and (ev.buttons() & Qt.LeftButton):
+            QWhatsThis.hideText() # always close any previous bubble
+            w = QApplication.widgetAt(QCursor.pos())
+
+            # Clicking the toolbar "?" button itself -> exit help mode
+            if isinstance(w, QToolButton) and w.defaultAction() is self.action:
+                self._exit_mode()
+                return True
+            if isinstance(w, QScrollBar):
+                return False
+
+            # If click landed outside app widgets (e.g., on the bubble), just close it
+            if not w:
+                self._has_bubble = False
+                return True
+
+            # ---- Tabs: per-tab bubble with tabToolTip/tabText
+            tabbar = w
+            while tabbar and not isinstance(tabbar, QTabBar):
+                tabbar = tabbar.parent()
+            if isinstance(tabbar, QTabBar):
+                lp = tabbar.mapFromGlobal(QCursor.pos())
+                i = tabbar.tabAt(lp)
+                if i != -1:
+                    # toggle: same tab clicked again -> just close
+                    if self._last == ("tab", tabbar, i):
+                        self._has_bubble = False
+                        return True
+                    text = tabbar.tabToolTip(i) or tabbar.tabText(i) or "No help available."
+                    QWhatsThis.showText(QCursor.pos(), text, tabbar)
+                    self._last = ("tab", tabbar, i)
+                    self._has_bubble = True
+                    return True
+
+            # ---- Headers: per-section What's This via model.headerData
+            hdr = w
+            while hdr and not isinstance(hdr, QHeaderView):
+                hdr = hdr.parent()
+            if isinstance(hdr, QHeaderView):
+                view = hdr.parent()
+                while view and not isinstance(view, QTableView):
+                    view = view.parent()
+                if view and view.model():
+                    lp = hdr.mapFromGlobal(QCursor.pos())
+                    sec = hdr.logicalIndexAt(lp)
+                    if sec != -1:
+                        if self._last == ("header", hdr, sec):
+                            self._has_bubble = False
+                            return True
+                        text = (view.model().headerData(sec, hdr.orientation(), Qt.WhatsThisRole)
+                                or view.model().headerData(sec, hdr.orientation(), Qt.ToolTipRole)
+                                or view.model().headerData(sec, hdr.orientation(), Qt.DisplayRole)
+                                or "No help available.")
+                        QWhatsThis.showText(QCursor.pos(), text, hdr)
+                        self._last = ("header", hdr, sec)
+                        self._has_bubble = True
+                        return True
+
+            # ---- Table cells: per-index What's This via model.data
+            view = w.parent()
+            while view and not isinstance(view, QTableView):
+                view = view.parent()
+            if isinstance(view, QTableView) and w is view.viewport():
+                lp = w.mapFromGlobal(QCursor.pos())
+                idx = view.indexAt(lp)
+                if idx.isValid():
+                    if self._last == ("cell", view, (idx.row(), idx.column())):
+                        self._has_bubble = False
+                        return True
+                    text = (idx.data(Qt.WhatsThisRole) or idx.data(Qt.ToolTipRole) or "No help available.")
+                    QWhatsThis.showText(QCursor.pos(), text, w)
+                    self._last = ("cell", view, (idx.row(), idx.column()))
+                    self._has_bubble = True
+                    return True
+
+            # ---- Generic widgets: widget.whatsThis() → toolTip() fallback
+            if self._last == ("widget", w, None):
+                self._has_bubble = False
+                return True
+            text = w.whatsThis() or w.toolTip() or "No help available."
+            QWhatsThis.showText(QCursor.pos(), text, w)
+            self._last = ("widget", w, None)
+            self._has_bubble = True
+            return True
+
+        return False
 
 
 def linter_wrapper(_func=None, additional_error_check: bool = False):

@@ -22,6 +22,7 @@ from ..models.tooltips import (
     PAR_TABLE_TOOLTIP,
     SBML_MODEL_TAB_TOOLTIP,
     SIM_TABLE_TOOLTIP,
+    VIS_TABLE_TOOLTIP,
 )
 from ..settings_manager import settings_manager
 from .find_replace_bar import FindReplaceBar
@@ -29,6 +30,7 @@ from .logger import Logger
 from .sbml_view import SbmlViewer
 from .simple_plot_view import MeasurementPlotter
 from .table_view import TableViewer
+from .whats_this import WHATS_THIS
 
 
 class MainWindow(QMainWindow):
@@ -50,11 +52,13 @@ class MainWindow(QMainWindow):
         self.data_tab = QMainWindow()
         tab = self.tab_widget.addTab(self.data_tab, "Data Tables")
         self.tab_widget.setTabToolTip(tab, DATA_TABLES_TAB_TOOLTIP)
+        self.tab_widget.setTabWhatsThis(tab, WHATS_THIS["tabs"]["data_tables"])
 
         # Tab for the SBML model
         self.sbml_viewer = SbmlViewer(logger_view=self.logger_views[0])
         tab = self.tab_widget.addTab(self.sbml_viewer, "SBML Model")
         self.tab_widget.setTabToolTip(tab, SBML_MODEL_TAB_TOOLTIP)
+        self.tab_widget.setTabWhatsThis(tab, WHATS_THIS["tabs"]["sbml_model"])
 
         # Set the QTabWidget as the central widget
         self.setCentralWidget(self.tab_widget)
@@ -62,6 +66,9 @@ class MainWindow(QMainWindow):
         # Create dock widgets for each table
         self.condition_dock = TableViewer("Condition Table")
         self.condition_dock.setToolTip(COND_TABLE_TOOLTIP)
+        self.tab_widget.setTabWhatsThis(
+            tab, WHATS_THIS["tables"]["condition"]["table"]
+        )
         self.measurement_dock = TableViewer("Measurement Table")
         self.measurement_dock.setToolTip(MEAS_TABLE_TOOLTIP)
         self.observable_dock = TableViewer("Observable Table")
@@ -73,8 +80,9 @@ class MainWindow(QMainWindow):
         self.logger_dock.setObjectName("logger_dock")
         self.logger_dock.setWidget(self.logger_views[1])
         self.plot_dock = MeasurementPlotter(self)
+        self.plot_dock.setToolTip(DATA_PLOT_TOOLTIP)
         self.visualization_dock = TableViewer("Visualization Table")
-        self.visualization_dock.setToolTip(DATA_PLOT_TOOLTIP)
+        self.visualization_dock.setToolTip(VIS_TABLE_TOOLTIP)
         self.simulation_dock = TableViewer("Simulation Table")
         self.simulation_dock.setToolTip(SIM_TABLE_TOOLTIP)
 
@@ -203,6 +211,7 @@ class MainWindow(QMainWindow):
         tb.addAction(actions["simulate"])
         tb.addWidget(spacer)
         tb.addWidget(actions["filter_widget"])
+        tb.addAction(actions["whats_this"])
 
     def add_menu_action(self, dock_widget, name):
         """Add actions to the menu to show dock widgets."""

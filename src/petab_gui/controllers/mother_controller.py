@@ -9,15 +9,23 @@ from pathlib import Path
 import petab.v1 as petab
 import qtawesome as qta
 import yaml
-from PySide6.QtCore import Qt, QTimer, QUrl
-from PySide6.QtGui import QAction, QDesktopServices, QKeySequence, QUndoStack
+from PySide6.QtCore import QSettings, Qt, QTimer, QUrl
+from PySide6.QtGui import (
+    QAction,
+    QDesktopServices,
+    QKeySequence,
+    QUndoStack,
+)
 from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
     QFileDialog,
     QHBoxLayout,
     QLineEdit,
     QMessageBox,
     QTableView,
     QToolButton,
+    QWhatsThis,
     QWidget,
 )
 
@@ -40,6 +48,7 @@ from .table_controllers import (
 )
 from .utils import (
     RecentFilesManager,
+    _WhatsThisClickHelp,
     filtered_error,
     prompt_overwrite_or_append,
 )
@@ -406,6 +415,16 @@ class MainController:
         actions["show_plot"] = QAction("Data Plot", self.view)
         actions["show_plot"].setCheckable(True)
         actions["show_plot"].setChecked(True)
+
+        # What's This action
+        actions["whats_this"] = QAction(
+            qta.icon("mdi6.help-circle"), "Enter Help Mode", self.view
+        )
+        actions["whats_this"].setCheckable(True)
+        actions["whats_this"].setShortcut("Shift+F1")
+        self._whats_this_filter = _WhatsThisClickHelp(actions["whats_this"])
+        actions["whats_this"].toggled.connect(self._toggle_whats_this_mode)
+
         # connect actions
         actions["reset_view"] = QAction(
             qta.icon("mdi6.view-grid-plus"), "Reset View", self.view
@@ -853,6 +872,10 @@ class MainController:
             self.view.allow_close = True
         else:
             self.view.allow_close = False
+        if self.view.allow_close:
+            app = QApplication.instance()
+            if app and hasattr(self, "_whats_this_filter"):
+                app.removeEventFilter(self._whats_this_filter)
 
     def active_widget(self):
         active_widget = self.view.tab_widget.currentWidget()
@@ -1051,3 +1074,54 @@ class MainController:
     def _schedule_plot_update(self):
         """Start the plot schedule timer."""
         self._plot_update_timer.start()
+
+    def _toggle_whats_this_mode(self, on: bool):
+        """Enable/disable click-to-help mode by installing/removing the global filter.
+        On enter: show a short instruction bubble.
+        """
+        app = QApplication.instance()
+        if not app:
+            return
+        if not on:
+            QWhatsThis.hideText()
+            try:
+                QApplication.restoreOverrideCursor()
+            except Exception:
+                pass
+            app.removeEventFilter(self._whats_this_filter)
+            self.logger.log_message(
+                "Enden the Help mode.",
+                color="blue"
+            )
+            return
+        # install filter
+        app.installEventFilter(self._whats_this_filter)
+        QApplication.setOverrideCursor(Qt.WhatsThisCursor)
+        self.logger.log_message(
+            "Started the Help mode. Click on any widget to see its help.",
+            color="blue"
+        )
+        self._show_help_welcome()
+
+    def _show_help_welcome(self):
+        """Centered welcome with a 'Don't show again' option persisted in QSettings."""
+        settings = settings_manager.settings
+        if settings.value("help_mode/welcome_disabled", False, type=bool):
+            return
+        msg = QMessageBox(self.view if hasattr(self, "view") else None)
+        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle("Help mode")
+        msg.setTextFormat(Qt.RichText)
+        msg.setText(
+                "<b>Welcome to help mode</b><br>"
+                "<ul>"
+                "<li>Click any widget, tab, or column header to see its help.</li>"
+                "<li>Click the same item again or press <b>Esc</b> to close the bubble.</li>"
+                "<li>Press <b>Esc</b> with no bubble, or toggle the <i>?</i> button, to exit.</li>"
+                "</ul>"
+            )
+        dont = QCheckBox("Don't show again")
+        msg.setCheckBox(dont)
+        msg.exec()
+        if dont.isChecked():
+                settings.setValue("help_mode/welcome_disabled", True)

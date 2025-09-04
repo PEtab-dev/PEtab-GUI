@@ -136,6 +136,7 @@ class HelpMenu(BasicMenu):
 
         # Add actions to the menu for re-adding tables
         self.menu.addAction(actions["open_documentation"])
+        self.menu.addAction(actions["whats_this"])
 
 
 class TaskBar:
