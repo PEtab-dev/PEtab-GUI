@@ -6,12 +6,84 @@ from pathlib import Path
 
 import pandas as pd
 import petab.v1 as petab
-from PySide6.QtCore import QObject, Signal
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QMenu, QMessageBox
+from PySide6.QtCore import QEvent, QObject, Qt, Signal
+from PySide6.QtGui import QAction, QCursor
+from PySide6.QtWidgets import (
+    QApplication,
+    QMenu,
+    QMessageBox,
+    QTabBar,
+    QToolButton,
+    QWhatsThis,
+)
 
 from ..C import COMMON_ERRORS
 from ..settings_manager import settings_manager
+
+
+class _WhatsThisClickHelp(QObject):
+    """Global filter to show a What's This bubble on left-click while the action is checked.
+
+    Behavior:
+      • Left-click: show help for the widget under the cursor.
+      • Works for generic widgets via widget.whatsThis() → widget.toolTip().
+      • Special handling for QTabBar: shows per-tab help using tabToolTip/tabText.
+      • ESC: exit help mode (uncheck action) and hide any open bubble.
+    """
+
+    def __init__(self, action):
+        super().__init__()
+        self.action = action
+
+    def eventFilter(self, _obj, ev):
+        # Ignore everything if help mode toggle is off.
+        if not self.action.isChecked():
+            return False
+
+        # ESC closes bubble and exits help mode.
+        if ev.type() == QEvent.KeyPress and ev.key() == Qt.Key_Escape:
+            self.action.blockSignals(True)
+            self.action.setChecked(False)
+            self.action.blockSignals(False)
+            QWhatsThis.hideText()
+            return True  # consume ESC
+
+        # Left-click: show the appropriate What's This bubble.
+        if ev.type() == QEvent.MouseButtonPress and (ev.buttons() & Qt.LeftButton):
+            QWhatsThis.hideText()  # close any previous bubble
+
+            w = QApplication.widgetAt(QCursor.pos())
+            if not w:
+                return True  # consume click in help mode even if no widget
+            # If the user clicks the "What's This" toolbar button while in help mode,
+            # exit help mode immediately (close bubble, uncheck action, remove filter).
+            if isinstance(w, QToolButton) and w.defaultAction() is self.action:
+                self.action.blockSignals(True)
+                self.action.setChecked(False)
+                self.action.blockSignals(False)
+                QWhatsThis.hideText()
+                app = QApplication.instance()
+                if app:
+                        app.removeEventFilter(self)
+                return True
+
+            # --- Special case: tab bars (clicking tabs) ---
+            if isinstance(w, QTabBar):
+                local_pos = w.mapFromGlobal(QCursor.pos())
+                i = w.tabAt(local_pos)
+                if i != -1:
+                    # Prefer tab-specific tooltip; fall back to tab text.
+                    text = w.tabToolTip(i) or w.tabText(i) or "No help available."
+                    # Anchor the bubble to the tab's rect for better placement.
+                    QWhatsThis.showText(QCursor.pos(), text, w)
+                    return True  # consume: don't switch tabs while in help mode
+
+            # --- Generic widgets: try what'sThis(), then toolTip() ---
+            text = w.whatsThis() or w.toolTip() or "No help available."
+            QWhatsThis.showText(QCursor.pos(), text, w)
+            return True  # consume click
+
+        return False  # let other events pass
 
 
 def linter_wrapper(_func=None, additional_error_check: bool = False):

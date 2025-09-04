@@ -12,12 +12,14 @@ import yaml
 from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QAction, QDesktopServices, QKeySequence, QUndoStack
 from PySide6.QtWidgets import (
+    QApplication,
     QFileDialog,
     QHBoxLayout,
     QLineEdit,
     QMessageBox,
     QTableView,
     QToolButton,
+    QWhatsThis,
     QWidget,
 )
 
@@ -40,6 +42,7 @@ from .table_controllers import (
 )
 from .utils import (
     RecentFilesManager,
+    _WhatsThisClickHelp,
     filtered_error,
     prompt_overwrite_or_append,
 )
@@ -406,6 +409,16 @@ class MainController:
         actions["show_plot"] = QAction("Data Plot", self.view)
         actions["show_plot"].setCheckable(True)
         actions["show_plot"].setChecked(True)
+
+        # What's This action
+        actions["whats_this"] = QAction(
+            qta.icon("mdi6.help-circle"), "Help Mode", self.view
+        )
+        actions["whats_this"].setCheckable(True)
+        actions["whats_this"].setShortcut("Shift+F1")
+        self._whats_this_filter = _WhatsThisClickHelp(actions["whats_this"])
+        actions["whats_this"].toggled.connect(self._toggle_whats_this_mode)
+
         # connect actions
         actions["reset_view"] = QAction(
             qta.icon("mdi6.view-grid-plus"), "Reset View", self.view
@@ -853,6 +866,10 @@ class MainController:
             self.view.allow_close = True
         else:
             self.view.allow_close = False
+        if self.view.allow_close:
+            app = QApplication.instance()
+            if app and hasattr(self, "_whats_this_filter"):
+                app.removeEventFilter(self._whats_this_filter)
 
     def active_widget(self):
         active_widget = self.view.tab_widget.currentWidget()
@@ -1051,3 +1068,14 @@ class MainController:
     def _schedule_plot_update(self):
         """Start the plot schedule timer."""
         self._plot_update_timer.start()
+
+    def _toggle_whats_this_mode(self, on: bool):
+        """Turn on/off persistent What's This mode."""
+        app = QApplication.instance()
+        if not app:
+            return
+        if on:
+            app.installEventFilter(self._whats_this_filter)
+        else:
+            QWhatsThis.hideText()
+            app.removeEventFilter(self._whats_this_filter)
