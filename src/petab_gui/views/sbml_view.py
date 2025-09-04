@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..models.tooltips import ANTIMONY_VIEW_TOOLTIP, SBML_VIEW_TOOLTIP
+from .whats_this import WHATS_THIS
 
 
 class SbmlViewer(QWidget):
@@ -32,6 +33,9 @@ class SbmlViewer(QWidget):
         sbml_layout.addWidget(sbml_label)
         self.sbml_text_edit = QPlainTextEdit()
         self.sbml_text_edit.setToolTip(SBML_VIEW_TOOLTIP)
+        self.sbml_text_edit.setWhatsThis(
+            WHATS_THIS["sbml_view"]["sbml_editor"]
+        )
         sbml_layout.addWidget(self.sbml_text_edit)
 
         # Add forward changes button for SBML
@@ -44,6 +48,9 @@ class SbmlViewer(QWidget):
         antimony_layout.addWidget(antimony_label)
         self.antimony_text_edit = QPlainTextEdit()
         self.antimony_text_edit.setToolTip(ANTIMONY_VIEW_TOOLTIP)
+        self.sbml_text_edit.setWhatsThis(
+            WHATS_THIS["sbml_view"]["antimony_editor"]
+        )
         antimony_layout.addWidget(self.antimony_text_edit)
 
         # Add forward changes button for Antimony

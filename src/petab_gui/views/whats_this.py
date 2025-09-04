@@ -21,16 +21,6 @@ WHATS_THIS = {
     ),
   },
   "sbml_view": {
-    "viewer": (
-      "<html><b>SBML/Antimony Viewer</b><br>"
-      "<ul>"
-      "<li>Left: SBML (XML); Right: Antimony text.</li>"
-      "<li><i>Forward → Antimony</i> converts SBML → Antimony; "
-      "<i>Forward → SBML</i> converts Antimony → SBML.</li>"
-      "<li>Logger shows syntax/convert messages; fix and retry.</li>"
-      "<li>Save/export after successful conversions.</li>"
-      "</ul></html>"
-    ),
     "sbml_editor": (
       "<html><b>SBML editor (XML)</b><br>"
       "<ul>"
