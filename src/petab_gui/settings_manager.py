@@ -326,8 +326,41 @@ class SettingsDialog(QDialog):
         """Create the general settings page."""
         page = QWidget()
         layout = QVBoxLayout(page)
-        layout.addWidget(QLabel("General settings (to be implemented)"))
 
+        # Header
+        header = QLabel("<b>Profile</b>")
+        desc = QLabel(
+            "These information can be automatically used when saving a COMBINE archive."
+        )
+        desc.setWordWrap(True)
+
+        layout.addWidget(header)
+        layout.addWidget(desc)
+
+        # Form
+        form = QFormLayout()
+        self.forms = {
+            "general": {
+                "family_name": None,
+                "given_name": None,
+                "email": None,
+                "orga": None,
+            }
+        }
+        for key in self.forms["general"]:
+            self.forms["general"][key] = QLineEdit(
+                settings_manager.get_value(f"general/{key}", "")
+            )
+            self.forms["general"][key].setMinimumWidth(250)
+
+        form.addRow("Family Name:", self.forms["general"]["family_name"])
+        form.addRow("Given Name:", self.forms["general"]["given_name"])
+        form.addRow("Email:", self.forms["general"]["email"])
+        form.addRow("Organization:", self.forms["general"]["orga"])
+
+        layout.addLayout(form)
+        page.setLayout(layout)
+        self._add_buttons(page)
         self.content_stack.addWidget(page)
 
     def init_table_defaults_page(self):
@@ -356,6 +389,11 @@ class SettingsDialog(QDialog):
         scroll_area.setWidget(scroll_content)
         layout.addWidget(scroll_area)
 
+        self._add_buttons(page)
+        self.content_stack.addWidget(page)
+
+    def _add_buttons(self, page: QWidget):
+        """Add Apply and Cancel buttons to a settings page."""
         button_layout = QHBoxLayout()
         self.apply_button = QPushButton("Apply")
         self.cancel_button = QPushButton("Cancel")
@@ -363,15 +401,25 @@ class SettingsDialog(QDialog):
         button_layout.addStretch()
         button_layout.addWidget(self.cancel_button)
         button_layout.addWidget(self.apply_button)
-        layout.addLayout(button_layout)
+        page.layout().addLayout(button_layout)
 
         self.cancel_button.clicked.connect(self.reject)
         self.apply_button.clicked.connect(self.apply_settings)
-        self.content_stack.addWidget(page)
+        self.apply_button.setDefault(True)
+        self.apply_button.setAutoDefault(True)
+        self.cancel_button.setAutoDefault(False)
 
     def apply_settings(self):
         """Retrieve UI settings and save them in SettingsManager."""
+        # Save general settings
+        for key in self.forms["general"]:
+            settings_manager.set_value(
+                f"general/{key}", self.forms["general"][key].text()
+            )
+
+        # Save table defaults
         for _table_name, table_widget in self.table_widgets.items():
             table_widget.save_current_settings()
+
         settings_manager.new_log_message.emit("New settings applied.", "green")
         self.accept()
