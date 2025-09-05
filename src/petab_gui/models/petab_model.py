@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 import petab.v1 as petab
 
+from ..settings_manager import settings_manager
 from .pandas_table_model import (
     ConditionModel,
     MeasurementModel,
@@ -146,10 +147,10 @@ class PEtabModel:
             petab.create_combine_archive(
                 temp_dir,
                 file_name,
-                # family_name="", # read from settings
-                # given_name="", # read from settings
-                # email="", # read from settings
-                # organization="", # read from settings
+                family_name=settings_manager.get_value("general/family_name"),
+                given_name=settings_manager.get_value("general/given_name"),
+                email=settings_manager.get_value("general/email"),
+                organization=settings_manager.get_value("general/orga"),
             )
 
     @property
