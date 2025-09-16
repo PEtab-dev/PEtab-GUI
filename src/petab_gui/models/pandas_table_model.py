@@ -937,6 +937,7 @@ class PandasTableModel(QAbstractTableModel):
         changes = {
             (index_key, col): (self._data_frame.at[index_key, col], val)
             for col, val in data_to_add.items()
+            if val not in [self._data_frame.at[index_key, col], "", None]
         }
         self.undo_stack.push(
             ModifyDataFrameCommand(self, changes, "Fill values")
