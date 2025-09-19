@@ -12,11 +12,6 @@ maintainers = [
     {name = "Frank T. Bergmann", email = "frank.thomas.bergmann@gmail.com"}
 ]
 description = "Graphical user interface for the PEtab format"
-
-[project.license]
-file = "LICENSE"
-
-
 dependencies = [
     "wheel",
     "pyside6",
@@ -29,6 +24,9 @@ dependencies = [
     "copasi-basico",
     "copasi-petab-importer"
 ]
+
+[project.license]
+file = "LICENSE"
 
 [build-system]
 requires = [
