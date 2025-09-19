@@ -84,12 +84,26 @@ lint.ignore = [
     "D100",  # Ignore missing docstring in public modules
     "D101",  # Ignore missing docstring in public classes
     "F401",
+    # FIXME: those are ignored for now, should be fixed eventually
+    "E501",  # Ignore line too long
+    "ERA001", # Found commented-out code
+    "RET504",  # Unnecessary assignment before `return`
+    "T201",  # `print` found"
+    "SIM105",  # Use `contextlib.suppress`
+    "S110",  # `try`-`except`-`pass` detected, consider logging the exception
+    "A002",  # Function argument shadowing a Python builtin
+    "E701",  # Multiple statements on one line (colon)
+    "E741",  # Ambiguous variable name
 ]
 [tool.ruff.lint.per-file-ignores]
 "*/__init__.py" = [
     "F401",
     "D400",
     "D205",
+]
+"docs/source/conf.py" = [
+    "A001", # Variable `copyright` is shadowing a Python builtin
+
 ]
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"

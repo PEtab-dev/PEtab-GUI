@@ -33,7 +33,7 @@ class SbmlViewerModel(QObject):
             self.antimony_text = sbmlToAntimony(self.sbml_text)
         else:
             self.antimony_text = DEFAULT_ANTIMONY_TEXT
-            with QSignalBlocker(self) as blocker:
+            with QSignalBlocker(self):
                 self.convert_antimony_to_sbml()
         self.model_id = self._get_model_id()
 
@@ -67,7 +67,7 @@ class SbmlViewerModel(QObject):
 
     def _get_model_id(self):
         """Extract the model ID from the SBML text."""
-        document =  libsbml.readSBMLFromString(self.sbml_text)
+        document = libsbml.readSBMLFromString(self.sbml_text)
         model = document.getModel()
         model_id = model.getIdAttribute() or "New_File"
         return model_id

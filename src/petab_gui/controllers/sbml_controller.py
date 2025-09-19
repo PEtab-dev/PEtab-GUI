@@ -151,12 +151,10 @@ class SbmlController(QObject):
             "SBML model successfully overwritten.", color="green"
         )
 
-
     def clear_model(self):
-        """Clear the model in case the user wants to start a new problem"""
+        """Clear the model in case the user wants to start a new problem."""
         self.model.antimony_text = DEFAULT_ANTIMONY_TEXT
         self.model.convert_antimony_to_sbml()
         self.view.sbml_text_edit.setPlainText(self.model.sbml_text)
         self.view.antimony_text_edit.setPlainText(self.model.antimony_text)
         self.overwritten_model.emit()
-
