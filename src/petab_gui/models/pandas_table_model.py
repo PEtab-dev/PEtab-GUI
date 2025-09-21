@@ -728,6 +728,13 @@ class PandasTableModel(QAbstractTableModel):
         """Clear all data from the table."""
         self.beginResetModel()
         self._data_frame.drop(self._data_frame.index, inplace=True)
+        self._data_frame.drop(
+            self._data_frame.columns.difference(
+                COLUMNS[self.table_type].keys()
+            ),
+            axis=1,
+            inplace=True,
+        )
         self.endResetModel()
 
     def check_selection(self):
