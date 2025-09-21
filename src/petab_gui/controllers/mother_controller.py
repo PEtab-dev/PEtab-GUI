@@ -281,7 +281,7 @@ class MainController:
         actions["new"].triggered.connect(self.new_file)
         # Open File
         actions["open"] = QAction(
-            qta.icon("mdi6.folder-open"), "&Open", self.view
+            qta.icon("mdi6.folder-open"), "&Open...", self.view
         )
         actions["open"].setShortcut(QKeySequence.Open)
         actions["open"].triggered.connect(
@@ -295,7 +295,7 @@ class MainController:
         )
         # Save
         actions["save"] = QAction(
-            qta.icon("mdi6.content-save-all"), "&Save", self.view
+            qta.icon("mdi6.content-save-all"), "&Save As...", self.view
         )
         actions["save"].setShortcut(QKeySequence.Save)
         actions["save"].triggered.connect(self.save_model)
@@ -341,7 +341,8 @@ class MainController:
         actions["delete_row"].triggered.connect(self.delete_rows)
         # add/delete column
         actions["add_column"] = QAction(
-            qta.icon("mdi6.table-column-plus-after"), "Add Column", self.view
+            qta.icon("mdi6.table-column-plus-after"), "Add Column...",
+            self.view
         )
         actions["add_column"].triggered.connect(self.add_column)
         actions["delete_column"] = QAction(
