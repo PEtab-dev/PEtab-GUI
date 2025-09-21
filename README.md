@@ -7,7 +7,12 @@ based on the [PEtab](https://petab.readthedocs.io/en/latest/#) format.
 
 ## Installation
 
-To install the PEtabGUI, you can follow these steps:
+You can install the PEtabGUI via pip by running
+```bash
+pip install petab_gui
+```
+
+To install the PEtabGUI directly from GitHub, you can follow these steps:
 
 1. Clone the repository:
 ```bash
