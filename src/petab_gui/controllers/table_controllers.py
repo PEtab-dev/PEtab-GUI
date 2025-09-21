@@ -1,6 +1,7 @@
 """Classes for the controllers of the tables in the GUI."""
 
 import re
+from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
@@ -22,6 +23,7 @@ from ..models.pandas_table_model import (
 )
 from ..settings_manager import settings_manager
 from ..utils import ConditionInputDialog, get_selected, process_file
+from ..views.other_views import DoseTimeDialog
 from ..views.table_view import (
     ColumnSuggestionDelegate,
     ComboBoxDelegate,
@@ -697,17 +699,50 @@ class MeasurementController(TableController):
             if data_matrix is None or data_matrix.empty:
                 return
 
-            cond_dialog = ConditionInputDialog()
-            if cond_dialog.exec():
-                conditions = cond_dialog.get_inputs()
-                condition_id = conditions.get("simulationConditionId", "")
-                preeq_id = conditions.get("preequilibrationConditionId", "")
+            # Resolve time (or dose+time) before potential condition dialog
+            df_proc = data_matrix
+            dose_col_sel: str | None = None
+            time_col = self._detect_time_column(data_matrix)
+            if time_col:
+                df_proc = data_matrix.rename(columns={time_col: "time"})
+                cond_dialog = ConditionInputDialog()
+                if cond_dialog.exec():
+                    conditions = cond_dialog.get_inputs()
+                    condition_id = conditions.get("simulationConditionId", "")
+                    preeq_id = conditions.get("preequilibrationConditionId", "")
+                else:
+                    return
+            else:
+                dose_col_sel, time_choice, preeq_id = (
+                    self._resolve_dose_and_time(data_matrix))
+                if not dose_col_sel or time_choice is None:
+                    self.logger.log_message(
+                        "While uploading file as a data matrix: time column "
+                        "found and no dose/time selection made.",
+                        color="red"
+                    )
+                    return
+                df_proc = data_matrix.copy()
+                if (isinstance(time_choice, str)
+                    and time_choice.strip().lower() == "inf"):
+                        df_proc["time"] = "inf"
+                else:
+                    try:
+                            df_proc["time"] = float(time_choice)
+                    except Exception:
+                        self.logger.log_message(
+                            f"Invalid time value: {time_choice}",
+                            color="red"
+                        )
+                        return
+                # No fixed condition_id in dose-response; it's built per-row
+                condition_id = ""
+
             if mode == "overwrite":
                 self.model.clear_table()
             self.populate_tables_from_data_matrix(
-                data_matrix, condition_id, preeq_id
+                df_proc, condition_id, preeq_id, dose_col=dose_col_sel
             )
-            self.model.something_changed.emit(True)
 
         except Exception as e:
             self.logger.log_message(
@@ -716,35 +751,93 @@ class MeasurementController(TableController):
             )
 
     def load_data_matrix(self, file_name, separator=None):
-        """Loads in the data matrix. Checks for the 'time' column."""
-        data_matrix = pd.read_csv(file_name, delimiter=separator)
-        if not any(
-            col in data_matrix.columns for col in ["Time", "time", "t"]
-        ):
-            self.logger.log_message(
-                "Invalid File, the file must contain a 'Time' column. "
-                "Please ensure that the file contains a 'Time'",
-                color="red",
-            )
-            return None
+        """Load the data matrix (no hard error on missing 'time')."""
+        return pd.read_csv(file_name, delimiter=separator)
 
-        time_column = next(
-            col for col in ["Time", "time", "t"] if col in data_matrix.columns
+    def _detect_time_column(self, df) -> str | None:
+        """Return the first matching time column name or None."""
+        for c in ("Time", "time", "t"):
+            if c in df.columns:
+                return c
+        return None
+
+    def _rank_dose_candidates(self, df) -> list[str]:
+        """Lightweight ranking of dose-like columns (regex + numeric + cardinality)."""
+        patt = re.compile(r"\b(dose|conc|concentration|drug|compound|stim|input|u\d+)\b", re.IGNORECASE)
+        scores = {}
+        for col in df.columns:
+            s = 0.0
+        if patt.search(col or ""): s += 2.0
+        try:
+            if df[col].dtype.kind in "if": s += 1.0
+            uniq = df[col].nunique(dropna=True)
+            if 2 <= uniq <= 30: s += 0.8
+            if np.all(pd.to_numeric(df[col], errors="coerce").fillna(0) >= 0): s += 0.3
+            ser = pd.to_numeric(df[col], errors="coerce").dropna()
+            if len(ser) >= 5:
+                diffs = np.diff(ser.values)
+                if np.mean(diffs >= 0) >= 0.7: s += 0.2
+        except Exception:
+            pass
+        scores[col] = s
+        return [c for c, _ in sorted(scores.items(), key=lambda x: (-x[1], df[x[0]].nunique(dropna=True)))]
+
+    def _resolve_dose_and_time(self, df) -> tuple[str | None, str | None, str]:
+        """Open dialog with ranked dose suggestions and time choices (incl. steady state)."""
+        header_key = str(hash(tuple(df.columns)))
+        settings = settings_manager.settings
+        # TODO: rename settings location
+        last_dose = settings.value(f"dose/last_choice/{header_key}", "", str)
+        suggested = self._rank_dose_candidates(df)
+        if last_dose and last_dose in df.columns:
+                suggested = [last_dose] + [s for s in suggested if s != last_dose]
+        dlg = DoseTimeDialog(
+            columns=list(df.columns),
+            dose_suggested=suggested,
+            parent=self.view if hasattr(self, "view") else None
         )
-        return data_matrix.rename(columns={time_column: "time"})
+        if dlg.exec():
+            dose_col, time_text, preeq_id = dlg.get_result()
+            if isinstance(time_text, str):
+                settings.setValue(f"time/last_choice/{header_key}", time_text)
+            return dose_col, time_text, preeq_id or ""
+        return None, None, ""
+
+    def _format_dose_value(self, v) -> str:
+        """Compact string for dose values to embed in condition IDs."""
+        try:
+            x = float(v)
+            if np.isfinite(x) and x.is_integer():
+                return str(int(x))
+            return f"{x}".rstrip("0").rstrip(".")
+        except Exception:
+            return str(v).strip().replace(" ", "_")
 
     def populate_tables_from_data_matrix(
-        self, data_matrix, condition_id, preeq_id: str = ""
+        self, data_matrix,
+        condition_id, preeq_id: str = "", dose_col: str | None = None
     ):
         """Populate the measurement table from the data matrix."""
+        # Build per-row condition IDs if dose_col provided
+        condition_ids: Sequence[str] | None = None
+        if dose_col and dose_col in data_matrix.columns:
+            condition_ids = [
+                f"{dose_col}_{self._format_dose_value(v)}"
+                for v in data_matrix[dose_col].tolist()
+            ]
+            for cid in sorted(set(condition_ids)):
+                self.model.relevant_id_changed.emit(cid, "", "condition")
         for col in data_matrix.columns:
             if col == "time":
                 continue
+            if dose_col and col == dose_col:
+                    continue
             observable_id = col
             self.model.relevant_id_changed.emit(
                 observable_id, "", "observable"
             )
-            self.model.relevant_id_changed.emit(condition_id, "", "condition")
+            if condition_ids is None:
+                self.model.relevant_id_changed.emit(condition_id, "", "condition")
             if preeq_id:
                 self.model.relevant_id_changed.emit(preeq_id, "", "condition")
             self.add_measurement_rows(
@@ -752,6 +845,7 @@ class MeasurementController(TableController):
                 observable_id,
                 condition_id,
                 preeq_id,
+                condition_ids=condition_ids,
             )
 
     def add_measurement_rows(
@@ -759,8 +853,9 @@ class MeasurementController(TableController):
         data_matrix,
         observable_id,
         condition_id: str = "",
-        preeq_id: str = "",
-    ):
+            preeq_id: str = "",
+            condition_ids: Sequence[str] | None = None,
+        ):
         """Adds multiple rows to the measurement table."""
         # check number of rows and signal row insertion
         rows = data_matrix.shape[0]
@@ -771,13 +866,14 @@ class MeasurementController(TableController):
         )  # Fills the table with empty rows
         top_left = self.model.createIndex(current_rows, 0)
         for i_row, (_, row) in enumerate(data_matrix.iterrows()):
+            cid = condition_ids[i_row] if condition_ids is not None else condition_id
             self.model.fill_row(
                 i_row + current_rows,
                 data={
                     "observableId": observable_id,
                     "time": row["time"],
                     "measurement": row[observable_id],
-                    "simulationConditionId": condition_id,
+                    "simulationConditionId": cid,
                     "preequilibrationConditionId": preeq_id,
                 },
             )

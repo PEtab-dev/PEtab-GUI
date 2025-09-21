@@ -973,6 +973,8 @@ class MainController:
             "parameter": self.parameter_controller.get_columns(),
             "measurement": self.measurement_controller.get_columns(),
             "condition": self.condition_controller.get_columns(),
+            "visualization": self.visualization_controller.get_columns(),
+            "simulation": self.simulation_controller.get_columns(),
         }
         settings_dialog = SettingsDialog(table_columns, self.view)
         settings_dialog.exec()
