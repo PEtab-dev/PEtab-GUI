@@ -29,6 +29,7 @@ from ..views.table_view import (
     SingleSuggestionDelegate,
     TableViewer,
 )
+from ..views.whats_this import WHATS_THIS
 from .utils import linter_wrapper, prompt_overwrite_or_append, save_petab_table
 
 
@@ -72,6 +73,9 @@ class TableController(QObject):
             self.check_petab_lint_mode = False
         self.mother_controller = mother_controller
         self.view.table_view.setModel(self.proxy_model)
+        self.view.table_view.setWhatsThis(
+            WHATS_THIS["tables"][model.table_type]["table"]
+        )
         self.setup_connections()
         self.setup_connections_specific()
 

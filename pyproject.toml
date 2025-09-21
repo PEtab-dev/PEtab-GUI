@@ -47,7 +47,9 @@ requires = [
 doc = [
     "sphinx",
     "sphinx-rtd-theme",
-    "myst-parser"
+    "myst-parser",
+    "sphinx_copybutton",
+    "sphinx-design",
 ]
 
 [project.urls]

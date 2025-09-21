@@ -26,6 +26,8 @@ from ..utils import (
     is_invalid,
     validate_value,
 )
+from ..views.whats_this import column_whats_this
+from .tooltips import cell_tip, header_tip
 
 
 class PandasTableModel(QAbstractTableModel):
@@ -133,6 +135,13 @@ class PandasTableModel(QAbstractTableModel):
         if not index.isValid():
             return None
         row, column = index.row(), index.column()
+        if role == Qt.WhatsThisRole:
+            if row == self._data_frame.shape[0]:
+                return "Add a new row."
+            if column == 0 and self._has_named_index:
+                return None
+            col_label = self._data_frame.columns[column - self.column_offset]
+            return column_whats_this(self.table_type, col_label)
         if role == Qt.DisplayRole or role == Qt.EditRole:
             if row == self._data_frame.shape[0]:
                 if column == 0:
@@ -152,6 +161,13 @@ class PandasTableModel(QAbstractTableModel):
             if (row, column) in self.highlighted_cells:
                 return QApplication.palette().color(QPalette.HighlightedText)
             return QBrush(QColor(0, 0, 0))  # Default black text
+        if role == Qt.ToolTipRole:
+            if row == self._data_frame.shape[0]:
+                return "Add a new row"
+            col_label = self._data_frame.columns[column - self.column_offset]
+            if column == 0 and self._has_named_index:
+                col_label = self._data_frame.index.name
+            return cell_tip(self.table_type, col_label)
         return None
 
     def flags(self, index):
@@ -185,12 +201,19 @@ class PandasTableModel(QAbstractTableModel):
         Returns:
             The header text for the given section and orientation, or None.
         """
-        if role != Qt.DisplayRole:
+        if role not in (Qt.DisplayRole, Qt.ToolTipRole, Qt.WhatsThisRole):
             return None
         if orientation == Qt.Horizontal:
             if section == 0 and self._has_named_index:
-                return self._data_frame.index.name
-            return self._data_frame.columns[section - self.column_offset]
+                col_label = self._data_frame.index.name
+            else:
+                col_label = self._data_frame.columns[section - self.column_offset]
+            if role == Qt.ToolTipRole:
+                tooltip_header = header_tip(self.table_type, col_label)
+                return tooltip_header
+            if role == Qt.WhatsThisRole:
+                return column_whats_this(self.table_type, col_label)
+            return col_label
         if orientation == Qt.Vertical:
             return str(section)
         return None

@@ -5,7 +5,7 @@ PEtab GUI Tutorial
 
 This tutorial provides a comprehensive guide to using PEtab GUI for creating and managing parameter estimation problems for systems biology models.
 
-.. contents:: Table of Contents
+.. contents::
    :depth: 3
    :local:
 
@@ -20,7 +20,13 @@ Getting Started
 Installation
 ~~~~~~~~~~~~
 
-Before you begin, make sure you have PEtab GUI installed. You can install it by following these steps:
+Before you begin, make sure you have PEtab GUI installed. You can install it directly from PyPI using pip:
+
+.. code-block:: bash
+
+   pip install petab-gui
+
+Alternatively, you can install it from the GitHub repository by following these steps:
 
 1. Clone the repository:
 
@@ -55,16 +61,20 @@ The Main Interface
 
 When you first launch **PEtab GUI**, you'll see the main interface as shown below:
 
-.. image:: _static/Initial_View.png
+.. figure:: _static/Table_View_withInfo.pdf
    :alt: PEtab GUI Main Interface
    :width: 100%
    :align: center
+
+   **PEtab GUI Main Interface**: (1) Every Table is in its own a dockable panel. Using the buttons in (2) you can get each widget as a separate window or close it entirely. To reopen it, use the `View` menu in the menu bar.
+   (3) The info widget shows log messages and clickable documentation links. Here you will be informed about deleted lines, potential formatting problems and more. (4) The toolbar provides quick access to common actions
+   like file open/save, table modification, and model simulation. (5) The filter allows you to only look at specific rows. The filterbuttons to the right let you select in which tables the filter should be applied.
+   (6) If you are unsure what to do, you can enter the **Tutorial Mode** by clicking the question mark icon in the toolbar. This wil allow you to click different widgets or columns in the tables to get more information about their purpose.
 
 The interface is organized into several key areas:
 
 - **Menu Bar**:
   At the top, providing access to `File`, `Edit`, `View`, and `Help`. These items allow you to edit your petab problem and navigate the application. Most notably, the `View` menu allows you to toggle the visibility of the different panels.
-  → See: :ref:`dock-widgets`
 
 - **Toolbar**:
   Below the menu bar, offering quick access to common actions like file open/save, table modification, and model simulation.
@@ -74,12 +84,10 @@ The interface is organized into several key areas:
   The main interface of the application can be categorized into two main sections that can be selected via the tab navigation:
 
   - **Data Tables** (left tab):
-    Six dockable table panels, each corresponding to a PEtab table (see also the `PEtab documentation <|petab_doc_url|>`_):
+    Six dockable table panels, each corresponding to a PEtab table (see also the `PEtab Documentation`_):
 
     * **Measurement Table**: Define experimental observations
       → See: :ref:`measurement-table`
-
-.. _measurement-table:
     * **Observable Table**: Specify the formulas and noise models
       → See: :ref:`observable-table`
     * **Visualization Table**: Assign plotting preferences
@@ -91,7 +99,7 @@ The interface is organized into several key areas:
     * **Info Panel**: Displays log messages and clickable documentation links
     * **Measurement Plot Panel**:
       At the bottom, visualizes the measurement data based on your current model.
-      → See: :ref:`plotting-panel`
+      → See: :ref:`visualization-table`
 
   - **SBML Model** (right tab):
     A built-in editor for creating and editing SBML models. It is split into two synced editors:
@@ -102,8 +110,15 @@ The interface is organized into several key areas:
     Changes in these can be forwarded to the other editor, allowing you to work in your preferred format.
     → See: :ref:`sbml-editor`
 
+  .. figure:: _static/SBML_Antimony_Editors.pdf
+    :alt: SBML and Antimony Editors
+    :width: 100%
+    :align: center
+
+    **SBML and Antimony Editors**: The second tab of the GUI application. The SBML editor (1) allows you to edit the SBML model directly, while the Antimony editor (2) provides a more human-readable format. Changes in one editor can be forwarded to the other using the buttons below them.
+
 We can can now start creating a new PEtab problem or edit an existing one. The following sections will guide you through the process of defining and editing your model, experimental conditions, measurements, observables, and parameters.
-While at each step we will learn about the different panels and how to fill the corresponding tables, it might be helpful to have a look at the `PEtab documentation <|petab_doc_url|>`_ to get a better understanding of the PEtab format and its requirements.
+While at each step we will learn about the different panels and how to fill the corresponding tables, it might be helpful to have a look at the `PEtab Documentation`_ to get a better understanding of the PEtab format and its requirements.
 
 Opening an Existing PEtab Problem
 ----------------------------------
@@ -121,6 +136,8 @@ Since a PEtab problem consists of several components, we will go through the pro
 While there is no strict order in which you have to fill the tables, we will follow a logical sequence that starts with the model definition, followed by measurements, experimental conditions, observables, and parameters.
 
 
+.. _sbml-editor:
+
 Creating/Editing an SBML Model
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -134,20 +151,23 @@ the model directly in `SBML <https://sbml.org>`_ or in the much more readable
 
 If you are creating a new model, the empty antimony template might help in getting started. Here is a simple example showcasing how species, reactions, and parameters can be defined:
 .. code-block::
-model *ExampleModel
-  // Reakcions
-  J0: S1 -> S2 + S3; k1*S1 # Mass-action kinetics
-  J1: S2 -> S3 + S4; k2*S2
-  // Species initialization
-  S1 = 10 # The initial concentration of S1
-  S2 = 0  # The initial concentration of S3
-  S3 = 3  # The initial concentration of S3
-  S4 = 0  # The initial concentration of S4
-  // Variable initialization
-  k1 = 0.1 # The value of the kinetic parameter from J0.
-  k2 = 0.2 # The value of the kinetic parameter from J1.
-end
 
+   model *ExampleModel
+     // Reakcions
+     J0: S1 -> S2 + S3; k1*S1 # Mass-action kinetics
+     J1: S2 -> S3 + S4; k2*S2
+     // Species initialization
+     S1 = 10 # The initial concentration of S1
+     S2 = 0  # The initial concentration of S3
+     S3 = 3  # The initial concentration of S3
+     S4 = 0  # The initial concentration of S4
+     // Variable initialization
+     k1 = 0.1 # The value of the kinetic parameter from J0.
+     k2 = 0.2 # The value of the kinetic parameter from J1.
+   end
+
+
+.. _measurement-table:
 
 Specifying Measurements
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -166,8 +186,10 @@ use the **File > Open** option. In general what we need to specify in the measur
 2. **simulationConditionId**: The condition under which the measurement was taken. You are free to choose a name but it should be consistent with the conditions defined in the **Condition Table**.
 3. **time** and **measurement**: The time point and corresponding measurements.
 
-There are a number of optional columns that can be specified, for more details see the `PEtab documentation <|petab_doc_url|>`_.
+There are a number of optional columns that can be specified, for more details see the `PEtab Documentation`_.
 
+
+.. _observable-table:
 
 Defining Observables
 ~~~~~~~~~~~~~~~~~~~~
@@ -183,8 +205,10 @@ In general we assume that the measurement is subject to some noise. Per default 
 within the `noiseFormula` column you can specify the standard deviation of the noise. Again, this formula can be a
 simple number or a more complex formula introducing new parameters.
 
-For more details on e.g. how to change the noise model, see the `PEtab documentation <|petab_doc_url|>`_.
+For more details on e.g. how to change the noise model, see the `PEtab Documentation`_.
 
+
+.. _condition-table:
 
 Setting Up Experimental Conditions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -194,6 +218,8 @@ all other columns are optional. The other columsn may either be a specific param
 or an initial value for a species that is different across conditions (e.g. in case of a dose-response experiment).
 Just as in the observable table, new conditions can be created automatically when you create a new measurement in the **Measurement Table**.
 
+
+.. _parameter-table:
 
 Setting Up Parameters
 ~~~~~~~~~~~~~~~~~~~~~
@@ -206,11 +232,23 @@ If your parameter is not to be estimated, you need to specify a `nominalValue`. 
 parameter names from the sbml model you might want to add here.
 
 
+.. _visualization-table:
+
 Validation and Inspection
 -------------------------
 
 Once you have filled out all the tables, it is important to validate your PEtab problem to avoid errors during parameter estimation.
 PEtab GUI supports this through **Visualization and Simulation** and **Linting** features:
+
+  .. figure:: _static/Table_View_PlotView.pdf
+   :alt: SBML and Antimony Editors
+   :width: 100%
+   :align: center
+
+   **PEtab GUI with Visualization and Simulation Panels**: Once you have defined measurements, you can add the **Measurement Plot** to visualize your measurements. You can also add the **Simulation Table** and **Visualization Table** to run simulations and visualize the results.
+   (1) The three tables can be neatly arranged next to each other. (2) Within the measurement panel, you can click on different plots. If you have specified multiple plots, *All Plots* will show every plot specified, followed by tabs for each individual plot.
+   If you have simulations you additionally get a residual plot and a scatterplot of the fit. Through the settings symbol (3) you can change whether you want to plot by observable, condition or defined by the visualization table.
+
 
 Visualization and Simulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -228,7 +266,8 @@ The **Visualization Table** allows you to specify how the measurements (and simu
 
 * every plotId corresponds to a specific plot. Rows that have the same plotId will be plotted together.
 * You specify your `xValues` and `yValues` for each row.
-* You can specify additional details, such as offsets and scale. For more details see the `Petab documentation <|petab_doc_url|>`_.
+* You can specify additional details, such as offsets and scale. For more details see the `PEtab Documentation`_.
+
 If you dont have simulations yet, you can run a Simulation through the toolbar button, which will automatically fill the **Simulation Table**,
 running a simulation with the current parameter values and conditions.
 
@@ -264,5 +303,7 @@ can be done either as a compressed ZIP file or as a COMBINE archive. You can als
 Additional Resources
 --------------------
 
-* `PEtab Documentation <https://petab.readthedocs.io/en/latest/>`_
+* `PEtab Documentation`_
 * `Systems Biology Markup Language (SBML) <https://sbml.org/>`_
+
+.. _PEtab documentation: https://petab.readthedocs.io/en/latest

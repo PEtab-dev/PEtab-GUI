@@ -7,11 +7,19 @@ from functools import partial
 from io import BytesIO
 from pathlib import Path
 
+import petab.v1 as petab
 import qtawesome as qta
 import yaml
-from PySide6.QtCore import Qt, QTimer, QUrl
-from PySide6.QtGui import QAction, QDesktopServices, QKeySequence, QUndoStack
+from PySide6.QtCore import QSettings, Qt, QTimer, QUrl
+from PySide6.QtGui import (
+    QAction,
+    QDesktopServices,
+    QKeySequence,
+    QUndoStack,
+)
 from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
     QFileDialog,
     QHBoxLayout,
     QInputDialog,
@@ -19,6 +27,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QTableView,
     QToolButton,
+    QWhatsThis,
     QWidget,
 )
 
@@ -41,6 +50,7 @@ from .table_controllers import (
 )
 from .utils import (
     RecentFilesManager,
+    _WhatsThisClickHelp,
     filtered_error,
     prompt_overwrite_or_append,
 )
@@ -407,6 +417,16 @@ class MainController:
         actions["show_plot"] = QAction("Data Plot", self.view)
         actions["show_plot"].setCheckable(True)
         actions["show_plot"].setChecked(True)
+
+        # What's This action
+        actions["whats_this"] = QAction(
+            qta.icon("mdi6.help-circle"), "Enter Help Mode", self.view
+        )
+        actions["whats_this"].setCheckable(True)
+        actions["whats_this"].setShortcut("Shift+F1")
+        self._whats_this_filter = _WhatsThisClickHelp(actions["whats_this"])
+        actions["whats_this"].toggled.connect(self._toggle_whats_this_mode)
+
         # connect actions
         actions["reset_view"] = QAction(
             qta.icon("mdi6.view-grid-plus"), "Reset View", self.view
@@ -622,16 +642,18 @@ class MainController:
                 self.view,
                 "Open File",
                 "",
-                "All supported (*.yaml *.yml *.xml *.sbml *.tsv *.csv *.txt);;"
+                "All supported (*.yaml *.yml *.xml *.sbml *.tsv *.csv *.txt "
+                "*.omex);;"
                 "PEtab Problems (*.yaml *.yml);;SBML Files (*.xml *.sbml);;"
                 "PEtab Tables or Data Matrix (*.tsv *.csv *.txt);;"
+                "COMBINE Archive (*.omex);;"
                 "All files (*)",
             )
         if not file_path:
             return
         # handle file appropriately
         actionable, sep = process_file(file_path, self.logger)
-        if actionable in ["yaml", "sbml"] and mode == "append":
+        if actionable in ["yaml", "sbml", "omex"] and mode == "append":
             self.logger.log_message(
                 f"Append mode is not supported for *.{actionable} files.",
                 color="red",
@@ -640,7 +662,7 @@ class MainController:
         if not actionable:
             return
         if mode is None:
-            if actionable in ["yaml", "sbml"]:
+            if actionable in ["yaml", "sbml", "omex"]:
                 mode = "overwrite"
             else:
                 mode = prompt_overwrite_or_append(self)
@@ -656,6 +678,8 @@ class MainController:
         """
         if actionable == "yaml":
             self.open_yaml_and_load_files(file_path)
+        elif actionable == "omex":
+            self.open_omex_and_load_files(file_path)
         elif actionable == "sbml":
             self.sbml_controller.overwrite_sbml(file_path)
         elif actionable == "measurement":
@@ -743,6 +767,44 @@ class MainController:
                 f"Failed to open files from YAML: {str(e)}", color="red"
             )
 
+    def open_omex_and_load_files(self, omex_path=None):
+        """Opens a petab problem from a COMBINE Archive."""
+        if not omex_path:
+            omex_path, _ = QFileDialog.getOpenFileName(
+                self.view,
+                "Open COMBINE Archive",
+                "",
+                "COMBINE Archive (*.omex);;All files (*)",
+            )
+        if not omex_path:
+            return
+        try:
+            combine_archive = petab.problem.Problem.from_combine(omex_path)
+        except Exception as e:
+            self.logger.log_message(
+                f"Failed to open files from OMEX: {str(e)}", color="red"
+            )
+            return
+        # overwrite current model
+        self.measurement_controller.overwrite_df(
+            combine_archive.measurement_df
+        )
+        self.observable_controller.overwrite_df(
+            combine_archive.observable_df
+        )
+        self.condition_controller.overwrite_df(
+            combine_archive.condition_df
+        )
+        self.parameter_controller.overwrite_df(
+            combine_archive.parameter_df
+        )
+        self.visualization_controller.overwrite_df(
+            combine_archive.visualization_df
+        )
+        self.sbml_controller.overwrite_sbml(
+            sbml_model = combine_archive.model
+        )
+
     def new_file(self):
         """Empty all tables. In case of unsaved changes, ask to save."""
         if self.unsaved_changes:
@@ -822,6 +884,10 @@ class MainController:
             self.view.allow_close = True
         else:
             self.view.allow_close = False
+        if self.view.allow_close:
+            app = QApplication.instance()
+            if app and hasattr(self, "_whats_this_filter"):
+                app.removeEventFilter(self._whats_this_filter)
 
     def active_widget(self):
         active_widget = self.view.tab_widget.currentWidget()
@@ -1020,3 +1086,54 @@ class MainController:
     def _schedule_plot_update(self):
         """Start the plot schedule timer."""
         self._plot_update_timer.start()
+
+    def _toggle_whats_this_mode(self, on: bool):
+        """Enable/disable click-to-help mode by installing/removing the global filter.
+        On enter: show a short instruction bubble.
+        """
+        app = QApplication.instance()
+        if not app:
+            return
+        if not on:
+            QWhatsThis.hideText()
+            try:
+                QApplication.restoreOverrideCursor()
+            except Exception:
+                pass
+            app.removeEventFilter(self._whats_this_filter)
+            self.logger.log_message(
+                "Enden the Help mode.",
+                color="blue"
+            )
+            return
+        # install filter
+        app.installEventFilter(self._whats_this_filter)
+        QApplication.setOverrideCursor(Qt.WhatsThisCursor)
+        self.logger.log_message(
+            "Started the Help mode. Click on any widget to see its help.",
+            color="blue"
+        )
+        self._show_help_welcome()
+
+    def _show_help_welcome(self):
+        """Centered welcome with a 'Don't show again' option persisted in QSettings."""
+        settings = settings_manager.settings
+        if settings.value("help_mode/welcome_disabled", False, type=bool):
+            return
+        msg = QMessageBox(self.view if hasattr(self, "view") else None)
+        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle("Help mode")
+        msg.setTextFormat(Qt.RichText)
+        msg.setText(
+                "<b>Welcome to help mode</b><br>"
+                "<ul>"
+                "<li>Click any widget, tab, or column header to see its help.</li>"
+                "<li>Click the same item again or press <b>Esc</b> to close the bubble.</li>"
+                "<li>Press <b>Esc</b> with no bubble, or toggle the <i>?</i> button, to exit.</li>"
+                "</ul>"
+            )
+        dont = QCheckBox("Don't show again")
+        msg.setCheckBox(dont)
+        msg.exec()
+        if dont.isChecked():
+                settings.setValue("help_mode/welcome_disabled", True)
