@@ -42,9 +42,7 @@ class _WhatsThisClickHelp(QObject):
 
     def _exit_mode(self):
         """Uncheck action and remove filter."""
-        self.action.blockSignals(True)
         self.action.setChecked(False)
-        self.action.blockSignals(False)
         app = QApplication.instance()
         if app:
             app.removeEventFilter(self)
