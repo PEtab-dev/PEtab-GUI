@@ -145,7 +145,7 @@ class PEtabModel:
         with tempfile.TemporaryDirectory() as temp_dir:
             self.save(temp_dir)
             petab.create_combine_archive(
-                temp_dir,
+                f"{temp_dir}/problem.yaml",
                 file_name,
                 family_name=settings_manager.get_value("general/family_name"),
                 given_name=settings_manager.get_value("general/given_name"),
