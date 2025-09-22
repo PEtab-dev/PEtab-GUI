@@ -38,7 +38,7 @@ After setting up the development environment, you can build the documentation lo
    # The built documentation will be in `docs/build/html/index.html`
 
 
-Filing and Issue
+Filing an Issue
 ----------------
 
 If you encounter any bugs or have feature requests, please file an issue on GitHub.
