@@ -71,7 +71,7 @@ COLUMNS = {
         "yLabel": {"type": np.object_, "optional": True},
         "yScale": {"type": np.object_, "optional": True},
         "legendEntry": {"type": np.object_, "optional": True},
-    }
+    },
 }
 
 CONFIG = {

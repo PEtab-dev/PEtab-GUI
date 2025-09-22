@@ -77,8 +77,7 @@ class MeasurementPlotter(QDockWidget):
         self.observable_to_subplot = {}
 
     def initialize(
-        self, meas_proxy, sim_proxy, cond_proxy, vis_proxy,
-        petab_model
+        self, meas_proxy, sim_proxy, cond_proxy, vis_proxy, petab_model
     ):
         self.meas_proxy = meas_proxy
         self.cond_proxy = cond_proxy
@@ -125,44 +124,60 @@ class MeasurementPlotter(QDockWidget):
             conditions_df,
             measurements_df,
             simulations_df,
-            group_by
+            group_by,
         )
         worker.signals.finished.connect(self._render_on_main_thread)
         QThreadPool.globalInstance().start(worker)
 
     def _render_on_main_thread(self, payload):
         import petab.v1.visualize as petab_vis
+
         # GUI-thread plotting
-        plt.close('all')
-        meas_df = payload.get('meas_df')
-        cond_df = payload.get('cond_df')
-        if meas_df is None or meas_df.empty or cond_df is None or cond_df.empty:
+        plt.close("all")
+        meas_df = payload.get("meas_df")
+        cond_df = payload.get("cond_df")
+        if (
+            meas_df is None
+            or meas_df.empty
+            or cond_df is None
+            or cond_df.empty
+        ):
             self._update_tabs(None)
             return
-        sim_df = payload.get('sim_df')
-        group_by = payload.get('group_by')
-        if group_by == 'vis_df':
-            vis_df = payload.get('vis_df')
+        sim_df = payload.get("sim_df")
+        group_by = payload.get("group_by")
+        if group_by == "vis_df":
+            vis_df = payload.get("vis_df")
             if vis_df is not None and not vis_df.empty:
                 try:
-                    petab_vis.plot_with_vis_spec(vis_df, cond_df, meas_df, sim_df)
+                    petab_vis.plot_with_vis_spec(
+                        vis_df, cond_df, meas_df, sim_df
+                    )
                     fig = plt.gcf()
                     self._update_tabs(fig)
                     return
                 except Exception as e:
-                    print(f'Invalid Visualisation DF: {e}')
+                    print(f"Invalid Visualisation DF: {e}")
             # fallback to observable grouping
-            plt.close('all')
+            plt.close("all")
             petab_vis.plot_without_vis_spec(
-                cond_df, measurements_df=meas_df, simulations_df=sim_df, group_by='observable'
+                cond_df,
+                measurements_df=meas_df,
+                simulations_df=sim_df,
+                group_by="observable",
             )
         else:
-            plt.close('all')
+            plt.close("all")
             petab_vis.plot_without_vis_spec(
-                cond_df, measurements_df=meas_df, simulations_df=sim_df, group_by=group_by
+                cond_df,
+                measurements_df=meas_df,
+                simulations_df=sim_df,
+                group_by=group_by,
             )
         fig = plt.gcf()
-        fig.subplots_adjust(left=0.12, bottom=0.15, right=0.95, top=0.9, wspace=0.3, hspace=0.4)
+        fig.subplots_adjust(
+            left=0.12, bottom=0.15, right=0.95, top=0.9, wspace=0.3, hspace=0.4
+        )
         self._update_tabs(fig)
 
     def _update_tabs(self, fig: plt.Figure):
@@ -239,7 +254,9 @@ class MeasurementPlotter(QDockWidget):
         # Plot residuals if necessary
         self.plot_residuals()
 
-    def highlight_from_selection(self, selected_rows: list[int], proxy=None, y_axis_col="measurement"):
+    def highlight_from_selection(
+        self, selected_rows: list[int], proxy=None, y_axis_col="measurement"
+    ):
         proxy = proxy or self.meas_proxy
         if not proxy:
             return
@@ -296,15 +313,15 @@ class MeasurementPlotter(QDockWidget):
             plot_goodness_of_fit,
             plot_residuals_vs_simulation,
         )
+
         fig_res, axes = plt.subplots(
-            1, 2,
-            sharey=True, constrained_layout=True, width_ratios=[2, 1]
+            1, 2, sharey=True, constrained_layout=True, width_ratios=[2, 1]
         )
         try:
             plot_residuals_vs_simulation(
                 problem,
                 simulations_df,
-                axes = axes,
+                axes=axes,
             )
             create_plot_tab(fig_res, self, "Residuals vs Simulation")
         except ValueError as e:
@@ -314,7 +331,7 @@ class MeasurementPlotter(QDockWidget):
         plot_goodness_of_fit(
             problem,
             simulations_df,
-            ax = axes_fit,
+            ax=axes_fit,
         )
         # fig_fit.tight_layout()
         create_plot_tab(fig_fit, self, "Goodness of Fit")
@@ -322,8 +339,10 @@ class MeasurementPlotter(QDockWidget):
 
 class MeasurementHighlighter:
     def __init__(self):
-        self.highlight_scatters = defaultdict(list)  # (subplot index) → scatter artist
-        self.point_index_map = {}     # (subplot index, observableId, x, y) → row index
+        self.highlight_scatters = defaultdict(
+            list
+        )  # (subplot index) → scatter artist
+        self.point_index_map = {}  # (subplot index, observableId, x, y) → row index
         self.click_callback = None
 
     def clear_highlight(self):
@@ -331,7 +350,7 @@ class MeasurementHighlighter:
 
     def register_subplot(self, ax, subplot_idx):
         scatter = ax.scatter(
-            [], [], s=80, edgecolors='black', facecolors='none', zorder=5
+            [], [], s=80, edgecolors="black", facecolors="none", zorder=5
         )
         self.highlight_scatters[subplot_idx].append(scatter)
 
@@ -390,7 +409,7 @@ class ToolbarOptionManager(QObject):
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(ToolbarOptionManager, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
         return cls._instance
 
     def __init__(self):
@@ -427,7 +446,9 @@ class CustomNavigationToolbar(NavigationToolbar2QT):
         )
         for grp, action in self.groupy_by_options.items():
             action.setCheckable(True)
-            action.triggered.connect(lambda _, grp=grp: self.manager.set_option(grp))
+            action.triggered.connect(
+                lambda _, grp=grp: self.manager.set_option(grp)
+            )
             self.settings_menu.addAction(action)
         self.manager.option_changed.connect(self.update_checked_state)
         self.update_checked_state(self.manager.get_option())
@@ -441,9 +462,7 @@ class CustomNavigationToolbar(NavigationToolbar2QT):
 
 
 def create_plot_tab(
-    figure,
-    plotter: MeasurementPlotter,
-    plot_title: str = "New Plot"
+    figure, plotter: MeasurementPlotter, plot_title: str = "New Plot"
 ) -> FigureCanvas:
     """Create a new tab with the given figure and plotter."""
     canvas = FigureCanvas(figure)

@@ -141,7 +141,9 @@ class ModifyRowCommand(QUndoCommand):
         df = self.model._data_frame
 
         if self.add_mode:
-            position = 0 if df.empty else df.shape[0] - 1  # insert *before* the auto-row
+            position = (
+                0 if df.empty else df.shape[0] - 1
+            )  # insert *before* the auto-row
             self.model.beginInsertRows(
                 QModelIndex(), position, position + len(self.row_indices) - 1
             )
@@ -264,12 +266,9 @@ class ModifyDataFrameCommand(QUndoCommand):
             else:
                 df[col] = df[col].astype(dtype)
 
-        rows = [
-            df.index.get_loc(row_key) for (row_key, _) in self.changes
-        ]
+        rows = [df.index.get_loc(row_key) for (row_key, _) in self.changes]
         cols = [
-            df.columns.get_loc(col) + col_offset
-            for (_, col) in self.changes
+            df.columns.get_loc(col) + col_offset for (_, col) in self.changes
         ]
 
         top_left = self.model.index(min(rows), min(cols))
