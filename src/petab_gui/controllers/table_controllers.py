@@ -1315,3 +1315,61 @@ class VisualizationController(TableController):
             undo_stack=undo_stack,
             mother_controller=mother_controller,
         )
+
+    def setup_completers(self):
+        """Set completers for the visualization table."""
+        table_view = self.view.table_view
+        # plotTypeSimulation
+        index = self.model.return_column_index("plotTypeSimulation")
+        if index and index > -1:
+            self.completers["plotTypeSimulation"] = ComboBoxDelegate(
+                ["LinePlot", "BarPlot", "ScatterPlot"]
+            )
+            table_view.setItemDelegateForColumn(
+                index, self.completers["plotTypeSimulation"]
+            )
+        # plotTypeData
+        index = self.model.return_column_index("plotTypeData")
+        if index and index > -1:
+            self.completers["plotTypeData"] = ComboBoxDelegate(
+                ["MeanAndSD", "MeanAndSEM", "replicate", "provided"]
+            )
+            table_view.setItemDelegateForColumn(
+                index, self.completers["plotTypeData"]
+            )
+        # datasetId
+        index = self.model.return_column_index("datasetId")
+        if index and index > -1:
+            self.completers["datasetId"] = ColumnSuggestionDelegate(
+                self.mother_controller.model.measurement, "datasetId"
+            )
+            table_view.setItemDelegateForColumn(
+                index, self.completers["datasetId"]
+            )
+        # yValues
+        index = self.model.return_column_index("yValues")
+        if index and index > -1:
+            self.completers["yValues"] = ColumnSuggestionDelegate(
+                self.mother_controller.model.observable, "observableId"
+            )
+            table_view.setItemDelegateForColumn(
+                index, self.completers["yValues"]
+            )
+        # xScale
+        index = self.model.return_column_index("xScale")
+        if index and index > -1:
+            self.completers["xScale"] = ComboBoxDelegate(
+                ["lin", "log", "log10", "order"]
+            )
+            table_view.setItemDelegateForColumn(
+                index, self.completers["xScale"]
+            )
+        # yScale
+        index = self.model.return_column_index("yScale")
+        if index and index > -1:
+            self.completers["yScale"] = ComboBoxDelegate(
+                ["lin", "log", "log10", "order"]
+            )
+            table_view.setItemDelegateForColumn(
+                index, self.completers["yScale"]
+            )
