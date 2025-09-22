@@ -24,13 +24,11 @@ dependencies = [
     "copasi-basico",
     "copasi-petab-importer"
 ]
-
-[project.license]
-file = "LICENSE"
+license-files = ["LICENSE"]
 
 [build-system]
 requires = [
-    "setuptools>=42",
+    "setuptools>=77.0.0",
     "wheel",
     "pyside6",
     "pandas",
