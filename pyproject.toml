@@ -13,13 +13,12 @@ maintainers = [
 ]
 description = "Graphical user interface for the PEtab format"
 dependencies = [
-    "wheel",
     "pyside6",
     "pandas",
     "antimony",
     "python-libsbml",
     "matplotlib",
-    "petab",
+    "petab>=0.5.0",
     "qtawesome",
     "copasi-basico",
     "copasi-petab-importer"
@@ -29,14 +28,6 @@ license-files = ["LICENSE"]
 [build-system]
 requires = [
     "setuptools>=77.0.0",
-    "wheel",
-    "pyside6",
-    "pandas",
-    "antimony",
-    "python-libsbml",
-    "matplotlib",
-    "petab",
-    "qtawesome"
 ]
 
 [project.optional-dependencies]
