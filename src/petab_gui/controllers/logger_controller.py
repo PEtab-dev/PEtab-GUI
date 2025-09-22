@@ -18,8 +18,8 @@ class LoggerController:
         self.logger_level = 1
         self.log_message("Welcome to PEtabGUI!", color="green")
         self.log_message(
-            'If you need help, click <b>Help</b> in the menu,'
-            ' enter the Help Mode (click question mark in toolbar) or visit '
+            "If you need help, click <b>Help</b> in the menu,"
+            " enter the Help Mode (click question mark in toolbar) or visit "
             'the <a href="https://petab-gui.readthedocs.io/en/latest/" '
             'style="color:blue;" target="_blank">documentation</a>.',
             color="green",

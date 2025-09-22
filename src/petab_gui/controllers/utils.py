@@ -37,8 +37,10 @@ class _WhatsThisClickHelp(QObject):
     def __init__(self, action):
         super().__init__()
         self.action = action
-        self._has_bubble = False        # whether a bubble is currently visible
-        self._last = None               # ("kind", widget, extra) to toggle on repeated clicks
+        self._has_bubble = False  # whether a bubble is currently visible
+        self._last = (
+            None  # ("kind", widget, extra) to toggle on repeated clicks
+        )
 
     def _exit_mode(self):
         """Uncheck action and remove filter."""
@@ -66,8 +68,10 @@ class _WhatsThisClickHelp(QObject):
             return False
 
         # Left-click: toggle/show help at the clicked target
-        if ev.type() == QEvent.MouseButtonPress and (ev.buttons() & Qt.LeftButton):
-            QWhatsThis.hideText() # always close any previous bubble
+        if ev.type() == QEvent.MouseButtonPress and (
+            ev.buttons() & Qt.LeftButton
+        ):
+            QWhatsThis.hideText()  # always close any previous bubble
             w = QApplication.widgetAt(QCursor.pos())
 
             # Clicking the toolbar "?" button itself -> exit help mode
@@ -94,7 +98,11 @@ class _WhatsThisClickHelp(QObject):
                     if self._last == ("tab", tabbar, i):
                         self._has_bubble = False
                         return True
-                    text = tabbar.tabToolTip(i) or tabbar.tabText(i) or "No help available."
+                    text = (
+                        tabbar.tabToolTip(i)
+                        or tabbar.tabText(i)
+                        or "No help available."
+                    )
                     QWhatsThis.showText(QCursor.pos(), text, tabbar)
                     self._last = ("tab", tabbar, i)
                     self._has_bubble = True
@@ -115,10 +123,18 @@ class _WhatsThisClickHelp(QObject):
                         if self._last == ("header", hdr, sec):
                             self._has_bubble = False
                             return True
-                        text = (view.model().headerData(sec, hdr.orientation(), Qt.WhatsThisRole)
-                                or view.model().headerData(sec, hdr.orientation(), Qt.ToolTipRole)
-                                or view.model().headerData(sec, hdr.orientation(), Qt.DisplayRole)
-                                or "No help available.")
+                        text = (
+                            view.model().headerData(
+                                sec, hdr.orientation(), Qt.WhatsThisRole
+                            )
+                            or view.model().headerData(
+                                sec, hdr.orientation(), Qt.ToolTipRole
+                            )
+                            or view.model().headerData(
+                                sec, hdr.orientation(), Qt.DisplayRole
+                            )
+                            or "No help available."
+                        )
                         QWhatsThis.showText(QCursor.pos(), text, hdr)
                         self._last = ("header", hdr, sec)
                         self._has_bubble = True
@@ -135,7 +151,11 @@ class _WhatsThisClickHelp(QObject):
                     if self._last == ("cell", view, (idx.row(), idx.column())):
                         self._has_bubble = False
                         return True
-                    text = (idx.data(Qt.WhatsThisRole) or idx.data(Qt.ToolTipRole) or "No help available.")
+                    text = (
+                        idx.data(Qt.WhatsThisRole)
+                        or idx.data(Qt.ToolTipRole)
+                        or "No help available."
+                    )
                     QWhatsThis.showText(QCursor.pos(), text, w)
                     self._last = ("cell", view, (idx.row(), idx.column()))
                     self._has_bubble = True
@@ -171,24 +191,26 @@ def linter_wrapper(_func=None, additional_error_check: bool = False):
             except Exception as e:
                 err_msg = filtered_error(e)
                 err_msg = html.escape(err_msg)
-                if (additional_error_check and "Missing parameter(s)" in
-                    err_msg):
-                        match = re.search(r"\{(.+?)}", err_msg)
-                        missing_params = {
-                            s.strip(" '") for s in match.group(1).split(",")
-                        }
-                        remain = {
-                            p
-                            for p in missing_params
-                            if p not in self.model._data_frame.index
-                        }
-                        if not remain:
-                            return True
-                        err_msg = re.sub(
-                            r"\{.*?}",
-                            "{" + ", ".join(sorted(remain)) + "}",
-                            err_msg,
-                        )
+                if (
+                    additional_error_check
+                    and "Missing parameter(s)" in err_msg
+                ):
+                    match = re.search(r"\{(.+?)}", err_msg)
+                    missing_params = {
+                        s.strip(" '") for s in match.group(1).split(",")
+                    }
+                    remain = {
+                        p
+                        for p in missing_params
+                        if p not in self.model._data_frame.index
+                    }
+                    if not remain:
+                        return True
+                    err_msg = re.sub(
+                        r"\{.*?}",
+                        "{" + ", ".join(sorted(remain)) + "}",
+                        err_msg,
+                    )
                 msg = "PEtab linter failed"
                 if row_name is not None and col_name is not None:
                     msg = f"{msg} at ({row_name}, {col_name}): {err_msg}"
@@ -308,9 +330,8 @@ class RecentFilesManager(QObject):
         self.save_recent_files()
         self.update_tool_bar_menu()
 
-def save_petab_table(
-    df: pd.DataFrame, filename: str | Path, table_type: str
-):
+
+def save_petab_table(df: pd.DataFrame, filename: str | Path, table_type: str):
     """Save a PEtab table to a file. Function used based on table type."""
     if table_type == "condition":
         petab.write_condition_df(df, filename)

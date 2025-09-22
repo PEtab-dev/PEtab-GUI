@@ -9,11 +9,8 @@ def proxy_to_dataframe(proxy_model):
     headers = [proxy_model.headerData(c, Qt.Horizontal) for c in range(cols)]
     data = []
 
-    for r in range(rows-1):
-        row = {
-            headers[c]: proxy_model.index(r, c).data()
-            for c in range(cols)
-        }
+    for r in range(rows - 1):
+        row = {headers[c]: proxy_model.index(r, c).data() for c in range(cols)}
         for key, value in row.items():
             if isinstance(value, str) and value == "":
                 row[key] = None

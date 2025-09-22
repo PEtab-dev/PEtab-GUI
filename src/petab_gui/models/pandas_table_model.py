@@ -207,7 +207,9 @@ class PandasTableModel(QAbstractTableModel):
             if section == 0 and self._has_named_index:
                 col_label = self._data_frame.index.name
             else:
-                col_label = self._data_frame.columns[section - self.column_offset]
+                col_label = self._data_frame.columns[
+                    section - self.column_offset
+                ]
             if role == Qt.ToolTipRole:
                 tooltip_header = header_tip(self.table_type, col_label)
                 return tooltip_header

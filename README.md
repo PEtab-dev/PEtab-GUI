@@ -52,17 +52,17 @@ The PEtabGUI provides a Python-based graphical user interface that simplifies
 the creation, editing, and validation of PEtab parameter estimation problems.
 
 - **Unified Environment**
-  - Integrates all PEtab components (SBML/PySB models, conditions, observables, 
-    measurements, parameters, and visualization files). 
-  - Supports drag-and-drop import of YAML or individual component files. 
-  - Automatically resolves mismatches and converts matrix-format experimental data 
+  - Integrates all PEtab components (SBML/PySB models, conditions, observables,
+    measurements, parameters, and visualization files).
+  - Supports drag-and-drop import of YAML or individual component files.
+  - Automatically resolves mismatches and converts matrix-format experimental data
     into valid PEtab format.
 - **Interactive and Intuitive Editing**
-  - Dockable, resizable, and movable table widgets for each PEtab file. 
-  - Context-aware editing with combo-boxes, drop-downs, and multi-cell editing. 
-  - Automatic generation of missing observables/conditions with customizable defaults. 
-  - Real-time validation and plausibility checks with PEtab linting tools. 
-  - SBML view in both XML and human-readable Antimony syntax. 
+  - Dockable, resizable, and movable table widgets for each PEtab file.
+  - Context-aware editing with combo-boxes, drop-downs, and multi-cell editing.
+  - Automatic generation of missing observables/conditions with customizable defaults.
+  - Real-time validation and plausibility checks with PEtab linting tools.
+  - SBML view in both XML and human-readable Antimony syntax.
 - **Visualization and Simulation**
   - Interactive plots linking measurement data with model simulations.
   - Bidirectional highlighting between plots and tables.
@@ -71,6 +71,6 @@ the creation, editing, and validation of PEtab parameter estimation problems.
   - Intelligent defaults for visualization with optional user customization.
   - Ability to disable plotting for large models to maintain responsiveness.
 - **Archiving and Export**
-  - Export individual tables, the SBML model, or complete PEtab problems. 
+  - Export individual tables, the SBML model, or complete PEtab problems.
   - Save as directory structures or
     [COMBINE archives](https://combinearchive.org) for reproducibility
