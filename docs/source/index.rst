@@ -55,3 +55,4 @@ To get started with PEtab GUI, check out the :doc:`installation instructions <re
    :caption: Development
 
    GitHub Repository <https://github.com/PaulJonasJost/PEtab_GUI>
+   contributing
