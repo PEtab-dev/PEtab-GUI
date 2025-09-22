@@ -128,6 +128,18 @@ class FindReplaceBar(QWidget):
     def run_find(self):
         """Triggered when the search text changes."""
         search_text = self.find_input.text()
+        if not search_text:
+            for controller in [
+                self.controller.observable_controller,
+                self.controller.condition_controller,
+                self.controller.parameter_controller,
+                self.controller.measurement_controller,
+            ]:
+                controller.cleanse_highlighted_cells()
+            self.matches = []
+            self.current_match_ind = -1
+            self.update_result_label()
+            return
         case_sensitive = self.case_sensitive_button.isChecked()
         regex = self.regex_button.isChecked()
         whole_cell = self.word_match_button.isChecked()
