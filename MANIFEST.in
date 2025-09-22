@@ -1,3 +1,5 @@
 include  example/*.csv
 include  example/*.tsv
 include  example/*.xml
+exclude .git_archival.txt
+exclude .gitattributes
