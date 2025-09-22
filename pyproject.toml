@@ -27,7 +27,8 @@ license-files = ["LICENSE"]
 
 [build-system]
 requires = [
-    "setuptools>=77.0.0",
+    "setuptools>=80",
+    "setuptools-scm>=8",
 ]
 
 [project.optional-dependencies]
@@ -54,6 +55,8 @@ include-package-data = true
 
 [tool.setuptools.package-data]
 "petab_gui.assets" = ["PEtab.png"]
+
+[tool.setuptools_scm]
 
 [tool.ruff]
 line-length = 79
