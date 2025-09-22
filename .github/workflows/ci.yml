@@ -1,0 +1,24 @@
+name: CI
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  merge_group:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v5
+
+    - name: Prepare Python
+      uses: actions/setup-python@v6
+      with:
+          python-version: "3.11"
+
+    - name: Install dependencies
+      run: pip install pre-commit
+
+    - name: Run pre-commit hooks
+      run: pre-commit run --all-files
