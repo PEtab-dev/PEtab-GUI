@@ -10,6 +10,7 @@ from pathlib import Path
 import petab.v1 as petab
 import qtawesome as qta
 import yaml
+from petab.versions import get_major_version
 from PySide6.QtCore import QSettings, Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QAction,
@@ -729,6 +730,12 @@ class MainController:
             # Load the YAML content
             with open(yaml_path) as file:
                 yaml_content = yaml.safe_load(file)
+
+            if (major := get_major_version(yaml_content)) != 1:
+                raise ValueError(
+                    f"Only PEtab v1 problems are currently supported. "
+                    f"Detected version: {major}.x."
+                )
 
             # Resolve the directory of the YAML file to handle relative paths
             yaml_dir = Path(yaml_path).parent
