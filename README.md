@@ -40,7 +40,7 @@ To install the latest development version from GitHub, run:
 
 ## Usage
 
-After installation, launch the PEtab GUI from the command line using the
+After installation, launch PEtabGUI from the command line using the
 `petab_gui` command.
 
 Optionally, you can provide the path to an existing PEtab YAML file

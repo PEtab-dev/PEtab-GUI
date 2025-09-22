@@ -39,7 +39,7 @@ class MainWindow(QMainWindow):
 
         self.allow_close = False
 
-        self.setWindowTitle("PEtab Editor")
+        self.setWindowTitle("PEtabGUI")
         self.setGeometry(100, 100, 1200, 800)
 
         # Logger: used in both tabs
