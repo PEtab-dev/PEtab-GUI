@@ -1278,19 +1278,27 @@ class ParameterController(TableController):
         col_name: str = None,
     ):
         """Check a number of rows of the model with petablint."""
+        # Validate full parameter table
         if row_data is None:
             row_data = self.model.get_df()
-        observable_df = self.mother_controller.model.observable.get_df()
-        measurement_df = self.mother_controller.model.measurement.get_df()
-        condition_df = self.mother_controller.model.condition.get_df()
-        sbml_model = self.mother_controller.model.sbml.get_current_sbml_model()
-        return petab.check_parameter_df(
-            row_data,
-            observable_df=observable_df,
-            measurement_df=measurement_df,
-            condition_df=condition_df,
-            model=sbml_model,
-        )
+            observable_df = self.mother_controller.model.observable.get_df()
+            measurement_df = self.mother_controller.model.measurement.get_df()
+            condition_df = self.mother_controller.model.condition.get_df()
+            sbml_model = (
+                self.mother_controller.model.sbml.get_current_sbml_model()
+            )
+            return petab.check_parameter_df(
+                row_data,
+                observable_df=observable_df,
+                measurement_df=measurement_df,
+                condition_df=condition_df,
+                model=sbml_model,
+            )
+
+        # Validate a single parameter row
+        # In this case, we don't pass any other dataframes/models to avoid
+        # false positives due to the incomplete parameter table.
+        return petab.check_parameter_df(row_data)
 
 
 class VisualizationController(TableController):
