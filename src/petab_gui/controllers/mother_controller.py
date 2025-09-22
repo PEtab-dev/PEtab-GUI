@@ -4,6 +4,7 @@ import re
 import tempfile
 import zipfile
 from functools import partial
+from importlib.metadata import version
 from io import BytesIO
 from pathlib import Path
 
@@ -164,7 +165,7 @@ class MainController:
         """Return the window title based on the model."""
         if isinstance(self.model.sbml, SbmlViewerModel):
             return self.model.sbml.model_id
-        return "PEtab Editor"
+        return "PEtabGUI"
 
     def setup_context_menu(self):
         """Sets up context menus for the tables."""
@@ -437,6 +438,12 @@ class MainController:
         actions["whats_this"].setShortcut("Shift+F1")
         self._whats_this_filter = _WhatsThisClickHelp(actions["whats_this"])
         actions["whats_this"].toggled.connect(self._toggle_whats_this_mode)
+
+        # About action
+        actions["about"] = QAction(
+            qta.icon("mdi6.information"), "&About", self.view
+        )
+        actions["about"].triggered.connect(self.about)
 
         # connect actions
         actions["reset_view"] = QAction(
@@ -1150,3 +1157,22 @@ class MainController:
         msg.exec()
         if dont.isChecked():
             settings.setValue("help_mode/welcome_disabled", True)
+
+    def about(self):
+        """Show an about dialog."""
+        repo_url = "https://github.com/PaulJonasJost/PEtab_GUI"
+        config_file = settings_manager.settings.fileName()
+        QMessageBox.about(
+            self.view,
+            "About PEtabGUI",
+            f"<b>PEtabGUI</b><br>"
+            f"Version: {version('petab-gui')}<br>"
+            f"PEtab version: {version('petab')}<br><br>"
+            f"PEtabGUI is a tool for editing and visualizing PEtab "
+            f"problems.<br><br>"
+            f"Visit the GitHub repository at "
+            f"<a href='{repo_url}'>{repo_url}</a> "
+            "for more information.<br><br>"
+            f"<small>Settings are stored in "
+            f"<a href='file://{config_file}'>{config_file}</a></small>",
+        )
