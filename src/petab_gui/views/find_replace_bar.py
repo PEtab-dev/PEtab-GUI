@@ -3,9 +3,8 @@ import re
 
 import qtawesome as qta
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QHideEvent, QShowEvent
 from PySide6.QtWidgets import (
-    QCheckBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -27,7 +26,7 @@ class FindReplaceBar(QWidget):
             "Parameter Table": self.controller.parameter_controller,
             "Measurement Table": self.controller.measurement_controller,
         }
-        self.selected_controllers = set()
+        self.selected_controllers = self.controller_map.values()
         self.only_search = False
         self.matches = None
 
@@ -129,12 +128,7 @@ class FindReplaceBar(QWidget):
         """Triggered when the search text changes."""
         search_text = self.find_input.text()
         if not search_text:
-            for controller in [
-                self.controller.observable_controller,
-                self.controller.condition_controller,
-                self.controller.parameter_controller,
-                self.controller.measurement_controller,
-            ]:
+            for controller in self.controller_map.values():
                 controller.cleanse_highlighted_cells()
             self.matches = []
             self.current_match_ind = -1
@@ -147,12 +141,10 @@ class FindReplaceBar(QWidget):
         self.matches = []
         self.current_match_ind = -1
 
-        for controller in [
-            self.controller.observable_controller,
-            self.controller.condition_controller,
-            self.controller.parameter_controller,
-            self.controller.measurement_controller,
-        ]:
+        for controller in self.controller_map.values():
+            if controller not in self.selected_controllers:
+                controller.cleanse_highlighted_cells()
+                continue
             matches = controller.find_text(
                 search_text, case_sensitive, regex, whole_cell
             )
@@ -289,13 +281,13 @@ class FindReplaceBar(QWidget):
         else:
             super().keyPressEvent(event)
 
-    def hideEvent(self, event):
+    def hideEvent(self, event: QHideEvent):
         """Reset highlights when the Find/Replace bar is hidden."""
-        for controller in self.selected_controllers:
+        for controller in self.controller_map.values():
             controller.cleanse_highlighted_cells()
         super().hideEvent(event)
 
-    def showEvent(self, event):
+    def showEvent(self, event: QShowEvent):
         """Reset highlights when the Find/Replace bar is shown."""
         # group matches by controller
         if not self.matches:
