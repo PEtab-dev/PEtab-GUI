@@ -21,6 +21,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Fetch full history for setuptools-scm
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -56,7 +59,8 @@ jobs:
       # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
       # ALTERNATIVE: exactly, uncomment the following line instead:
       # url: https://pypi.org/project/YOURPROJECT/${{ github.event.release.name }}
-
+    env:
+      SETUPTOOLS_SCM_OVERRIDES_FOR_PETAB_GUI: '{"local_scheme": "no-local-version"}'
     steps:
       - name: Retrieve release distributions
         uses: actions/download-artifact@v4
