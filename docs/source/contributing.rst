@@ -36,3 +36,13 @@ After setting up the development environment, you can build the documentation lo
    pip install tox  # only the first time
    tox -e doc
    # The built documentation will be in `docs/build/html/index.html`
+
+
+Filing and Issue
+----------------
+
+If you encounter any bugs or have feature requests, please file an issue on GitHub.
+[Open a new issue](https://github.com/PaulJonasJost/PEtab_GUI/issues/new/choose).
+
+When filing an issue, provide as much detail as possible,
+including steps to reproduce the issue, expected behavior, and any relevant logs or screenshots.
