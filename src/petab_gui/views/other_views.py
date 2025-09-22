@@ -1,4 +1,5 @@
 """Collection of other views aside from the main ones."""
+
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -13,19 +14,29 @@ from PySide6.QtWidgets import (
 class DoseTimeDialog(QDialog):
     """Pick dose and time (or steady state)."""
 
-    def __init__(self, columns: list[str], dose_suggested: list[str], parent=None):
+    def __init__(
+        self, columns: list[str], dose_suggested: list[str], parent=None
+    ):
         super().__init__(parent)
         self.setWindowTitle("Select Dose and Time")
-        order = [c for c in dose_suggested if c in columns] + [c for c in columns if c not in dose_suggested]
+        order = [c for c in dose_suggested if c in columns] + [
+            c for c in columns if c not in dose_suggested
+        ]
         self._dose = QComboBox(self)
         self._dose.addItems(order)
         self._time = QLineEdit(self)
-        self._time.setPlaceholderText("Enter constant time (e.g. 0, 5, 12.5). Use 'inf' for steady state")
+        self._time.setPlaceholderText(
+            "Enter constant time (e.g. 0, 5, 12.5). Use 'inf' for steady state"
+        )
         self._preeq_edit = QLineEdit(self)
-        self._preeq_edit.setPlaceholderText("Optional preequilibrationConditionId")
+        self._preeq_edit.setPlaceholderText(
+            "Optional preequilibrationConditionId"
+        )
         self._dose_lbl = QLabel("Dose column:", self)
         self._time_lbl = QLabel("Time:", self)
-        self._preeq_lbl = QLabel("Preequilibration condition (optional):", self)
+        self._preeq_lbl = QLabel(
+            "Preequilibration condition (optional):", self
+        )
         ok = QPushButton("OK", self)
         ok.clicked.connect(self.accept)
         cancel = QPushButton("Cancel", self)

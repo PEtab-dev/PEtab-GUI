@@ -140,8 +140,7 @@ class PEtabModel:
         self.current_petab_problem.to_files_generic(prefix_path=directory)
 
     def save_as_omex(self, file_name: str):
-        """Save the PEtab model as an OMEX file.
-        """
+        """Save the PEtab model as an OMEX file."""
         with tempfile.TemporaryDirectory() as temp_dir:
             self.save(temp_dir)
             petab.create_combine_archive(

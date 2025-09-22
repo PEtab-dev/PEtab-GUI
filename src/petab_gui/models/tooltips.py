@@ -1,4 +1,5 @@
 """Tooltips for table view columns."""
+
 import numpy as np
 
 # Tooltips
@@ -6,8 +7,11 @@ _HEADER_TIPS: dict[str, dict[str, str]] = {}
 _CELL_TIPS: dict[str, dict[str, str]] = {}
 
 
-def register_tips(table: str, header: dict[str, str] | None = None,
-                  cell: dict[str, str] | None = None) -> None:
+def register_tips(
+    table: str,
+    header: dict[str, str] | None = None,
+    cell: dict[str, str] | None = None,
+) -> None:
     """Register tooltips for a given table."""
     if header:
         _HEADER_TIPS.setdefault(table, {}).update(header)
@@ -16,7 +20,8 @@ def register_tips(table: str, header: dict[str, str] | None = None,
 
 
 # Measurement Tooltips
-register_tips("measurement",
+register_tips(
+    "measurement",
     header={
         "observableId": "ID from Observables; the output being measured.",
         "preequilibrationConditionId": "Condition for preequilibration; empty = none.",
@@ -42,7 +47,8 @@ register_tips("measurement",
 )
 
 # Observable Tooltips
-register_tips("observable",
+register_tips(
+    "observable",
     header={
         "observableId": "Unique ID; letters, digits, underscores; not starting with digit. Referenced in Measurements.",
         "observableName": "Optional display name; not used for identification.",
@@ -62,7 +68,8 @@ register_tips("observable",
 )
 
 # Parameter Tooltips
-register_tips("parameter",
+register_tips(
+    "parameter",
     header={
         "parameterId": "Unique ID; must match SBML parameter, condition override, or observable/noise parameter.",
         "parameterName": "Optional label for plotting; may differ from SBML name.",
@@ -92,7 +99,8 @@ register_tips("parameter",
 )
 
 # Condition Tooltips
-register_tips("condition",
+register_tips(
+    "condition",
     header={
         "conditionId": "Unique ID; letters/digits/underscores; not starting with digit. Referenced by Measurements.",
         "conditionName": "Optional human-readable name for reports/plots.",
@@ -102,12 +110,13 @@ register_tips("condition",
         "conditionId": "Enter a valid, unique identifier.",
         "conditionName": "Optional label.",
         "*": "User-defined column. Provide numeric value or SBML/parameter ID. "
-             "Species IDs = initial amount/concentration (NaN = keep preeq/initial). "
-             "Compartment IDs = initial size.",
+        "Species IDs = initial amount/concentration (NaN = keep preeq/initial). "
+        "Compartment IDs = initial size.",
     },
 )
 
-register_tips("visualization",
+register_tips(
+    "visualization",
     header={
         "plotId": "Plot ID; datasets with same ID share axes.",
         "plotName": "Optional plot display name.",
@@ -142,7 +151,7 @@ register_tips("visualization",
     },
 )
 
-_default_tip = "User-defined column; no specific structure enforced.",
+_default_tip = ("User-defined column; no specific structure enforced.",)
 
 
 def header_tip(table: str, column: str) -> str:
@@ -240,4 +249,3 @@ SBML_MODEL_TAB_TOOLTIP = (
     "• Edit SBML (XML) and Antimony side-by-side.<br>"
     "• Use <i>Forward Changes</i> buttons to sync; see logger for errors."
 )
-

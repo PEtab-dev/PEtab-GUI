@@ -1,8 +1,8 @@
 import argparse
 import os
 import sys
+from importlib.metadata import PackageNotFoundError, version
 from importlib.resources import files
-from importlib.metadata import version, PackageNotFoundError
 from pathlib import Path
 
 from PySide6.QtCore import QEvent
@@ -48,7 +48,7 @@ class PEtabGuiApp(QApplication):
     Inherits from QApplication and sets up the MVC components.
     """
 
-    def __init__(self, file: str|Path = None):
+    def __init__(self, file: str | Path = None):
         """Initialize the PEtab GUI application.
 
         Sets up the model, view, and controller components.
@@ -125,12 +125,10 @@ def main():
         "--version",
         action="version",
         version=f"%(prog)s {pkg_version}",
-        help="Show version number and exit"
+        help="Show version number and exit",
     )
     parser.add_argument(
-        "petab_yaml",
-        nargs="?",
-        help="Path to the PEtab YAML file"
+        "petab_yaml", nargs="?", help="Path to the PEtab YAML file"
     )
     args = parser.parse_args()
 

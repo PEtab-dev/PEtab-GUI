@@ -261,9 +261,7 @@ class MainController:
             self.visualization_controller,
             self.simulation_controller,
         ]:
-            controller.overwritten_df.connect(
-                self._schedule_plot_update
-            )
+            controller.overwritten_df.connect(self._schedule_plot_update)
 
     def setup_actions(self):
         """Setup actions for the main controller."""
@@ -302,9 +300,7 @@ class MainController:
         actions["save_single_table"] = QAction(
             qta.icon("mdi6.table-arrow-down"), "Save This Table", self.view
         )
-        actions["save_single_table"].triggered.connect(
-            self.save_single_table
-        )
+        actions["save_single_table"].triggered.connect(self.save_single_table)
         # Find + Replace
         actions["find"] = QAction(qta.icon("mdi6.magnify"), "Find", self.view)
         actions["find"].setShortcut(QKeySequence.Find)
@@ -341,8 +337,9 @@ class MainController:
         actions["delete_row"].triggered.connect(self.delete_rows)
         # add/delete column
         actions["add_column"] = QAction(
-            qta.icon("mdi6.table-column-plus-after"), "Add Column...",
-            self.view
+            qta.icon("mdi6.table-column-plus-after"),
+            "Add Column...",
+            self.view,
         )
         actions["add_column"].triggered.connect(self.add_column)
         actions["delete_column"] = QAction(
@@ -381,8 +378,14 @@ class MainController:
         filter_layout.addWidget(self.filter_input)
         for table_n, table_name in zip(
             ["m", "p", "o", "c", "v", "s"],
-            ["measurement", "parameter", "observable", "condition",
-             "visualization", "simulation"],
+            [
+                "measurement",
+                "parameter",
+                "observable",
+                "condition",
+                "visualization",
+                "simulation",
+            ],
             strict=False,
         ):
             tool_button = QToolButton()
@@ -405,8 +408,14 @@ class MainController:
         self.filter_input.textChanged.connect(self.filter_table)
 
         # show/hide elements
-        for element in ["measurement", "observable", "parameter",
-                        "condition", "visualization", "simulation"]:
+        for element in [
+            "measurement",
+            "observable",
+            "parameter",
+            "condition",
+            "visualization",
+            "simulation",
+        ]:
             actions[f"show_{element}"] = QAction(
                 f"{element.capitalize()} Table", self.view
             )
@@ -790,21 +799,13 @@ class MainController:
         self.measurement_controller.overwrite_df(
             combine_archive.measurement_df
         )
-        self.observable_controller.overwrite_df(
-            combine_archive.observable_df
-        )
-        self.condition_controller.overwrite_df(
-            combine_archive.condition_df
-        )
-        self.parameter_controller.overwrite_df(
-            combine_archive.parameter_df
-        )
+        self.observable_controller.overwrite_df(combine_archive.observable_df)
+        self.condition_controller.overwrite_df(combine_archive.condition_df)
+        self.parameter_controller.overwrite_df(combine_archive.parameter_df)
         self.visualization_controller.overwrite_df(
             combine_archive.visualization_df
         )
-        self.sbml_controller.overwrite_sbml(
-            sbml_model = combine_archive.model
-        )
+        self.sbml_controller.overwrite_sbml(sbml_model=combine_archive.model)
 
     def new_file(self):
         """Empty all tables. In case of unsaved changes, ask to save."""
@@ -981,7 +982,6 @@ class MainController:
         settings_dialog = SettingsDialog(table_columns, self.view)
         settings_dialog.exec()
 
-
     def find(self):
         """Create a find replace bar if it is non existent."""
         if self.view.find_replace_bar is None:
@@ -1001,7 +1001,7 @@ class MainController:
             self.simulation_controller.proxy_model,
             self.condition_controller.proxy_model,
             self.visualization_controller.proxy_model,
-            self.model
+            self.model,
         )
         self.plotter = self.view.plot_dock
         self.plotter.highlighter.click_callback = self._on_plot_point_clicked
@@ -1021,10 +1021,7 @@ class MainController:
 
         def column_index(name):
             for col in range(proxy.columnCount()):
-                if (
-                    proxy.headerData(col, Qt.Horizontal)
-                    == name
-                ):
+                if proxy.headerData(col, Qt.Horizontal) == name:
                     return col
             raise ValueError(f"Column '{name}' not found.")
 
@@ -1052,11 +1049,13 @@ class MainController:
         self.plotter.highlight_from_selection(selected_rows)
 
     def _on_simulation_selection_changed(self, selected, deselected):
-        selected_rows = get_selected(self.simulation_controller.view.table_view)
+        selected_rows = get_selected(
+            self.simulation_controller.view.table_view
+        )
         self.plotter.highlight_from_selection(
             selected_rows,
             proxy=self.simulation_controller.proxy_model,
-            y_axis_col="simulation"
+            y_axis_col="simulation",
         )
 
     def simulate(self):
@@ -1069,16 +1068,21 @@ class MainController:
         from basico.petab import PetabSimulator
 
         # report current basico / COPASI version
-        self.logger.log_message(f"Simulate with basico: {basico.__version__}, COPASI: {basico.COPASI.__version__}", color="green")
+        self.logger.log_message(
+            f"Simulate with basico: {basico.__version__}, COPASI: {basico.COPASI.__version__}",
+            color="green",
+        )
 
         import tempfile
 
         # create temp directory in temp folder:
         with tempfile.TemporaryDirectory() as temp_dir:
             # settings is only current solution statistic for now:
-            settings = {'method' : {'name': basico.PE.CURRENT_SOLUTION}}
+            settings = {"method": {"name": basico.PE.CURRENT_SOLUTION}}
             # create simulator
-            simulator = PetabSimulator(petab_problem, settings=settings, working_dir=temp_dir)
+            simulator = PetabSimulator(
+                petab_problem, settings=settings, working_dir=temp_dir
+            )
 
             # simulate
             sim_df = simulator.simulate()
@@ -1093,6 +1097,7 @@ class MainController:
 
     def _toggle_whats_this_mode(self, on: bool):
         """Enable/disable click-to-help mode by installing/removing the global filter.
+
         On enter: show a short instruction bubble.
         """
         app = QApplication.instance()
@@ -1105,17 +1110,14 @@ class MainController:
             except Exception:
                 pass
             app.removeEventFilter(self._whats_this_filter)
-            self.logger.log_message(
-                "Enden the Help mode.",
-                color="blue"
-            )
+            self.logger.log_message("Enden the Help mode.", color="blue")
             return
         # install filter
         app.installEventFilter(self._whats_this_filter)
         QApplication.setOverrideCursor(Qt.WhatsThisCursor)
         self.logger.log_message(
             "Started the Help mode. Click on any widget to see its help.",
-            color="blue"
+            color="blue",
         )
         self._show_help_welcome()
 
@@ -1129,15 +1131,15 @@ class MainController:
         msg.setWindowTitle("Help mode")
         msg.setTextFormat(Qt.RichText)
         msg.setText(
-                "<b>Welcome to help mode</b><br>"
-                "<ul>"
-                "<li>Click any widget, tab, or column header to see its help.</li>"
-                "<li>Click the same item again or press <b>Esc</b> to close the bubble.</li>"
-                "<li>Press <b>Esc</b> with no bubble, or toggle the <i>?</i> button, to exit.</li>"
-                "</ul>"
-            )
+            "<b>Welcome to help mode</b><br>"
+            "<ul>"
+            "<li>Click any widget, tab, or column header to see its help.</li>"
+            "<li>Click the same item again or press <b>Esc</b> to close the bubble.</li>"
+            "<li>Press <b>Esc</b> with no bubble, or toggle the <i>?</i> button, to exit.</li>"
+            "</ul>"
+        )
         dont = QCheckBox("Don't show again")
         msg.setCheckBox(dont)
         msg.exec()
         if dont.isChecked():
-                settings.setValue("help_mode/welcome_disabled", True)
+            settings.setValue("help_mode/welcome_disabled", True)
