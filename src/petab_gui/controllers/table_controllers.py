@@ -765,7 +765,8 @@ class MeasurementController(TableController):
         """Lightweight ranking of dose-like columns (regex + numeric + cardinality)."""
         patt = re.compile(r"\b(dose|conc|concentration|drug|compound|stim|input|u\d+)\b", re.IGNORECASE)
         scores = {}
-        for col in df.columns:
+        # FIXME: https://github.com/PaulJonasJost/PEtab_GUI/issues/159
+        for col in df.columns:  # noqa: B007
             s = 0.0
         if patt.search(col or ""): s += 2.0
         try:
