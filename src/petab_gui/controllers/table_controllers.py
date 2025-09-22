@@ -71,7 +71,7 @@ class TableController(QObject):
         self.undo_stack = undo_stack
         self.model.undo_stack = undo_stack
         self.check_petab_lint_mode = True
-        if model.table_type in ["simulation", "visualization"]:
+        if model.table_type in ["simulation"]:
             self.check_petab_lint_mode = False
         self.mother_controller = mother_controller
         self.view.table_view.setModel(self.proxy_model)
@@ -1315,3 +1315,14 @@ class VisualizationController(TableController):
             undo_stack=undo_stack,
             mother_controller=mother_controller,
         )
+
+    @linter_wrapper(additional_error_check=True)
+    def check_petab_lint(
+        self,
+        row_data: pd.DataFrame = None,
+        row_name: str = None,
+        col_name: str = None,
+    ):
+        """Check a number of rows of the model with petablint."""
+        problem = self.mother_controller.get_current_problem()
+        return petab.visualize.validate_visualization_df(problem)
