@@ -1,6 +1,8 @@
+import argparse
 import os
 import sys
 from importlib.resources import files
+from importlib.metadata import version, PackageNotFoundError
 from pathlib import Path
 
 from PySide6.QtCore import QEvent
@@ -46,11 +48,14 @@ class PEtabGuiApp(QApplication):
     Inherits from QApplication and sets up the MVC components.
     """
 
-    def __init__(self):
+    def __init__(self, file: str|Path = None):
         """Initialize the PEtab GUI application.
 
         Sets up the model, view, and controller components.
         Handles command line arguments for opening files.
+
+        Args:
+            file: Path to a PEtab YAML file to open on startup.
         """
         super().__init__(sys.argv)
 
@@ -63,8 +68,8 @@ class PEtabGuiApp(QApplication):
         # Connect the view to the controller
         self.view.controller = self.controller
 
-        if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):
-            self.controller.open_file(sys.argv[1], mode="overwrite")
+        if file and os.path.isfile(file):
+            self.controller.open_file(file, mode="overwrite")
 
         self.view.show()
 
@@ -110,7 +115,26 @@ def main():
     Creates the application instance and starts the event loop.
     The function exits with the return code from the application.
     """
-    app = PEtabGuiApp()
+    try:
+        pkg_version = version("petab_gui")
+    except PackageNotFoundError:
+        pkg_version = "unknown"
+
+    parser = argparse.ArgumentParser(description="PEtabGUI: A PEtab editor")
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {pkg_version}",
+        help="Show version number and exit"
+    )
+    parser.add_argument(
+        "petab_yaml",
+        nargs="?",
+        help="Path to the PEtab YAML file"
+    )
+    args = parser.parse_args()
+
+    app = PEtabGuiApp(args.petab_yaml)
     sys.exit(app.exec())
 
 
