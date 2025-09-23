@@ -21,7 +21,7 @@ pip install petab_gui
 To install the latest development version from GitHub, run:
 
 ```bash
-    pip3 install git+https://github.com/PaulJonasJost/PEtab_GUI/
+pip install git+https://github.com/PaulJonasJost/PEtab_GUI/
 ```
 
 ### From a local copy
@@ -52,7 +52,7 @@ The PEtabGUI provides a Python-based graphical user interface that simplifies
 the creation, editing, and validation of PEtab parameter estimation problems.
 
 - **Unified Environment**
-  - Integrates all PEtab components (SBML/PySB models, conditions, observables,
+  - Integrates all PEtab components (SBML models, conditions, observables,
     measurements, parameters, and visualization files).
   - Supports drag-and-drop import of YAML or individual component files.
   - Automatically resolves mismatches and converts matrix-format experimental data

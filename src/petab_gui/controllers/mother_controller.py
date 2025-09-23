@@ -858,11 +858,15 @@ class MainController:
 
             # Log the consistency check result
             if not failed:
-                self.logger.log_message("Model is consistent.", color="green")
+                self.logger.log_message(
+                    "PEtab problem has no errors.", color="green"
+                )
                 for model in self.model.pandas_models.values():
                     model.reset_invalid_cells()
             else:
-                self.logger.log_message("Model is inconsistent.", color="red")
+                self.logger.log_message(
+                    "PEtab problem has errors.", color="red"
+                )
         except Exception as e:
             msg = f"PEtab linter failed at some point: {filtered_error(e)}"
             self.logger.log_message(msg, color="red")

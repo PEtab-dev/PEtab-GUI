@@ -2,6 +2,7 @@
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
+from importlib.metadata import version as get_version
 
 rst_prolog = """
 .. |petab_doc_url| replace:: https://petab.readthedocs.io/en/latest/index.html
@@ -13,7 +14,7 @@ rst_prolog = """
 project = "PEtab GUI"
 copyright = "2025, Paul Jonas Jost, Frank T. Bergmann"
 author = "Paul Jonas Jost, Frank T. Bergmann"
-release = "0.1.3"
+release: str = get_version("petab-gui")
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
