@@ -770,7 +770,7 @@ class MeasurementController(TableController):
         return None
 
     def _rank_dose_candidates(self, df) -> list[str]:
-        """Lightweight ranking of dose-like columns (regex + numeric + cardinality)."""
+        """Lightweight ranking of dose-like columns."""
         patt = re.compile(
             r"\b(dose|conc|concentration|drug|compound|stim|input|u\d+)\b",
             re.IGNORECASE,
@@ -786,7 +786,9 @@ class MeasurementController(TableController):
                 uniq = df[col].nunique(dropna=True)
                 if 2 <= uniq <= 30:
                     s += 0.8
-                if np.all(pd.to_numeric(df[col], errors="coerce").fillna(0) >= 0):
+                if np.all(
+                    pd.to_numeric(df[col], errors="coerce").fillna(0) >= 0
+                ):
                     s += 0.3
                 ser = pd.to_numeric(df[col], errors="coerce").dropna()
                 if len(ser) >= 5:
@@ -805,7 +807,7 @@ class MeasurementController(TableController):
         ]
 
     def _resolve_dose_and_time(self, df) -> tuple[str | None, str | None, str]:
-        """Open dialog with ranked dose suggestions and time choices (incl. steady state)."""
+        """Open dialog with ranked dose suggestions and time choices."""
         header_key = str(hash(tuple(df.columns)))
         settings = settings_manager.settings
         # TODO: rename settings location
