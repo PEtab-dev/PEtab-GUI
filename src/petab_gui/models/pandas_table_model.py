@@ -377,7 +377,7 @@ class PandasTableModel(QAbstractTableModel):
             if error:
                 self.new_log_message.emit(
                     f"Column '{column_name}' expects a value of type "
-                    f"{expected_type}, but got '{value}'",
+                    f"{expected_type.__name__}, but got '{value}'",
                     "red",
                 )
                 return False
