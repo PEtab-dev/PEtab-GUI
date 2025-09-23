@@ -1,5 +1,6 @@
 """Classes for the controllers of the tables in the GUI."""
 
+import logging
 import re
 from collections.abc import Sequence
 from pathlib import Path
@@ -22,7 +23,12 @@ from ..models.pandas_table_model import (
     PandasTableModel,
 )
 from ..settings_manager import settings_manager
-from ..utils import ConditionInputDialog, get_selected, process_file
+from ..utils import (
+    CaptureLogHandler,
+    ConditionInputDialog,
+    get_selected,
+    process_file,
+)
 from ..views.other_views import DoseTimeDialog
 from ..views.table_view import (
     ColumnSuggestionDelegate,
@@ -1325,4 +1331,13 @@ class VisualizationController(TableController):
     ):
         """Check a number of rows of the model with petablint."""
         problem = self.mother_controller.get_current_problem()
-        return petab.visualize.validate_visualization_df(problem)
+        capture_handler = CaptureLogHandler()
+        logger_vis = logging.getLogger("petab.v1.visualize.lint")
+        logger_vis.addHandler(capture_handler)
+        errors = petab.visualize.lint.validate_visualization_df(problem)
+        if not errors:
+            return not errors
+        captured_output = "<br>&nbsp;&nbsp;&nbsp;&nbsp;".join(
+            capture_handler.get_formatted_messages()
+        )
+        raise ValueError(captured_output)
