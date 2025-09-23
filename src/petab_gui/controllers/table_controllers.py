@@ -776,27 +776,26 @@ class MeasurementController(TableController):
             re.IGNORECASE,
         )
         scores = {}
-        # FIXME: https://github.com/PaulJonasJost/PEtab_GUI/issues/159
         for col in df.columns:  # noqa: B007
             s = 0.0
-        if patt.search(col or ""):
-            s += 2.0
-        try:
-            if df[col].dtype.kind in "if":
-                s += 1.0
-            uniq = df[col].nunique(dropna=True)
-            if 2 <= uniq <= 30:
-                s += 0.8
-            if np.all(pd.to_numeric(df[col], errors="coerce").fillna(0) >= 0):
-                s += 0.3
-            ser = pd.to_numeric(df[col], errors="coerce").dropna()
-            if len(ser) >= 5:
-                diffs = np.diff(ser.values)
-                if np.mean(diffs >= 0) >= 0.7:
-                    s += 0.2
-        except Exception:
-            pass
-        scores[col] = s
+            if patt.search(col or ""):
+                s += 2.0
+            try:
+                if df[col].dtype.kind in "if":
+                    s += 1.0
+                uniq = df[col].nunique(dropna=True)
+                if 2 <= uniq <= 30:
+                    s += 0.8
+                if np.all(pd.to_numeric(df[col], errors="coerce").fillna(0) >= 0):
+                    s += 0.3
+                ser = pd.to_numeric(df[col], errors="coerce").dropna()
+                if len(ser) >= 5:
+                    diffs = np.diff(ser.values)
+                    if np.mean(diffs >= 0) >= 0.7:
+                        s += 0.2
+            except Exception:
+                pass
+            scores[col] = s
         return [
             c
             for c, _ in sorted(
