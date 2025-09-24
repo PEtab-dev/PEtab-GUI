@@ -46,6 +46,10 @@ After installation, launch PEtabGUI from the command line using the
 Optionally, you can provide the path to an existing PEtab YAML file
 as an argument.
 
+When launching with a problem, PEtabGUI will look like this (up to the position of
+widgets):
+![PEtabGUI Screenshot](docs/source/_static/Application_Screenshot.png)
+
 ## Features
 
 The PEtabGUI provides a Python-based graphical user interface that simplifies
