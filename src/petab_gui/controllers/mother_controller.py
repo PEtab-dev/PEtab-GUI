@@ -832,6 +832,7 @@ class MainController:
                 continue
             controller.clear_table()
         self.view.plot_dock.plot_it()
+        self.unsaved_changes_change(False)
 
     def check_model(self):
         """Check the consistency of the model. And log the results."""
