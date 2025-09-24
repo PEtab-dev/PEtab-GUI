@@ -48,7 +48,7 @@ as an argument.
 
 When launching with a problem, PEtabGUI will look like this (up to the position of
 widgets):
-![PEtabGUI Screenshot](docs/source/_static/Application_Screenshot.png)
+![PEtabGUI Screenshot](https://raw.githubusercontent.com/PaulJonasJost/PEtab_GUI/screenshot/docs/source/_static/Application_Screenshot.png)
 
 ## Features
 
