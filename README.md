@@ -54,8 +54,7 @@ After installation, launch PEtabGUI from the command line using the
 Optionally, you can provide the path to an existing PEtab YAML file
 as an argument.
 
-When launching with a problem, PEtabGUI will look like this (up to the position of
-widgets):
+After loading a PEtab problem, PEtabGUI will look something like this:
 ![PEtabGUI Screenshot](https://raw.githubusercontent.com/PaulJonasJost/PEtab_GUI/screenshot/docs/source/_static/Application_Screenshot.png)
 
 ### Examples
