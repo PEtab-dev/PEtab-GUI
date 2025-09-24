@@ -16,6 +16,13 @@ To install PEtabGUI from [PyPI](https://pypi.org/project/PEtab-GUI/), run:
 pip install petab_gui
 ```
 
+or, to install PEtabGUI in a dedicated virtual environment using
+[pipx](https://github.com/pypa/pipx) (to be installed separately), run:
+
+```bash
+pipx install petab_gui
+```
+
 ### From GitHub
 
 To install the latest development version from GitHub, run:
@@ -45,6 +52,17 @@ After installation, launch PEtabGUI from the command line using the
 
 Optionally, you can provide the path to an existing PEtab YAML file
 as an argument.
+
+### Examples
+
+A set of real-world PEtab problems is available in the
+[PEtab benchmark collection](https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab).
+
+Download and unpack the [archive](https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab/archive/refs/heads/master.zip),
+then open one of the YAML files inside `Benchmark-Models/*/` using
+PEtabGUI.
+`Benchmark-Models/Boehm_JProteomeRes2014/Boehm_JProteomeRes2014.yaml`
+should serve as good starting point.
 
 ## Features
 
