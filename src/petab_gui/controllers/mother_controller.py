@@ -840,13 +840,15 @@ class MainController:
                 continue
             controller.clear_table()
         self.view.plot_dock.plot_it()
+        self.unsaved_changes_change(False)
 
     def check_model(self):
         """Check the consistency of the model. And log the results."""
         capture_handler = CaptureLogHandler()
-        logger = logging.getLogger("petab.v1.lint")  # Target the specific
-        # logger
-        logger.addHandler(capture_handler)
+        logger_lint = logging.getLogger("petab.v1.lint")
+        logger_vis = logging.getLogger("petab.v1.visualize.lint")
+        logger_lint.addHandler(capture_handler)
+        logger_vis.addHandler(capture_handler)
 
         try:
             # Run the consistency check
@@ -865,17 +867,22 @@ class MainController:
 
             # Log the consistency check result
             if not failed:
-                self.logger.log_message("Model is consistent.", color="green")
+                self.logger.log_message(
+                    "PEtab problem has no errors.", color="green"
+                )
                 for model in self.model.pandas_models.values():
                     model.reset_invalid_cells()
             else:
-                self.logger.log_message("Model is inconsistent.", color="red")
+                self.logger.log_message(
+                    "PEtab problem has errors.", color="red"
+                )
         except Exception as e:
             msg = f"PEtab linter failed at some point: {filtered_error(e)}"
             self.logger.log_message(msg, color="red")
         finally:
             # Always remove the capture handler
-            logger.removeHandler(capture_handler)
+            logger_lint.removeHandler(capture_handler)
+            logger_vis.removeHandler(capture_handler)
 
     def unsaved_changes_change(self, unsaved_changes: bool):
         self.unsaved_changes = unsaved_changes
@@ -1176,3 +1183,7 @@ class MainController:
             f"<small>Settings are stored in "
             f"<a href='file://{config_file}'>{config_file}</a></small>",
         )
+
+    def get_current_problem(self):
+        """Get the current PEtab problem from the model."""
+        return self.model.current_petab_problem

@@ -25,6 +25,8 @@ class FindReplaceBar(QWidget):
             "Condition Table": self.controller.condition_controller,
             "Parameter Table": self.controller.parameter_controller,
             "Measurement Table": self.controller.measurement_controller,
+            "Visualization Table": self.controller.visualization_controller,
+            "Simulation Table": self.controller.simulation_controller,
         }
         self.selected_controllers = self.controller_map.values()
         self.only_search = False

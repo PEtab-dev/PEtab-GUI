@@ -1,5 +1,6 @@
 """Classes for the controllers of the tables in the GUI."""
 
+import logging
 import re
 from collections.abc import Sequence
 from pathlib import Path
@@ -22,7 +23,12 @@ from ..models.pandas_table_model import (
     PandasTableModel,
 )
 from ..settings_manager import settings_manager
-from ..utils import ConditionInputDialog, get_selected, process_file
+from ..utils import (
+    CaptureLogHandler,
+    ConditionInputDialog,
+    get_selected,
+    process_file,
+)
 from ..views.other_views import DoseTimeDialog
 from ..views.table_view import (
     ColumnSuggestionDelegate,
@@ -1278,19 +1284,27 @@ class ParameterController(TableController):
         col_name: str = None,
     ):
         """Check a number of rows of the model with petablint."""
+        # Validate full parameter table
         if row_data is None:
             row_data = self.model.get_df()
-        observable_df = self.mother_controller.model.observable.get_df()
-        measurement_df = self.mother_controller.model.measurement.get_df()
-        condition_df = self.mother_controller.model.condition.get_df()
-        sbml_model = self.mother_controller.model.sbml.get_current_sbml_model()
-        return petab.check_parameter_df(
-            row_data,
-            observable_df=observable_df,
-            measurement_df=measurement_df,
-            condition_df=condition_df,
-            model=sbml_model,
-        )
+            observable_df = self.mother_controller.model.observable.get_df()
+            measurement_df = self.mother_controller.model.measurement.get_df()
+            condition_df = self.mother_controller.model.condition.get_df()
+            sbml_model = (
+                self.mother_controller.model.sbml.get_current_sbml_model()
+            )
+            return petab.check_parameter_df(
+                row_data,
+                observable_df=observable_df,
+                measurement_df=measurement_df,
+                condition_df=condition_df,
+                model=sbml_model,
+            )
+
+        # Validate a single parameter row
+        # In this case, we don't pass any other dataframes/models to avoid
+        # false positives due to the incomplete parameter table.
+        return petab.check_parameter_df(row_data)
 
 
 class VisualizationController(TableController):
@@ -1315,3 +1329,81 @@ class VisualizationController(TableController):
             undo_stack=undo_stack,
             mother_controller=mother_controller,
         )
+
+    @linter_wrapper(additional_error_check=True)
+    def check_petab_lint(
+        self,
+        row_data: pd.DataFrame = None,
+        row_name: str = None,
+        col_name: str = None,
+    ):
+        """Check a number of rows of the model with petablint."""
+        problem = self.mother_controller.get_current_problem()
+        capture_handler = CaptureLogHandler()
+        logger_vis = logging.getLogger("petab.v1.visualize.lint")
+        logger_vis.addHandler(capture_handler)
+        errors = petab.visualize.lint.validate_visualization_df(problem)
+        if not errors:
+            return not errors
+        captured_output = "<br>&nbsp;&nbsp;&nbsp;&nbsp;".join(
+            capture_handler.get_formatted_messages()
+        )
+        raise ValueError(captured_output)
+
+    def setup_completers(self):
+        """Set completers for the visualization table."""
+        table_view = self.view.table_view
+        # plotTypeSimulation
+        index = self.model.return_column_index("plotTypeSimulation")
+        if index and index > -1:
+            self.completers["plotTypeSimulation"] = ComboBoxDelegate(
+                ["LinePlot", "BarPlot", "ScatterPlot"]
+            )
+            table_view.setItemDelegateForColumn(
+                index, self.completers["plotTypeSimulation"]
+            )
+        # plotTypeData
+        index = self.model.return_column_index("plotTypeData")
+        if index and index > -1:
+            self.completers["plotTypeData"] = ComboBoxDelegate(
+                ["MeanAndSD", "MeanAndSEM", "replicate", "provided"]
+            )
+            table_view.setItemDelegateForColumn(
+                index, self.completers["plotTypeData"]
+            )
+        # datasetId
+        index = self.model.return_column_index("datasetId")
+        if index and index > -1:
+            self.completers["datasetId"] = ColumnSuggestionDelegate(
+                self.mother_controller.model.measurement, "datasetId"
+            )
+            table_view.setItemDelegateForColumn(
+                index, self.completers["datasetId"]
+            )
+        # yValues
+        index = self.model.return_column_index("yValues")
+        if index and index > -1:
+            self.completers["yValues"] = ColumnSuggestionDelegate(
+                self.mother_controller.model.observable, "observableId"
+            )
+            table_view.setItemDelegateForColumn(
+                index, self.completers["yValues"]
+            )
+        # xScale
+        index = self.model.return_column_index("xScale")
+        if index and index > -1:
+            self.completers["xScale"] = ComboBoxDelegate(
+                ["lin", "log", "log10", "order"]
+            )
+            table_view.setItemDelegateForColumn(
+                index, self.completers["xScale"]
+            )
+        # yScale
+        index = self.model.return_column_index("yScale")
+        if index and index > -1:
+            self.completers["yScale"] = ComboBoxDelegate(
+                ["lin", "log", "log10", "order"]
+            )
+            table_view.setItemDelegateForColumn(
+                index, self.completers["yScale"]
+            )

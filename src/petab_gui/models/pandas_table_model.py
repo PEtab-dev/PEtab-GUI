@@ -377,7 +377,7 @@ class PandasTableModel(QAbstractTableModel):
             if error:
                 self.new_log_message.emit(
                     f"Column '{column_name}' expects a value of type "
-                    f"{expected_type}, but got '{value}'",
+                    f"{expected_type.__name__}, but got '{value}'",
                     "red",
                 )
                 return False
@@ -670,7 +670,9 @@ class PandasTableModel(QAbstractTableModel):
         Returns:
             int: The view column index for the given column name, or -1
         """
-        pass
+        if column_name in self._data_frame.columns:
+            return self._data_frame.columns.get_loc(column_name)
+        return -1
 
     def unique_values(self, column_name):
         """Return a list of unique values in a specified column.
@@ -1114,12 +1116,6 @@ class MeasurementModel(PandasTableModel):
             self.undo_stack.push(command)
         else:
             command.redo()
-
-    def return_column_index(self, column_name):
-        """Return the index of a column."""
-        if column_name in self._data_frame.columns:
-            return self._data_frame.columns.get_loc(column_name)
-        return -1
 
 
 class ObservableModel(IndexedPandasTableModel):
