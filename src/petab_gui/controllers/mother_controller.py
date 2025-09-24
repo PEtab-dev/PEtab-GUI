@@ -836,9 +836,10 @@ class MainController:
     def check_model(self):
         """Check the consistency of the model. And log the results."""
         capture_handler = CaptureLogHandler()
-        logger = logging.getLogger("petab.v1.lint")  # Target the specific
-        # logger
-        logger.addHandler(capture_handler)
+        logger_lint = logging.getLogger("petab.v1.lint")
+        logger_vis = logging.getLogger("petab.v1.visualize.lint")
+        logger_lint.addHandler(capture_handler)
+        logger_vis.addHandler(capture_handler)
 
         try:
             # Run the consistency check
@@ -871,7 +872,8 @@ class MainController:
             self.logger.log_message(msg, color="red")
         finally:
             # Always remove the capture handler
-            logger.removeHandler(capture_handler)
+            logger_lint.removeHandler(capture_handler)
+            logger_vis.removeHandler(capture_handler)
 
     def unsaved_changes_change(self, unsaved_changes: bool):
         self.unsaved_changes = unsaved_changes
@@ -1154,3 +1156,7 @@ class MainController:
         msg.exec()
         if dont.isChecked():
             settings.setValue("help_mode/welcome_disabled", True)
+
+    def get_current_problem(self):
+        """Get the current PEtab problem from the model."""
+        return self.model.current_petab_problem
