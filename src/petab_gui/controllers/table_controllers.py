@@ -611,28 +611,30 @@ class MeasurementController(TableController):
     def rename_value(
         self, old_id: str, new_id: str, column_names: str | list[str]
     ):
-        """Rename the observables in the measurement_df.
+        """Rename the values in the measurement_df.
 
-        Triggered by changes in the original observable_df id.
+        Triggered by changes in the original observable_df or condition_df id.
 
         Parameters
         ----------
         old_id:
-            The old observable_id, which was changed.
+            The old id, which was changed.
         new_id:
-            The new observable_id.
+            The new id.
         """
         if not isinstance(column_names, list):
             column_names = [column_names]
 
-        # Find occurences
-        mask = self.model._data_frame[column_names].eq(old_id)
-        if mask.any().any():
-            self.model._data_frame.loc[mask] = new_id
-            changed_rows = mask.any(axis=1)
+        for col_name in column_names:
+            # Find occurrences
+            mask = self.model._data_frame[col_name].eq(old_id)
+            if not mask.any():
+                continue
+
+            self.model._data_frame.loc[mask, col_name] = new_id
             first_row, last_row = (
-                changed_rows.idxmax(),
-                changed_rows[::-1].idxmax(),
+                mask.idxmax(),
+                mask[::-1].idxmax(),
             )
             top_left = self.model.index(first_row, 1)
             bottom_right = self.model.index(
