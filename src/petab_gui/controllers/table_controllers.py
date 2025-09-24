@@ -776,7 +776,7 @@ class MeasurementController(TableController):
             re.IGNORECASE,
         )
         scores = {}
-        for col in df.columns:  # noqa: B007
+        for col in df.columns:
             s = 0.0
             if patt.search(col or ""):
                 s += 2.0
