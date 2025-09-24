@@ -134,6 +134,13 @@ def main():
     )
     args = parser.parse_args()
 
+    if sys.platform == "darwin":
+        from Foundation import NSBundle  # type: type: ignore[import]
+
+        bundle = NSBundle.mainBundle()
+        info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
+        info["CFBundleName"] = APP_NAME
+
     app = PEtabGuiApp(args.petab_yaml)
     sys.exit(app.exec())
 
