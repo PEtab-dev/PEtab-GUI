@@ -18,7 +18,7 @@ PEtab GUI - A graphical user interface for PEtab
 **PEtab GUI** is a user-friendly graphical interface for creating and managing parameter estimation problems using the `PEtab <https://petab.readthedocs.io/en/latest/>`_ format.
 
 .. note::
-   Current version: 0.1.3
+   Current version: |release|
 
 Quick Links
 -----------
