@@ -838,7 +838,6 @@ class MeasurementController(TableController):
         )
 
         scores: dict[str, float] = {}
-
         for col in df.columns:
             s = 0.0
 
