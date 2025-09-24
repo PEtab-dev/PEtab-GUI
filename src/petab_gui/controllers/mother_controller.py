@@ -166,7 +166,7 @@ class MainController:
         """Return the window title based on the model."""
         if isinstance(self.model.sbml, SbmlViewerModel):
             return self.model.sbml.model_id
-        return "PEtabGUI"
+        return APP_NAME
 
     def setup_context_menu(self):
         """Sets up context menus for the tables."""
