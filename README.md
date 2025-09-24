@@ -63,7 +63,7 @@ Download and unpack the [archive](https://github.com/Benchmarking-Initiative/Ben
 then open one of the YAML files inside `Benchmark-Models/*/` using
 PEtabGUI.
 `Benchmark-Models/Boehm_JProteomeRes2014/Boehm_JProteomeRes2014.yaml`
-should serve as good starting point.
+should serve as a good starting point.
 
 ## Features
 
