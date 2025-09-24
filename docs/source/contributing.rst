@@ -42,7 +42,7 @@ Filing an Issue
 ----------------
 
 If you encounter any bugs or have feature requests, please file an issue on GitHub.
-`Open a new issue <https://github.com/PaulJonasJost/PEtab_GUI/issues/new/choose>`__.
+`Open a new issue <https://github.com/PEtab-dev/PEtabGUI/issues/new/choose>`__.
 
 When filing an issue, provide as much detail as possible,
 including steps to reproduce the issue, expected behavior, and any relevant logs or screenshots.

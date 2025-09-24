@@ -29,7 +29,7 @@ pipx install petab_gui
 To install the latest development version from GitHub, run:
 
 ```bash
-pip install git+https://github.com/PaulJonasJost/PEtab_GUI/
+pip install git+https://github.com/PEtab-dev/PEtabGUI/
 ```
 
 ### From a local copy
@@ -37,7 +37,7 @@ pip install git+https://github.com/PaulJonasJost/PEtab_GUI/
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/PaulJonasJost/PEtab_GUI.git
+   git clone https://github.com/PEtab-dev/PEtabGUI.git
    ```
 
 2. Install the package from the root of the working tree:
@@ -55,7 +55,7 @@ Optionally, you can provide the path to an existing PEtab YAML file
 as an argument.
 
 After loading a PEtab problem, PEtabGUI will look something like this:
-![PEtabGUI Screenshot](https://raw.githubusercontent.com/PaulJonasJost/PEtab_GUI/screenshot/docs/source/_static/Application_Screenshot.png)
+![PEtabGUI Screenshot](https://raw.githubusercontent.com/PEtab-dev/PEtabGUI/screenshot/docs/source/_static/Application_Screenshot.png)
 
 ### Examples
 
