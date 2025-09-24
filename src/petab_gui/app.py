@@ -9,6 +9,7 @@ from PySide6.QtCore import QEvent
 from PySide6.QtGui import QFileOpenEvent, QIcon
 from PySide6.QtWidgets import QApplication
 
+from .C import APP_NAME
 from .controllers import MainController
 from .models import PEtabModel
 from .views import MainWindow
@@ -59,6 +60,7 @@ class PEtabGuiApp(QApplication):
         """
         super().__init__(sys.argv)
 
+        self.setApplicationName(APP_NAME)
         self.setWindowIcon(get_icon())
         self.model = PEtabModel()
         self.view = MainWindow()
@@ -120,7 +122,7 @@ def main():
     except PackageNotFoundError:
         pkg_version = "unknown"
 
-    parser = argparse.ArgumentParser(description="PEtabGUI: A PEtab editor")
+    parser = argparse.ArgumentParser(description=f"{APP_NAME}: A PEtab editor")
     parser.add_argument(
         "--version",
         action="version",
@@ -131,6 +133,13 @@ def main():
         "petab_yaml", nargs="?", help="Path to the PEtab YAML file"
     )
     args = parser.parse_args()
+
+    if sys.platform == "darwin":
+        from Foundation import NSBundle  # type: type: ignore[import]
+
+        bundle = NSBundle.mainBundle()
+        info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
+        info["CFBundleName"] = APP_NAME
 
     app = PEtabGuiApp(args.petab_yaml)
     sys.exit(app.exec())

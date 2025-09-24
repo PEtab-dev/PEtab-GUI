@@ -4,10 +4,6 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 from importlib.metadata import version as get_version
 
-rst_prolog = """
-.. |petab_doc_url| replace:: https://petab.readthedocs.io/en/latest/index.html
-"""
-
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -33,6 +29,10 @@ extensions = [
 templates_path = ["_templates"]
 exclude_patterns = []
 
+rst_prolog = f"""
+.. |petab_doc_url| replace:: https://petab.readthedocs.io/en/latest/index.html
+.. |release| replace:: {release}
+"""
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
