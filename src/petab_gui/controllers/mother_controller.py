@@ -4,6 +4,7 @@ import re
 import tempfile
 import zipfile
 from functools import partial
+from importlib.metadata import version
 from io import BytesIO
 from pathlib import Path
 
@@ -32,6 +33,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..C import APP_NAME, REPO_URL
 from ..models import PEtabModel, SbmlViewerModel
 from ..settings_manager import SettingsDialog, settings_manager
 from ..utils import (
@@ -164,7 +166,7 @@ class MainController:
         """Return the window title based on the model."""
         if isinstance(self.model.sbml, SbmlViewerModel):
             return self.model.sbml.model_id
-        return "PEtab Editor"
+        return APP_NAME
 
     def setup_context_menu(self):
         """Sets up context menus for the tables."""
@@ -437,6 +439,12 @@ class MainController:
         actions["whats_this"].setShortcut("Shift+F1")
         self._whats_this_filter = _WhatsThisClickHelp(actions["whats_this"])
         actions["whats_this"].toggled.connect(self._toggle_whats_this_mode)
+
+        # About action
+        actions["about"] = QAction(
+            qta.icon("mdi6.information"), "&About", self.view
+        )
+        actions["about"].triggered.connect(self.about)
 
         # connect actions
         actions["reset_view"] = QAction(
@@ -1157,6 +1165,24 @@ class MainController:
         msg.exec()
         if dont.isChecked():
             settings.setValue("help_mode/welcome_disabled", True)
+
+    def about(self):
+        """Show an about dialog."""
+        config_file = settings_manager.settings.fileName()
+        QMessageBox.about(
+            self.view,
+            f"About {APP_NAME}",
+            f"<b>{APP_NAME}</b><br>"
+            f"Version: {version('petab-gui')}<br>"
+            f"PEtab version: {version('petab')}<br><br>"
+            f"{APP_NAME} is a tool for editing and visualizing PEtab "
+            f"problems.<br><br>"
+            f"Visit the GitHub repository at "
+            f"<a href='{REPO_URL}'>{REPO_URL}</a> "
+            "for more information.<br><br>"
+            f"<small>Settings are stored in "
+            f"<a href='file://{config_file}'>{config_file}</a></small>",
+        )
 
     def get_current_problem(self):
         """Get the current PEtab problem from the model."""

@@ -1,4 +1,4 @@
-[![PyPI - Version](https://badge.fury.io/py/PEtab-GUI.svg)](pypi.org/project/PEtab-GUI/)
+[![PyPI - Version](https://badge.fury.io/py/PEtab-GUI.svg)](https://pypi.org/project/PEtab-GUI/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15355753.svg)](https://doi.org/10.5281/zenodo.15355753)
 
 # PEtabGUI

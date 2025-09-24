@@ -21,7 +21,8 @@ dependencies = [
     "petab[combine]>=0.6.0",
     "qtawesome",
     "copasi-basico",
-    "copasi-petab-importer"
+    "copasi-petab-importer",
+    "pyobjc; sys_platform == 'darwin'"
 ]
 license-files = ["LICENSE"]
 

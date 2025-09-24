@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..C import APP_NAME
 from ..models.tooltips import (
     COND_TABLE_TOOLTIP,
     DATA_PLOT_TOOLTIP,
@@ -39,7 +40,7 @@ class MainWindow(QMainWindow):
 
         self.allow_close = False
 
-        self.setWindowTitle("PEtabGUI")
+        self.setWindowTitle(APP_NAME)
         self.setGeometry(100, 100, 1200, 800)
 
         # Logger: used in both tabs
