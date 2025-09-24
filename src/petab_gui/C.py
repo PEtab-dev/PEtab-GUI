@@ -2,6 +2,11 @@
 
 import numpy as np
 
+#: Application name
+APP_NAME = "PEtabGUI"
+#: Base URL of the repository
+REPO_URL = "https://github.com/PaulJonasJost/PEtab_GUI"
+
 COLUMNS = {
     "measurement": {
         "observableId": {"type": np.object_, "optional": False},

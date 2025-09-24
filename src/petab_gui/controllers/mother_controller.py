@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..C import APP_NAME, REPO_URL
 from ..models import PEtabModel, SbmlViewerModel
 from ..settings_manager import SettingsDialog, settings_manager
 from ..utils import (
@@ -1160,18 +1161,17 @@ class MainController:
 
     def about(self):
         """Show an about dialog."""
-        repo_url = "https://github.com/PaulJonasJost/PEtab_GUI"
         config_file = settings_manager.settings.fileName()
         QMessageBox.about(
             self.view,
-            "About PEtabGUI",
-            f"<b>PEtabGUI</b><br>"
+            f"About {APP_NAME}",
+            f"<b>{APP_NAME}</b><br>"
             f"Version: {version('petab-gui')}<br>"
             f"PEtab version: {version('petab')}<br><br>"
-            f"PEtabGUI is a tool for editing and visualizing PEtab "
+            f"{APP_NAME} is a tool for editing and visualizing PEtab "
             f"problems.<br><br>"
             f"Visit the GitHub repository at "
-            f"<a href='{repo_url}'>{repo_url}</a> "
+            f"<a href='{REPO_URL}'>{REPO_URL}</a> "
             "for more information.<br><br>"
             f"<small>Settings are stored in "
             f"<a href='file://{config_file}'>{config_file}</a></small>",
