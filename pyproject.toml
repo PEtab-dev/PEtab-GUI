@@ -18,7 +18,7 @@ dependencies = [
     "antimony",
     "python-libsbml",
     "matplotlib",
-    "petab>=0.6.0",
+    "petab[combine]>=0.6.0",
     "qtawesome",
     "copasi-basico",
     "copasi-petab-importer",
