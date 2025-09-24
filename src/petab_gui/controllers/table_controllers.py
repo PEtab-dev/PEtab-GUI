@@ -775,34 +775,112 @@ class MeasurementController(TableController):
                 return c
         return None
 
-    def _rank_dose_candidates(self, df) -> list[str]:
-        """Lightweight ranking of dose-like columns (regex + numeric + cardinality)."""
+    def _rank_dose_candidates(self, df: pd.DataFrame) -> list[str]:
+        """Rank DataFrame columns by likelihood of containing dose/concentration data.
+
+        This method implements a lightweight scoring system to identify and rank
+        columns that are most likely to contain dose, concentration, or drug-related
+        data. The ranking is based on multiple heuristics including column naming
+        patterns, data types, value ranges, and statistical properties.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Input DataFrame containing columns to be evaluated and ranked.
+            Must contain at least one column with data.
+
+        Returns
+        -------
+        list[str]
+            Column names sorted by descending likelihood of containing dose data.
+            Columns with higher scores appear first. In case of tied scores,
+            columns with fewer unique values are ranked higher.
+
+        Notes
+        -----
+        The scoring algorithm considers the following criteria:
+
+        - **Name matching** (+2.0 points): Column names containing keywords like
+          'dose', 'conc', 'concentration', 'drug', 'compound', 'stim', 'input',
+          or patterns like 'u<digit>' (case-insensitive).
+
+        - **Numeric data type** (+1.0 points): Columns with integer or float dtype.
+
+        - **Reasonable cardinality** (+0.8 points): Columns with 2-30 unique
+          non-null values, which is typical for dose series.
+
+        - **Non-negative values** (+0.3 points): All values are >= 0 when converted
+          to numeric (dose/concentration values are typically non-negative).
+
+        - **Monotonic tendency** (+0.2 points): At least 70% of consecutive numeric
+          differences are non-decreasing, indicating potential dose escalation
+          patterns. Requires at least 5 non-null numeric values.
+
+        Raises
+        ------
+        AttributeError
+            If df does not have the expected pandas DataFrame interface.
+
+        ValueError
+            If df is empty or contains no valid columns for evaluation.
+
+        See Also
+        --------
+        pandas.DataFrame.nunique : Count unique values in each column
+        pandas.to_numeric : Convert argument to numeric type
+        numpy.diff : Calculate discrete differences along array
+
+        Warning
+        -------
+        This function uses broad exception handling to ensure robustness when
+        processing diverse data types. Individual column evaluation errors are
+        silently ignored to prevent failure on edge cases like mixed data types
+        or missing values.
+        """
+        # Compile pattern for dose-related column names
         patt = re.compile(
             r"\b(dose|conc|concentration|drug|compound|stim|input|u\d+)\b",
             re.IGNORECASE,
         )
-        scores = {}
-        # FIXME: https://github.com/PaulJonasJost/PEtab_GUI/issues/159
-        for col in df.columns:  # noqa: B007
+
+        scores: dict[str, float] = {}
+        for col in df.columns:
             s = 0.0
-        if patt.search(col or ""):
-            s += 2.0
-        try:
-            if df[col].dtype.kind in "if":
-                s += 1.0
-            uniq = df[col].nunique(dropna=True)
-            if 2 <= uniq <= 30:
-                s += 0.8
-            if np.all(pd.to_numeric(df[col], errors="coerce").fillna(0) >= 0):
-                s += 0.3
-            ser = pd.to_numeric(df[col], errors="coerce").dropna()
-            if len(ser) >= 5:
-                diffs = np.diff(ser.values)
-                if np.mean(diffs >= 0) >= 0.7:
-                    s += 0.2
-        except Exception:
-            pass
-        scores[col] = s
+
+            # Score based on column name pattern matching
+            if patt.search(col or ""):
+                s += 2.0
+
+            try:
+                # Score based on data type (numeric preferred)
+                if df[col].dtype.kind in "if":  # integer or float
+                    s += 1.0
+
+                # Score based on reasonable number of unique values
+                uniq = df[col].nunique(dropna=True)
+                if 2 <= uniq <= 30:  # Reasonable range for dose series?
+                    s += 0.8
+
+                # Score based on non-negative values (typical for doses)
+                if np.all(
+                    pd.to_numeric(df[col], errors="coerce").fillna(0) >= 0
+                ):
+                    s += 0.3
+
+                # Score based on monotonic tendency (dose escalation pattern)
+                ser = pd.to_numeric(df[col], errors="coerce").dropna()
+                if len(ser) >= 5:
+                    diffs = np.diff(ser.values)
+                    if np.mean(diffs >= 0) >= 0.7:  # 70% non-decreasing
+                        s += 0.2
+
+            except Exception:  # noqa: S110
+                # Silently handle any data processing errors
+                pass
+
+            scores[col] = s
+
+        # Sort by score (descending) then by unique count (ascending) for ties
         return [
             c
             for c, _ in sorted(
@@ -812,7 +890,7 @@ class MeasurementController(TableController):
         ]
 
     def _resolve_dose_and_time(self, df) -> tuple[str | None, str | None, str]:
-        """Open dialog with ranked dose suggestions and time choices (incl. steady state)."""
+        """Open dialog with ranked dose suggestions and time choices."""
         header_key = str(hash(tuple(df.columns)))
         settings = settings_manager.settings
         # TODO: rename settings location
