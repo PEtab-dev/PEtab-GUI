@@ -1,6 +1,7 @@
+[![PyPI - Version](https://badge.fury.io/py/PEtab-GUI.svg)](pypi.org/project/PEtab-GUI/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15355753.svg)](https://doi.org/10.5281/zenodo.15355753)
-# PEtabGUI
 
+# PEtabGUI
 
 PEtabGUI provides a graphical user interface to inspect and edit parameter
 estimation problems encoded in the
@@ -14,6 +15,13 @@ To install PEtabGUI from [PyPI](https://pypi.org/project/PEtab-GUI/), run:
 
 ```bash
 pip install petab_gui
+```
+
+or, to install PEtabGUI in a dedicated virtual environment using
+[pipx](https://github.com/pypa/pipx) (to be installed separately), run:
+
+```bash
+pipx install petab_gui
 ```
 
 ### From GitHub
@@ -45,6 +53,17 @@ After installation, launch PEtabGUI from the command line using the
 
 Optionally, you can provide the path to an existing PEtab YAML file
 as an argument.
+
+### Examples
+
+A set of real-world PEtab problems is available in the
+[PEtab benchmark collection](https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab).
+
+Download and unpack the [archive](https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab/archive/refs/heads/master.zip),
+then open one of the YAML files inside `Benchmark-Models/*/` using
+PEtabGUI.
+`Benchmark-Models/Boehm_JProteomeRes2014/Boehm_JProteomeRes2014.yaml`
+should serve as a good starting point.
 
 ## Features
 
