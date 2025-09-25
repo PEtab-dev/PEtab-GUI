@@ -588,30 +588,10 @@ class TableController(QObject):
                 f"Failed to save table: {str(e)}",
             )
 
-
-class MeasurementController(TableController):
-    """Controller of the Measurement table."""
-
-    @linter_wrapper
-    def check_petab_lint(
-        self,
-        row_data: pd.DataFrame = None,
-        row_name: str = None,
-        col_name: str = None,
-    ):
-        """Check a number of rows of the model with petablint."""
-        if row_data is None:
-            row_data = self.model.get_df()
-        observable_df = self.mother_controller.model.observable.get_df()
-        return petab.check_measurement_df(
-            row_data,
-            observable_df=observable_df,
-        )
-
     def rename_value(
         self, old_id: str, new_id: str, column_names: str | list[str]
     ):
-        """Rename the values in the measurement_df.
+        """Rename the values in the dataframe.
 
         Triggered by changes in the original observable_df or condition_df id.
 
@@ -621,6 +601,8 @@ class MeasurementController(TableController):
             The old id, which was changed.
         new_id:
             The new id.
+        column_names:
+            The column or list of columns in which the id should be changed.
         """
         if not isinstance(column_names, list):
             column_names = [column_names]
@@ -646,6 +628,26 @@ class MeasurementController(TableController):
 
             # Emit change signal
             self.model.something_changed.emit(True)
+
+
+class MeasurementController(TableController):
+    """Controller of the Measurement table."""
+
+    @linter_wrapper
+    def check_petab_lint(
+        self,
+        row_data: pd.DataFrame = None,
+        row_name: str = None,
+        col_name: str = None,
+    ):
+        """Check a number of rows of the model with petablint."""
+        if row_data is None:
+            row_data = self.model.get_df()
+        observable_df = self.mother_controller.model.observable.get_df()
+        return petab.check_measurement_df(
+            row_data,
+            observable_df=observable_df,
+        )
 
     def copy_noise_parameters(
         self, observable_id: str, condition_id: str | None = None

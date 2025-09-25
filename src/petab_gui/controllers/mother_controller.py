@@ -194,6 +194,13 @@ class MainController:
                 column_names="observableId",
             )
         )
+        self.observable_controller.observable_2be_renamed.connect(
+            partial(
+                self.visualization_controller.rename_value,
+                column_names="yValues",
+            )
+        )
+        # Maybe TODO: add renaming dataset id?
         # Rename Condition
         self.condition_controller.condition_2be_renamed.connect(
             partial(
