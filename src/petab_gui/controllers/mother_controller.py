@@ -155,11 +155,11 @@ class MainController:
         self.actions = self.setup_actions()
         self.view.setup_toolbar(self.actions)
 
+        self.plotter = None
+        self.init_plotter()
         self.setup_connections()
         self.setup_task_bar()
         self.setup_context_menu()
-        self.plotter = None
-        self.init_plotter()
 
     @property
     def window_title(self):
@@ -204,6 +204,13 @@ class MainController:
                 ],
             )
         )
+        # Plotting Disable Temporarily
+        for controller in self.controllers:
+            if controller == self.sbml_controller:
+                continue
+            controller.model.plotting_needs_break.connect(
+                self.plotter.disable_plotting
+            )
         # Add new condition or observable
         self.model.measurement.relevant_id_changed.connect(
             lambda x, y, z: self.observable_controller.maybe_add_observable(
