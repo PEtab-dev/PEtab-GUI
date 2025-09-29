@@ -289,9 +289,14 @@ class RecentFilesManager(QObject):
         self.update_tool_bar_menu()
 
     @staticmethod
-    def load_recent_files():
+    def load_recent_files() -> list[str]:
         """Load recent files from settings."""
-        return settings_manager.get_value("recent_files", [])
+        recent_files = settings_manager.get_value("recent_files", [])
+        # for reasons yet unknown, this can be a single string
+        #  instead of a list at times
+        if isinstance(recent_files, list):
+            return recent_files
+        return [recent_files]
 
     def save_recent_files(self):
         """Save recent files to settings."""
