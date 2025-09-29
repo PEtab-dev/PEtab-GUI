@@ -1,9 +1,9 @@
 [![PyPI - Version](https://badge.fury.io/py/PEtab-GUI.svg)](https://pypi.org/project/PEtab-GUI/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15355753.svg)](https://doi.org/10.5281/zenodo.15355753)
 
-# PEtabGUI
+# PEtab-GUI
 
-PEtabGUI provides a graphical user interface to inspect and edit parameter
+PEtab-GUI provides a graphical user interface to inspect and edit parameter
 estimation problems encoded in the
 [PEtab](https://petab.readthedocs.io/en/latest/#) format.
 
@@ -11,13 +11,13 @@ estimation problems encoded in the
 
 ### From PyPI
 
-To install PEtabGUI from [PyPI](https://pypi.org/project/PEtab-GUI/), run:
+To install PEtab-GUI from [PyPI](https://pypi.org/project/PEtab-GUI/), run:
 
 ```bash
 pip install petab_gui
 ```
 
-or, to install PEtabGUI in a dedicated virtual environment using
+or, to install PEtab-GUI in a dedicated virtual environment using
 [pipx](https://github.com/pypa/pipx) (to be installed separately), run:
 
 ```bash
@@ -29,7 +29,7 @@ pipx install petab_gui
 To install the latest development version from GitHub, run:
 
 ```bash
-pip install git+https://github.com/PEtab-dev/PEtabGUI/
+pip install git+https://github.com/PEtab-dev/PEtab-GUI/
 ```
 
 ### From a local copy
@@ -37,7 +37,7 @@ pip install git+https://github.com/PEtab-dev/PEtabGUI/
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/PEtab-dev/PEtabGUI.git
+   git clone https://github.com/PEtab-dev/PEtab-GUI.git
    ```
 
 2. Install the package from the root of the working tree:
@@ -48,14 +48,14 @@ pip install git+https://github.com/PEtab-dev/PEtabGUI/
 
 ## Usage
 
-After installation, launch PEtabGUI from the command line using the
+After installation, launch PEtab-GUI from the command line using the
 `petab_gui` command.
 
 Optionally, you can provide the path to an existing PEtab YAML file
 as an argument.
 
-After loading a PEtab problem, PEtabGUI will look something like this:
-![PEtabGUI Screenshot](https://raw.githubusercontent.com/PEtab-dev/PEtabGUI/screenshot/docs/source/_static/Application_Screenshot.png)
+After loading a PEtab problem, PEtab-GUI will look something like this:
+![PEtab-GUI Screenshot](https://raw.githubusercontent.com/PEtab-dev/PEtab-GUI/main/docs/source/_static/Application_Screenshot.png)
 
 ### Examples
 
@@ -64,13 +64,13 @@ A set of real-world PEtab problems is available in the
 
 Download and unpack the [archive](https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab/archive/refs/heads/master.zip),
 then open one of the YAML files inside `Benchmark-Models/*/` using
-PEtabGUI.
+PEtab-GUI.
 `Benchmark-Models/Boehm_JProteomeRes2014/Boehm_JProteomeRes2014.yaml`
 should serve as a good starting point.
 
 ## Features
 
-The PEtabGUI provides a Python-based graphical user interface that simplifies
+The PEtab-GUI provides a Python-based graphical user interface that simplifies
 the creation, editing, and validation of PEtab parameter estimation problems.
 
 - **Unified Environment**
