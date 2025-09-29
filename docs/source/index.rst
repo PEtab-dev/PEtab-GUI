@@ -7,8 +7,8 @@
 PEtab GUI - A graphical user interface for PEtab
 =================================================
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.15355753.svg
-   :target: https://doi.org/10.5281/zenodo.15355753
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.15355752.svg
+   :target: https://doi.org/10.5281/zenodo.15355752
    :alt: DOI
 
 .. image:: https://readthedocs.org/projects/petab-gui/badge/?version=latest
