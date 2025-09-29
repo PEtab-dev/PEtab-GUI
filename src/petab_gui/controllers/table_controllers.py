@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..C import COLUMN, INDEX
+from ..commands import RenameValueCommand
 from ..models.pandas_table_model import (
     PandasTableFilterProxy,
     PandasTableModel,
@@ -588,6 +589,25 @@ class TableController(QObject):
                 f"Failed to save table: {str(e)}",
             )
 
+    def rename_value(
+        self, old_id: str, new_id: str, column_names: str | list[str]
+    ):
+        """Rename the values in the dataframe.
+
+        Triggered by changes in the original observable_df or condition_df id.
+
+        Parameters
+        ----------
+        old_id:
+            The old id, which was changed.
+        new_id:
+            The new id.
+        column_names:
+            The column or list of columns in which the id should be changed.
+        """
+        command = RenameValueCommand(self.model, old_id, new_id, column_names)
+        self.undo_stack.push(command)
+
 
 class MeasurementController(TableController):
     """Controller of the Measurement table."""
@@ -607,45 +627,6 @@ class MeasurementController(TableController):
             row_data,
             observable_df=observable_df,
         )
-
-    def rename_value(
-        self, old_id: str, new_id: str, column_names: str | list[str]
-    ):
-        """Rename the values in the measurement_df.
-
-        Triggered by changes in the original observable_df or condition_df id.
-
-        Parameters
-        ----------
-        old_id:
-            The old id, which was changed.
-        new_id:
-            The new id.
-        """
-        if not isinstance(column_names, list):
-            column_names = [column_names]
-
-        for col_name in column_names:
-            # Find occurrences
-            mask = self.model._data_frame[col_name].eq(old_id)
-            if not mask.any():
-                continue
-
-            self.model._data_frame.loc[mask, col_name] = new_id
-            first_row, last_row = (
-                mask.idxmax(),
-                mask[::-1].idxmax(),
-            )
-            top_left = self.model.index(first_row, 1)
-            bottom_right = self.model.index(
-                last_row, self.model.columnCount() - 1
-            )
-            self.model.dataChanged.emit(
-                top_left, bottom_right, [Qt.DisplayRole, Qt.EditRole]
-            )
-
-            # Emit change signal
-            self.model.something_changed.emit(True)
 
     def copy_noise_parameters(
         self, observable_id: str, condition_id: str | None = None

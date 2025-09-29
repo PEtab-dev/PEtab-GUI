@@ -45,6 +45,7 @@ class PandasTableModel(QAbstractTableModel):
     cell_needs_validation = Signal(int, int)  # row, column
     something_changed = Signal(bool)
     inserted_row = Signal(QModelIndex)
+    plotting_needs_break = Signal(bool)
 
     def __init__(
         self,
@@ -310,6 +311,7 @@ class PandasTableModel(QAbstractTableModel):
 
         if is_invalid(value) or value == "":
             value = None
+        self.plotting_needs_break.emit(True)  # Temp disable plotting
         multi_row_change = False
         if check_multi:
             # check whether multiple rows but only one column is selected
@@ -318,6 +320,7 @@ class PandasTableModel(QAbstractTableModel):
             self.undo_stack.beginMacro("Set data")
             success = self._set_data_single(index, value)
             self.undo_stack.endMacro()
+            self.plotting_needs_break.emit(False)
             return success
         # multiple rows but only one column is selected
         all_set = []
@@ -325,6 +328,7 @@ class PandasTableModel(QAbstractTableModel):
         for index in selected:
             all_set.append(self._set_data_single(index, value))
         self.undo_stack.endMacro()
+        self.plotting_needs_break.emit(False)
         return all(all_set)
 
     def _set_data_single(self, index, value):

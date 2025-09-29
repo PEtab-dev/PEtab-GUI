@@ -75,6 +75,7 @@ class MeasurementPlotter(QDockWidget):
         self.update_timer.setSingleShot(True)
         self.update_timer.timeout.connect(self.plot_it)
         self.observable_to_subplot = {}
+        self.no_plotting_rn = False
 
     def initialize(
         self, meas_proxy, sim_proxy, cond_proxy, vis_proxy, petab_model
@@ -104,6 +105,8 @@ class MeasurementPlotter(QDockWidget):
         self.plot_it()
 
     def plot_it(self):
+        if self.no_plotting_rn:
+            return
         if not self.meas_proxy or not self.cond_proxy:
             return
         if not self.isVisible():
@@ -335,6 +338,12 @@ class MeasurementPlotter(QDockWidget):
         )
         # fig_fit.tight_layout()
         create_plot_tab(fig_fit, self, "Goodness of Fit")
+
+    def disable_plotting(self, disable: bool):
+        """Set self.no_plotting_rn to enable/disable plotting."""
+        self.no_plotting_rn = disable
+        if not self.no_plotting_rn:
+            self._debounced_plot()
 
 
 class MeasurementHighlighter:
