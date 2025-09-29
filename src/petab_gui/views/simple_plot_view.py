@@ -230,6 +230,7 @@ class MeasurementPlotter(QDockWidget):
             sub_ax.set_xlabel(ax.get_xlabel())
             sub_ax.set_ylabel(ax.get_ylabel())
             sub_ax.legend()
+            sub_fig.tight_layout()
 
             sub_canvas = create_plot_tab(
                 sub_fig,
