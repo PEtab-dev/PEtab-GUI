@@ -32,7 +32,7 @@ Alternatively, you can install it from the GitHub repository by following these 
 
    .. code-block:: bash
 
-      git clone https://github.com/PaulJonasJost/PEtab_GUI.git
+      git clone https://github.com/PEtab-dev/PEtabGUI.git
 
 2. Install using pip:
 

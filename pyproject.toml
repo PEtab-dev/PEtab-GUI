@@ -42,8 +42,8 @@ doc = [
 ]
 
 [project.urls]
-Repository = "https://github.com/PaulJonasJost/PEtab_GUI"
-Issues = "https://github.com/PaulJonasJost/PEtab_GUI/issues"
+Repository = "https://github.com/PEtab-dev/PEtabGUI"
+Issues = "https://github.com/PEtab-dev/PEtabGUI/issues"
 
 [project.gui-scripts]
 petab_gui="petab_gui:main"
