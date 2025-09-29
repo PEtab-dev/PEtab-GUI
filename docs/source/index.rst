@@ -23,8 +23,8 @@ PEtab GUI - A graphical user interface for PEtab
 Quick Links
 -----------
 
-* `GitHub Repository <https://github.com/PEtab-dev/PEtabGUI>`_
-* `Issue Tracker <https://github.com/PEtab-dev/PEtabGUI/issues>`_
+* `GitHub Repository <https://github.com/PEtab-dev/PEtab-GUI>`_
+* `Issue Tracker <https://github.com/PEtab-dev/PEtab-GUI/issues>`_
 * `PEtab Documentation <https://petab.readthedocs.io/en/latest/>`_
 
 Overview
@@ -54,5 +54,5 @@ To get started with PEtab GUI, check out the :doc:`installation instructions <re
    :maxdepth: 1
    :caption: Development
 
-   GitHub Repository <https://github.com/PEtab-dev/PEtabGUI>
+   GitHub Repository <https://github.com/PEtab-dev/PEtab-GUI>
    contributing

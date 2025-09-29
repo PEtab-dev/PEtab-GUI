@@ -2,6 +2,8 @@
 
 from datetime import datetime
 
+from ..C import APP_NAME, DOCS_URL
+
 
 class LoggerController:
     """Mainly responsible for handling the logger widget."""
@@ -16,11 +18,11 @@ class LoggerController:
         """
         self.views = views
         self.logger_level = 1
-        self.log_message("Welcome to PEtabGUI!", color="green")
+        self.log_message(f"Welcome to {APP_NAME}!", color="green")
         self.log_message(
             "If you need help, click <b>Help</b> in the menu,"
             " enter the Help Mode (click question mark in toolbar) or visit "
-            'the <a href="https://petab-gui.readthedocs.io/en/latest/" '
+            f'the <a href="{DOCS_URL}" '
             'style="color:blue;" target="_blank">documentation</a>.',
             color="green",
         )

@@ -3,9 +3,11 @@
 import numpy as np
 
 #: Application name
-APP_NAME = "PEtabGUI"
+APP_NAME = "PEtab-GUI"
 #: Base URL of the repository
-REPO_URL = "https://github.com/PEtab-dev/PEtabGUI"
+REPO_URL = "https://github.com/PEtab-dev/PEtab-GUI"
+#: Base URL of the documentation
+DOCS_URL = "https://petab-gui.readthedocs.io/en/latest/"
 
 COLUMNS = {
     "measurement": {
