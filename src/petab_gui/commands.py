@@ -318,3 +318,46 @@ class RenameIndexCommand(QUndoCommand):
         self.model.dataChanged.emit(
             self.model_index, self.model_index, [Qt.DisplayRole]
         )
+
+
+class RenameValueCommand(QUndoCommand):
+    """Command to rename values in specified columns."""
+
+    def __init__(
+        self, model, old_id: str, new_id: str, column_names: str | list[str]
+    ):
+        super().__init__(f"Rename value {old_id} → {new_id}")
+        self.model = model
+        self.old_id = old_id
+        self.new_id = new_id
+        self.column_names = (
+            column_names if isinstance(column_names, list) else [column_names]
+        )
+        self.changes = {}  # {(row_idx, col_name): (old_val, new_val)}
+
+        df = self.model._data_frame
+        for col_name in self.column_names:
+            mask = df[col_name].eq(self.old_id)
+            for row_idx in df.index[mask]:
+                self.changes[(row_idx, col_name)] = (self.old_id, self.new_id)
+
+    def redo(self):
+        self._apply_changes(use_new=True)
+
+    def undo(self):
+        self._apply_changes(use_new=False)
+
+    def _apply_changes(self, use_new: bool):
+        df = self.model._data_frame
+        for (row_idx, col_name), (old_val, new_val) in self.changes.items():
+            df.at[row_idx, col_name] = new_val if use_new else old_val
+
+        if self.changes:
+            rows = [df.index.get_loc(row) for (row, _) in self.changes]
+            cols = [df.columns.get_loc(col) + 1 for (_, col) in self.changes]
+            top_left = self.model.index(min(rows), min(cols))
+            bottom_right = self.model.index(max(rows), max(cols))
+            self.model.dataChanged.emit(
+                top_left, bottom_right, [Qt.DisplayRole, Qt.EditRole]
+            )
+            self.model.something_changed.emit(True)

@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..C import COLUMN, INDEX
+from ..commands import RenameValueCommand
 from ..models.pandas_table_model import (
     PandasTableFilterProxy,
     PandasTableModel,
@@ -604,30 +605,8 @@ class TableController(QObject):
         column_names:
             The column or list of columns in which the id should be changed.
         """
-        if not isinstance(column_names, list):
-            column_names = [column_names]
-
-        for col_name in column_names:
-            # Find occurrences
-            mask = self.model._data_frame[col_name].eq(old_id)
-            if not mask.any():
-                continue
-
-            self.model._data_frame.loc[mask, col_name] = new_id
-            first_row, last_row = (
-                mask.idxmax(),
-                mask[::-1].idxmax(),
-            )
-            top_left = self.model.index(first_row, 1)
-            bottom_right = self.model.index(
-                last_row, self.model.columnCount() - 1
-            )
-            self.model.dataChanged.emit(
-                top_left, bottom_right, [Qt.DisplayRole, Qt.EditRole]
-            )
-
-            # Emit change signal
-            self.model.something_changed.emit(True)
+        command = RenameValueCommand(self.model, old_id, new_id, column_names)
+        self.undo_stack.push(command)
 
 
 class MeasurementController(TableController):
