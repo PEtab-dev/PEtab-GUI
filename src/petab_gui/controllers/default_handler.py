@@ -66,7 +66,9 @@ class DefaultHandlerModel:
         default_value = column_config.get(DEFAULT_VALUE, "")
 
         if strategy == USE_DEFAULT:
-            if np.issubdtype(self.model.dtypes[column_name], np.floating):
+            if column_name != self.model.index.name and np.issubdtype(
+                self.model.dtypes[column_name], np.floating
+            ):
                 return float(default_value)
             return default_value
         if strategy == NO_DEFAULT:
