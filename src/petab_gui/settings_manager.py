@@ -286,7 +286,7 @@ class TableDefaultsWidget(QWidget):
 
     def default_col_config(self):
         """Return default config for new columns."""
-        return {"strategy": NO_DEFAULT}
+        return settings_manager.get_table_defaults(self.table_name)
 
 
 class SettingsDialog(QDialog):
@@ -332,7 +332,8 @@ class SettingsDialog(QDialog):
         # Header
         header = QLabel("<b>Profile</b>")
         desc = QLabel(
-            "These information can be automatically used when saving a COMBINE archive."
+            "These information can be automatically used when saving "
+            "a COMBINE archive."
         )
         desc.setWordWrap(True)
 
