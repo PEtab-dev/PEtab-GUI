@@ -60,7 +60,7 @@ The Main Window
 
 When you first launch **PEtab-GUI**, you'll see the main window as shown below:
 
-.. figure:: _static/Table_View_withInfo.pdf
+.. figure:: _static/Table_View_withInfo.png
    :alt: PEtab-GUI Main Window
    :width: 100%
    :align: center
@@ -109,7 +109,7 @@ The interface is organized into several key areas:
     Changes in these can be forwarded to the other editor, allowing you to work in your preferred format.
     → See: :ref:`sbml-editor`
 
-  .. figure:: _static/SBML_Antimony_Editors.pdf
+  .. figure:: _static/SBML_Antimony_Editors.png
     :alt: SBML and Antimony Editors
     :width: 100%
     :align: center
@@ -242,7 +242,7 @@ Validation and Inspection
 Once you have filled out all the tables, it is important to validate your PEtab problem to avoid errors during parameter estimation.
 PEtab-GUI supports this through **Visualization and Simulation** and **Linting** features:
 
-  .. figure:: _static/Table_View_PlotView.pdf
+  .. figure:: _static/Table_View_PlotView.png
    :alt: SBML and Antimony Editors
    :width: 100%
    :align: center
