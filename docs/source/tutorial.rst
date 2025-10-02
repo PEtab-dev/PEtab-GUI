@@ -1,9 +1,8 @@
 ======================
-PEtab GUI Tutorial
+PEtab-GUI Tutorial
 ======================
 
-
-This tutorial provides a comprehensive guide to using PEtab GUI for creating and managing parameter estimation problems for systems biology models.
+This tutorial provides a comprehensive guide to using PEtab-GUI for creating and managing `PEtab <https://petab.readthedocs.io/en/latest/>`__ parameter estimation problems for systems biology models.
 
 .. contents::
    :depth: 3
@@ -12,7 +11,7 @@ This tutorial provides a comprehensive guide to using PEtab GUI for creating and
 Introduction
 ------------
 
-PEtab GUI is a graphical user interface for the `PEtab <https://petab.readthedocs.io/en/latest/>`_ format, which is a standardized way to specify parameter estimation problems in systems biology. This tutorial will guide you through the entire workflow of creating a parameter estimation problem using PEtab GUI.
+PEtab-GUI is a graphical user interface for the `PEtab <https://petab.readthedocs.io/en/latest/>`__ format, which is a standardized way to specify parameter estimation problems in systems biology. This tutorial will guide you through the entire workflow of creating a parameter estimation problem using PEtab-GUI.
 
 Getting Started
 ---------------
@@ -20,7 +19,7 @@ Getting Started
 Installation
 ~~~~~~~~~~~~
 
-Before you begin, make sure you have PEtab GUI installed. You can install it directly from PyPI using pip:
+Before you begin, make sure you have PEtab-GUI installed. You can install it directly from PyPI using pip:
 
 .. code-block:: bash
 
@@ -44,7 +43,7 @@ Alternatively, you can install it from the GitHub repository by following these 
 Launching the Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To start PEtab GUI, run the following command:
+To start PEtab-GUI, run the following command:
 
 .. code-block:: bash
 
@@ -56,56 +55,56 @@ If you want to open an existing PEtab project, you can specify the path to the Y
 
    petab_gui path/to/your/project.yaml
 
-The Main Interface
-------------------
+The Main Window
+---------------
 
-When you first launch **PEtab GUI**, you'll see the main interface as shown below:
+When you first launch **PEtab-GUI**, you'll see the main window as shown below:
 
 .. figure:: _static/Table_View_withInfo.pdf
-   :alt: PEtab GUI Main Interface
+   :alt: PEtab-GUI Main Window
    :width: 100%
    :align: center
 
-   **PEtab GUI Main Interface**: (1) Every Table is in its own a dockable panel. Using the buttons in (2) you can get each widget as a separate window or close it entirely. To reopen it, use the `View` menu in the menu bar.
-   (3) The info widget shows log messages and clickable documentation links. Here you will be informed about deleted lines, potential formatting problems and more. (4) The toolbar provides quick access to common actions
-   like file open/save, table modification, and model simulation. (5) The filter allows you to only look at specific rows. The filterbuttons to the right let you select in which tables the filter should be applied.
-   (6) If you are unsure what to do, you can enter the **Tutorial Mode** by clicking the question mark icon in the toolbar. This wil allow you to click different widgets or columns in the tables to get more information about their purpose.
+   **PEtab-GUI Main Window**: (1) Every Table is in its own dockable panel. Using the buttons in (2) you can get each widget as a separate window or close it entirely. To reopen it, use the :menuselection:`&View` menu in the menu bar.
+   (3) The :guilabel:`Info` widget shows log messages and clickable documentation links. Here you will be informed about deleted lines, potential validation problems and more. (4) The toolbar provides quick access to common actions
+   like opening/saving files, table modification, and model simulation. (5) The filter allows you to only look at specific rows. The filterbuttons to the right let you select in which tables the filter should be applied.
+   (6) If you are unsure what to do, you can enter the **Tutorial Mode** by clicking the question mark icon in the toolbar. This will allow you to click different widgets or columns in the tables to get more information about their purpose.
 
 The interface is organized into several key areas:
 
 - **Menu Bar**:
-  At the top, providing access to `File`, `Edit`, `View`, and `Help`. These items allow you to edit your petab problem and navigate the application. Most notably, the `View` menu allows you to toggle the visibility of the different panels.
+  At the top, providing access to :menuselection:`&File`, :menuselection:`&Edit`, :menuselection:`&View`, and :menuselection:`&Help`. These items allow you to edit your PEtab problem and navigate the application. Most notably, the :menuselection:`&View` menu allows you to toggle the visibility of the different panels.
 
 - **Toolbar**:
-  Below the menu bar, offering quick access to common actions like file open/save, table modification, and model simulation.
+  Below the menu bar, offering quick access to common actions like opening/saving files, table modification, and model simulation.
 
-- **Main Interface**:
+- **Main Window**:
 
-  The main interface of the application can be categorized into two main sections that can be selected via the tab navigation:
+  The main window of the application can be categorized into two main sections that can be selected via tab navigation:
 
   - **Data Tables** (left tab):
     Six dockable table panels, each corresponding to a PEtab table (see also the `PEtab Documentation`_):
 
-    * **Measurement Table**: Define experimental observations
+    * :guilabel:`Measurement Table`: Define experimental observations
       → See: :ref:`measurement-table`
-    * **Observable Table**: Specify the formulas and noise models
+    * :guilabel:`Observable Table`: Specify the formulas and noise models
       → See: :ref:`observable-table`
-    * **Visualization Table**: Assign plotting preferences
+    * :guilabel:`Visualization Table`: Assign plotting preferences
       → See: :ref:`visualization-table`
-    * **Parameter Table**: Set parameter IDs, bounds, and scales
+    * :guilabel:`Parameter Table`: Set parameter IDs, bounds, and scales
       → See: :ref:`parameter-table`
-    * **Condition Table**: Describe experimental conditions
+    * :guilabel:`Condition Table`: Describe experimental conditions
       → See: :ref:`condition-table`
-    * **Info Panel**: Displays log messages and clickable documentation links
-    * **Measurement Plot Panel**:
+    * :guilabel:`Info` panel: Displays log messages and clickable documentation links
+    * :guilabel:`Measurement Plot` panel:
       At the bottom, visualizes the measurement data based on your current model.
       → See: :ref:`visualization-table`
 
   - **SBML Model** (right tab):
-    A built-in editor for creating and editing SBML models. It is split into two synced editors:
+    A built-in editor for creating and editing `SBML <https://sbml.org/>`__ models. It is split into two synced editors:
 
     * **SBML Model Editor**: For editing the SBML model directly.
-    * **Antimony Editor**: For editing the Antimony representation of the model.
+    * **Antimony Editor**: For editing the `Antimony <https://github.com/sys-bio/antimony/>`__ representation of the model.
 
     Changes in these can be forwarded to the other editor, allowing you to work in your preferred format.
     → See: :ref:`sbml-editor`
@@ -118,21 +117,21 @@ The interface is organized into several key areas:
     **SBML and Antimony Editors**: The second tab of the GUI application. The SBML editor (1) allows you to edit the SBML model directly, while the Antimony editor (2) provides a more human-readable format. Changes in one editor can be forwarded to the other using the buttons below them.
 
 We can can now start creating a new PEtab problem or edit an existing one. The following sections will guide you through the process of defining and editing your model, experimental conditions, measurements, observables, and parameters.
-While at each step we will learn about the different panels and how to fill the corresponding tables, it might be helpful to have a look at the `PEtab Documentation`_ to get a better understanding of the PEtab format and its requirements.
+While at each step we will learn about the different panels and how to fill the corresponding tables, it might be helpful to have a look at the `PEtab Documentation`_ (`tutorial <https://petab.readthedocs.io/en/latest/v1/tutorial/tutorial.html>`__) to get a better understanding of the PEtab format and its requirements.
 
 Opening an Existing PEtab Problem
 ----------------------------------
 
-If you already have a PEtab problem defined in a YAML file or you have your SBML model already, you can open them directly in PEtab GUI:
+If you already have a PEtab problem defined in a YAML file or you have your SBML model already, you can open them directly in PEtab-GUI:
 
-1. Through the menu bar, go to **File > Open**. This will open a file dialog, where you can select your YAML file, SBML model file, or any other PEtab-related files.
-2. Alternatively, you can drag and drop your YAML file onto the PEtab GUI window. The application will automatically handle the file and load the relevant data into the interface.
-3. If you want to continue working on an existing PEtab problem, you can also use the **File > Recent Files** menu to quickly access recently opened projects.
+1. Through the menu bar, go to :menuselection:`&File --> &Open`. This will open a file dialog, where you can select your YAML file, SBML model file, or any other PEtab-related files.
+2. Alternatively, you can drag and drop your YAML file onto the PEtab-GUI window. The application will automatically handle the file and load the relevant data into the interface.
+3. If you want to continue working on an existing PEtab problem, you can also use the :menuselection:`&File --> Recent Files` menu to quickly access recently opened projects.
 
 Creating/Editing a PEtab Problem
 --------------------------------
 
-Since a PEtab problem consists of several components, we will go through the process step by step. The following sections will guide you through creating or editing a PEtab problem using the PEtab GUI.
+Since a PEtab problem consists of several components, we will go through the process step by step. The following sections will guide you through creating or editing a PEtab problem using the PEtab-GUI.
 While there is no strict order in which you have to fill the tables, we will follow a logical sequence that starts with the model definition, followed by measurements, experimental conditions, observables, and parameters.
 
 
@@ -147,13 +146,16 @@ the model directly in `SBML <https://sbml.org>`_ or in the much more readable
 `Antimony <https://github.com/sys-bio/antimony/blob/develop/doc/AntimonyTutorial.md>`_ and then converting it to SBML.
 
 .. dropdown:: 💡 Need help understanding what an SBML model is?
-  -- ask chatgpt --
 
-If you are creating a new model, the empty antimony template might help in getting started. Here is a simple example showcasing how species, reactions, and parameters can be defined:
+   -- ask chatgpt --
+
+If you are creating a new model, the empty antimony template might help in getting started.
+Here is a simple example showcasing how species, reactions, and parameters can be defined:
+
 .. code-block::
 
    model *ExampleModel
-     // Reakcions
+     // Reactions
      J0: S1 -> S2 + S3; k1*S1 # Mass-action kinetics
      J1: S2 -> S3 + S4; k2*S2
      // Species initialization
@@ -173,16 +175,16 @@ Specifying Measurements
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Indispensable for parameter estimation problems are the measurements that will be used to fit the model parameters.
-In PEtab GUI, you can define these measurements in the **Measurement Table**.
+In PEtab-GUI, you can define these measurements in the :guilabel:`Measurement Table`.
 While it is possible to create a new measurement table from scratch, it is usually more convenient to import an already
-existing measurement file. In our experience, most measurements exist in some matrix format. Time data might have each
+existing measurement file. In our experience, most measurements exist in some matrix format. Time-resolved data might have each
 row corresponding to a time point and each column corresponding to a different observable.
 Similar can Dose-Response data be structured, where each row corresponds to a different dose.
-Accounting for these common formats, PEtab GUI handles opening a CSV or TSV file by checking whether it is a time series,
+Accounting for these common formats, PEtab-GUI handles opening a CSV or TSV file by checking whether it is a time series,
 dose-response, or a PEtab measurement file. Simply drag and drop your file into the **Measurement Table** or
-use the **File > Open** option. In general what we need to specify in the measurement table are:
+use the :menuselection:`&File --> &Open` option. In general what we need to specify in the measurement table are:
 
-1. **observableID**: A unique identifier for the observable that this measurement corresponds to. This should match the observable IDs defined in the **Observable Table**.
+1. **observableId**: A unique identifier for the observable that this measurement corresponds to. This should match the observable IDs defined in the **Observable Table**.
 2. **simulationConditionId**: The condition under which the measurement was taken. You are free to choose a name but it should be consistent with the conditions defined in the **Condition Table**.
 3. **time** and **measurement**: The time point and corresponding measurements.
 
@@ -195,17 +197,17 @@ Defining Observables
 ~~~~~~~~~~~~~~~~~~~~
 
 Observables define how model species are mapped to measured quantities. When you create a measurement in the
-**Measurement Table**, you need to specify which observable it corresponds to. If it is not already defined, PEtab GUI
+**Measurement Table**, you need to specify which observable it corresponds to. If it is not already defined, PEtab-GUI
 will automatically create a new observable entry in the **Observable Table**. You will only have to fill out the actual
 function in the **observableFormula** column, which defines how the observable is calculated from the model species. In
-the easiest cae, this just corresponds to the species ID, e.g. `S1`. But it could also be a more function like
-`k_scale * (S1 + S2)`, that even introduce new parameters, e.g. `k_scale`.
+the easiest case, this just corresponds to the species ID, e.g. ``S1``. But it could also be a more complex expression like
+``k_scale * (S1 + S2)``, that even introduces new parameters, e.g. ``k_scale``.
 
-In general we assume that the measurement is subject to some noise. Per default the noise is normally distributed and
+In general, we assume that the measurement is subject to some noise. Per default the noise is normally distributed and
 within the `noiseFormula` column you can specify the standard deviation of the noise. Again, this formula can be a
 simple number or a more complex formula introducing new parameters.
 
-For more details on e.g. how to change the noise model, see the `PEtab Documentation`_.
+For more details, for example on how to change the noise model, see the `PEtab Documentation`_.
 
 
 .. _condition-table:
@@ -213,8 +215,8 @@ For more details on e.g. how to change the noise model, see the `PEtab Documenta
 Setting Up Experimental Conditions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Experimental conditions define the specific settings under which measurements were taken. Aside from the conditionID column,
-all other columns are optional. The other columsn may either be a specific parameter value that has differen values across the conditions
+Experimental conditions define the specific settings under which measurements were taken. Aside from the `conditionId` column,
+all other columns are optional. The other columns may either set a parameter to take different values across the conditions
 or an initial value for a species that is different across conditions (e.g. in case of a dose-response experiment).
 Just as in the observable table, new conditions can be created automatically when you create a new measurement in the **Measurement Table**.
 
@@ -227,9 +229,9 @@ Setting Up Parameters
 The last thing you will want to fill out is the **Parameter Table**. This table defines the parameters that
 are part of the estimation problem. This includes parameters from the SBML model, observables, and noise models.
 For every parameter you declare in the `estimate` column whether it should be estimated during the parameter estimation or not.
-Additionally you specify maximum and minimum bounds for the parameter values in the `upperBound` and `lowerBound` columns, respectively.
-If your parameter is not to be estimated, you need to specify a `nominalValue`. PEtab GUI aids you in this process by suggesting
-parameter names from the sbml model you might want to add here.
+Additionally you specify lower and upper bounds for the parameter values in the `lowerBound` and `upperBound` columns, respectively.
+If your parameter is not to be estimated, you need to specify a `nominalValue`. PEtab-GUI aids you in this process by suggesting
+parameter IDs from the SBML model you might want to add here.
 
 
 .. _visualization-table:
@@ -238,14 +240,14 @@ Validation and Inspection
 -------------------------
 
 Once you have filled out all the tables, it is important to validate your PEtab problem to avoid errors during parameter estimation.
-PEtab GUI supports this through **Visualization and Simulation** and **Linting** features:
+PEtab-GUI supports this through **Visualization and Simulation** and **Linting** features:
 
   .. figure:: _static/Table_View_PlotView.pdf
    :alt: SBML and Antimony Editors
    :width: 100%
    :align: center
 
-   **PEtab GUI with Visualization and Simulation Panels**: Once you have defined measurements, you can add the **Measurement Plot** to visualize your measurements. You can also add the **Simulation Table** and **Visualization Table** to run simulations and visualize the results.
+   **PEtab-GUI with Visualization and Simulation Panels**: Once you have defined measurements, you can add the **Measurement Plot** to visualize your measurements. You can also add the **Simulation Table** and **Visualization Table** to run simulations and visualize the results.
    (1) The three tables can be neatly arranged next to each other. (2) Within the measurement panel, you can click on different plots. If you have specified multiple plots, *All Plots* will show every plot specified, followed by tabs for each individual plot.
    If you have simulations you additionally get a residual plot and a scatterplot of the fit. Through the settings symbol (3) you can change whether you want to plot by observable, condition or defined by the visualization table.
 
@@ -253,18 +255,18 @@ PEtab GUI supports this through **Visualization and Simulation** and **Linting**
 Visualization and Simulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In the **Measurement Plot** panel, you will see a visualization of your measurements. You can click on single points in the
-measurement plot to see the corresponding measurement in the **Measurement Table** and vice versa. This can already help getting an
+In the :guilabel:`Measurement Plot` panel, you will see a visualization of your measurements. You can click on individual points in the
+measurement plot to see the corresponding measurement in the :guilabel:`Measurement Table` and vice versa. This can already help getting an
 idea of the dynamics of your model and spot potential outliers in your measurements.
 
 Once you have defined all the necessary components, you might want to see whether a specific parameter set leads to a good fit of the model to the measurements.
-For this you can add two panels to the main interface, the **Simulation Table** and the **Visualization Table**.
-The **Simulation Tabel** panel is strictly speaking not part of the PEtab problem definition.
-Structurally it is the same as the **Measurement Plot** panel, with the sole differen that the column `measurement`
+For this you can add two panels to the main interface, the :guilabel:`Simulation Table` and the :guilabel:`Visualization Table`.
+The **Simulation Table** panel is strictly speaking not part of the PEtab problem definition.
+Structurally it is the same as the **Measurement Plot** panel, with the sole difference that the column `measurement`
 is replaced by `simulation`.
 The **Visualization Table** allows you to specify how the measurements (and simulations) should be visualized. In short:
 
-* every plotId corresponds to a specific plot. Rows that have the same plotId will be plotted together.
+* every `plotId` corresponds to a specific plot. Rows that have the same `plotId` will be plotted together.
 * You specify your `xValues` and `yValues` for each row.
 * You can specify additional details, such as offsets and scale. For more details see the `PEtab Documentation`_.
 
@@ -278,10 +280,10 @@ Linting
 
 Linting is the process of automatically checking your tables for structural and logical errors during editing.
 
-PEtab GUI offers two layers of linting support:
+PEtab-GUI offers two layers of linting support:
 
 - **Partial Linting on Edit**:
-  Whenever you modify a single row in any table, PEtab GUI will **immediately lint that row** in context.
+  Whenever you modify a single row in any table, PEtab-GUI will **immediately lint that row** in context.
   This allows you to catch errors as you build your PEtab problem — such as missing required fields, mismatched IDs, invalid references, or inconsistent units.
 
 - **Full Model Linting**:
@@ -291,14 +293,14 @@ PEtab GUI offers two layers of linting support:
 All linting messages — including errors and warnings — appear in the **Info** panel at the bottom right of the interface.
 Messages include timestamps, color coding (e.g., red for errors, orange for warnings), and sometimes clickable references or hints.
 
-By using linting early and often, you can avoid many common errors in PEtab model definition and ensure compatibility with downstream tools.
+By using linting early and often, you can avoid many common errors in PEtab problem definition and ensure compatibility with downstream tools.
 
 
 Saving Your Project
 -------------------
 
 Once you've set up your parameter estimation problem, and sufficiently validated it, you can save your project. This
-can be done either as a compressed ZIP file or as a COMBINE archive. You can also save each table as a separate CSV file.
+can be done either as a compressed ZIP file or as a `COMBINE archive <https://combinearchive.org/>`__. You can also save each table as a separate CSV file.
 
 Additional Resources
 --------------------
