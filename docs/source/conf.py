@@ -7,7 +7,7 @@ from importlib.metadata import version as get_version
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "PEtab GUI"
+project = "PEtab-GUI"
 copyright = "2025, Paul Jonas Jost, Frank T. Bergmann"
 author = "Paul Jonas Jost, Frank T. Bergmann"
 release: str = get_version("petab-gui")
@@ -53,8 +53,8 @@ html_theme_options = {
 }
 
 # Title
-html_title = "PEtab GUI documentation"
+html_title = "PEtab-GUI documentation"
 # Navigation bar title
-html_short_title = "PEtab GUI"
+html_short_title = "PEtab-GUI"
 
 html_static_path = []
