@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 =================================================
-PEtab GUI - A graphical user interface for PEtab
+PEtab-GUI - A graphical user interface for PEtab
 =================================================
 
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.15355752.svg
@@ -15,7 +15,7 @@ PEtab GUI - A graphical user interface for PEtab
    :target: https://petab-gui.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
-**PEtab GUI** is a user-friendly graphical interface for creating and managing parameter estimation problems using the `PEtab <https://petab.readthedocs.io/en/latest/>`_ format.
+**PEtab-GUI** is a user-friendly graphical interface for creating and managing parameter estimation problems using the `PEtab <https://petab.readthedocs.io/en/latest/>`_ format.
 
 .. note::
    Current version: |release|
@@ -30,7 +30,7 @@ Quick Links
 Overview
 --------
 
-PEtab GUI simplifies the process of creating parameter estimation problems for systems biology models. It provides an intuitive interface for:
+PEtab-GUI simplifies the process of creating parameter estimation problems for systems biology models. It provides an intuitive interface for:
 
 * Creating and editing SBML models
 * Defining experimental conditions
