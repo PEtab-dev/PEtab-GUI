@@ -135,11 +135,17 @@ def main():
     args = parser.parse_args()
 
     if sys.platform == "darwin":
-        from Foundation import NSBundle  # type: type: ignore[import]
+        try:
+            from Foundation import NSBundle  # type: ignore[import]
 
-        bundle = NSBundle.mainBundle()
-        info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
-        info["CFBundleName"] = APP_NAME
+            bundle = NSBundle.mainBundle()
+            info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
+            info["CFBundleName"] = APP_NAME
+        except ModuleNotFoundError:
+            # If Foundation is still not found, the app will run without
+            # setting the bundle name (non-critical macOS-specific feature)
+            # Problem resolves after reactivating the virtual environment.
+            pass
 
     app = PEtabGuiApp(args.petab_yaml)
     sys.exit(app.exec())
