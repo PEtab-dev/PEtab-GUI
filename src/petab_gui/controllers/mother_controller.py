@@ -835,6 +835,28 @@ class MainController:
 
         return len(missing_files) == 0, missing_files
 
+    def _load_file_list(self, controller, file_list, file_type, yaml_dir):
+        """Load multiple files for a given controller.
+
+        Parameters
+        ----------
+        controller : object
+            The controller to load files into (e.g., measurement_controller).
+        file_list : list[str]
+            List of file names to load.
+        file_type : str
+            Human-readable file type for logging (e.g., "measurement").
+        yaml_dir : Path
+            The directory containing the YAML and data files.
+        """
+        for i, file_name in enumerate(file_list):
+            file_mode = "overwrite" if i == 0 else "append"
+            controller.open_table(yaml_dir / file_name, mode=file_mode)
+            self.logger.log_message(
+                f"Loaded {file_type} file ({i + 1}/{len(file_list)}): {file_name}",
+                color="blue",
+            )
+
     def open_yaml_and_load_files(self, yaml_path=None, mode="overwrite"):
         """Open files from a YAML configuration.
 
@@ -911,41 +933,32 @@ class MainController:
             # Load measurement files (multiple allowed)
             measurement_files = problem.get("measurement_files", [])
             if measurement_files:
-                for i, meas_file in enumerate(measurement_files):
-                    file_mode = "overwrite" if i == 0 else "append"
-                    self.measurement_controller.open_table(
-                        yaml_dir / meas_file, mode=file_mode
-                    )
-                    self.logger.log_message(
-                        f"Loaded measurement file ({i + 1}/{len(measurement_files)}): {meas_file}",
-                        color="blue",
-                    )
+                self._load_file_list(
+                    self.measurement_controller,
+                    measurement_files,
+                    "measurement",
+                    yaml_dir,
+                )
 
             # Load observable files (multiple allowed)
             observable_files = problem.get("observable_files", [])
             if observable_files:
-                for i, obs_file in enumerate(observable_files):
-                    file_mode = "overwrite" if i == 0 else "append"
-                    self.observable_controller.open_table(
-                        yaml_dir / obs_file, mode=file_mode
-                    )
-                    self.logger.log_message(
-                        f"Loaded observable file ({i + 1}/{len(observable_files)}): {obs_file}",
-                        color="blue",
-                    )
+                self._load_file_list(
+                    self.observable_controller,
+                    observable_files,
+                    "observable",
+                    yaml_dir,
+                )
 
             # Load condition files (multiple allowed)
             condition_files = problem.get("condition_files", [])
             if condition_files:
-                for i, cond_file in enumerate(condition_files):
-                    file_mode = "overwrite" if i == 0 else "append"
-                    self.condition_controller.open_table(
-                        yaml_dir / cond_file, mode=file_mode
-                    )
-                    self.logger.log_message(
-                        f"Loaded condition file ({i + 1}/{len(condition_files)}): {cond_file}",
-                        color="blue",
-                    )
+                self._load_file_list(
+                    self.condition_controller,
+                    condition_files,
+                    "condition",
+                    yaml_dir,
+                )
 
             # Load parameter file (required, single file at root level)
             if "parameter_file" in yaml_content:
@@ -958,15 +971,12 @@ class MainController:
             # Load visualization files (optional, multiple allowed)
             visualization_files = problem.get("visualization_files", [])
             if visualization_files:
-                for i, vis_file in enumerate(visualization_files):
-                    file_mode = "overwrite" if i == 0 else "append"
-                    self.visualization_controller.open_table(
-                        yaml_dir / vis_file, mode=file_mode
-                    )
-                    self.logger.log_message(
-                        f"Loaded visualization file ({i + 1}/{len(visualization_files)}): {vis_file}",
-                        color="blue",
-                    )
+                self._load_file_list(
+                    self.visualization_controller,
+                    visualization_files,
+                    "visualization",
+                    yaml_dir,
+                )
             else:
                 self.visualization_controller.clear_table()
 

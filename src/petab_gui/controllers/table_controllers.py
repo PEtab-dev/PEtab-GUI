@@ -216,18 +216,34 @@ class TableController(QObject):
             1. Columns are the union of both DataFrame columns.
             2. Rows are the union of both DataFrame rows (duplicates removed)
         """
-        self.model.beginResetModel()
-        combined_df = pd.concat([self.model.get_df(), new_df], axis=0)
-        combined_df = combined_df[~combined_df.index.duplicated(keep="first")]
-        self.model._data_frame = combined_df
         self.proxy_model.setSourceModel(None)
-        self.proxy_model.setSourceModel(self.model)
+        self.model.beginResetModel()
+        current_df = self.model.get_df()
+
+        # For tables without a named index (measurement, visualization, simulation),
+        # ignore the index to avoid removing appended data due to index conflicts
+        if self.model.table_type in [
+            "measurement",
+            "visualization",
+            "simulation",
+        ]:
+            combined_df = pd.concat(
+                [current_df, new_df], axis=0, ignore_index=True
+            )
+        else:
+            # For tables with named indices, concatenate and remove duplicate indices
+            combined_df = pd.concat([current_df, new_df], axis=0)
+            combined_df = combined_df[
+                ~combined_df.index.duplicated(keep="first")
+            ]
+
+        self.model._data_frame = combined_df
         self.model.endResetModel()
         self.logger.log_message(
             f"Appended the {self.model.table_type} table with new data.",
             color="green",
         )
-        # test: overwrite the new model as source model
+        self.proxy_model.setSourceModel(self.model)
         self.overwritten_df.emit()
 
     def clear_table(self):
