@@ -765,18 +765,22 @@ class MainController:
 
         problem = yaml_content["problems"][0]
 
-        # Required fields
-        if "sbml_files" not in problem or not problem["sbml_files"]:
-            errors.append("Problem must contain at least one SBML file")
-
         # Optional but recommended fields
+        if (
+            "visualization_files" not in problem
+            or not problem["visualization_files"]
+        ):
+            errors.append("Warning: No visualization_files specified")
+
+        # Required fields in problem
         for field in [
+            "sbml_files",
             "measurement_files",
             "observable_files",
             "condition_files",
         ]:
             if field not in problem or not problem[field]:
-                errors.append(f"Warning: No {field} specified")
+                errors.append("Problem must contain at least one SBML file")
 
         # Check parameter_file (at root level)
         if "parameter_file" not in yaml_content:

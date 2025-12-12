@@ -195,8 +195,14 @@ class TestYAMLValidation(unittest.TestCase):
         """Test validation generates warnings for missing optional fields."""
         yaml_content = {
             "format_version": "1.0",
-            "parameter_file": "parameters.tsv",
-            "problems": [{"sbml_files": ["model.xml"]}],
+            "problems": [
+                {
+                    "sbml_files": ["model.xml"],
+                    "measurement_files": ["measurements.tsv"],
+                    "observable_files": ["observables.tsv"],
+                    "condition_files": ["conditions.tsv"],
+                }
+            ],
         }
 
         is_valid, errors = self.controller._validate_yaml_structure(
@@ -211,9 +217,7 @@ class TestYAMLValidation(unittest.TestCase):
         self.assertGreater(len(warnings), 0)
 
         warning_text = " ".join(warnings)
-        self.assertIn("measurement_files", warning_text)
-        self.assertIn("observable_files", warning_text)
-        self.assertIn("condition_files", warning_text)
+        self.assertIn("visualization_files", warning_text)
 
 
 class TestFileExistenceValidation(unittest.TestCase):
