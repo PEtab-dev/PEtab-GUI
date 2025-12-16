@@ -732,6 +732,135 @@ class MainController:
                 file_path, mode, sep
             )
 
+    def _validate_yaml_structure(self, yaml_content):
+        """Validate PEtab YAML structure before attempting to load files.
+
+        Parameters
+        ----------
+        yaml_content : dict
+            The parsed YAML content.
+
+        Returns
+        -------
+        tuple
+            (is_valid: bool, errors: list[str])
+        """
+        errors = []
+
+        # Check format version
+        if "format_version" not in yaml_content:
+            errors.append("Missing 'format_version' field")
+
+        # Check problems array
+        if "problems" not in yaml_content:
+            errors.append("Missing 'problems' field")
+            return False, errors
+
+        if (
+            not isinstance(yaml_content["problems"], list)
+            or not yaml_content["problems"]
+        ):
+            errors.append("'problems' must be a non-empty list")
+            return False, errors
+
+        problem = yaml_content["problems"][0]
+
+        # Optional but recommended fields
+        if (
+            "visualization_files" not in problem
+            or not problem["visualization_files"]
+        ):
+            errors.append("Warning: No visualization_files specified")
+
+        # Required fields in problem
+        for field in [
+            "sbml_files",
+            "measurement_files",
+            "observable_files",
+            "condition_files",
+        ]:
+            if field not in problem or not problem[field]:
+                errors.append("Problem must contain at least one SBML file")
+
+        # Check parameter_file (at root level)
+        if "parameter_file" not in yaml_content:
+            errors.append("Missing 'parameter_file' at root level")
+
+        return len([e for e in errors if "Warning" not in e]) == 0, errors
+
+    def _validate_files_exist(self, yaml_dir, yaml_content):
+        """Validate that all files referenced in YAML exist.
+
+        Parameters
+        ----------
+        yaml_dir : Path
+            The directory containing the YAML file.
+        yaml_content : dict
+            The parsed YAML content.
+
+        Returns
+        -------
+        tuple
+            (all_exist: bool, missing_files: list[str])
+        """
+        missing_files = []
+        problem = yaml_content["problems"][0]
+
+        # Check SBML files
+        for sbml_file in problem.get("sbml_files", []):
+            if not (yaml_dir / sbml_file).exists():
+                missing_files.append(str(sbml_file))
+
+        # Check measurement files
+        for meas_file in problem.get("measurement_files", []):
+            if not (yaml_dir / meas_file).exists():
+                missing_files.append(str(meas_file))
+
+        # Check observable files
+        for obs_file in problem.get("observable_files", []):
+            if not (yaml_dir / obs_file).exists():
+                missing_files.append(str(obs_file))
+
+        # Check condition files
+        for cond_file in problem.get("condition_files", []):
+            if not (yaml_dir / cond_file).exists():
+                missing_files.append(str(cond_file))
+
+        # Check parameter file
+        if "parameter_file" in yaml_content:
+            param_file = yaml_content["parameter_file"]
+            if not (yaml_dir / param_file).exists():
+                missing_files.append(str(param_file))
+
+        # Check visualization files (optional)
+        for vis_file in problem.get("visualization_files", []):
+            if not (yaml_dir / vis_file).exists():
+                missing_files.append(str(vis_file))
+
+        return len(missing_files) == 0, missing_files
+
+    def _load_file_list(self, controller, file_list, file_type, yaml_dir):
+        """Load multiple files for a given controller.
+
+        Parameters
+        ----------
+        controller : object
+            The controller to load files into (e.g., measurement_controller).
+        file_list : list[str]
+            List of file names to load.
+        file_type : str
+            Human-readable file type for logging (e.g., "measurement").
+        yaml_dir : Path
+            The directory containing the YAML and data files.
+        """
+        for i, file_name in enumerate(file_list):
+            file_mode = "overwrite" if i == 0 else "append"
+            controller.open_table(yaml_dir / file_name, mode=file_mode)
+            self.logger.log_message(
+                f"Loaded {file_type} file ({i + 1}/{len(file_list)}): {file_name}",
+                color="blue",
+            )
+
     def open_yaml_and_load_files(self, yaml_path=None, mode="overwrite"):
         """Open files from a YAML configuration.
 
@@ -749,62 +878,149 @@ class MainController:
                 if controller == self.sbml_controller:
                     continue
                 controller.release_completers()
+
             # Load the YAML content
-            with open(yaml_path) as file:
+            with open(yaml_path, encoding="utf-8") as file:
                 yaml_content = yaml.safe_load(file)
 
+            # Validate PEtab version
             if (major := get_major_version(yaml_content)) != 1:
                 raise ValueError(
                     f"Only PEtab v1 problems are currently supported. "
                     f"Detected version: {major}.x."
                 )
 
+            # Validate YAML structure
+            is_valid, errors = self._validate_yaml_structure(yaml_content)
+            if not is_valid:
+                error_msg = "Invalid YAML structure:\n  - " + "\n  - ".join(
+                    [e for e in errors if "Warning" not in e]
+                )
+                self.logger.log_message(error_msg, color="red")
+                QMessageBox.critical(
+                    self.view, "Invalid PEtab YAML", error_msg
+                )
+                return
+
+            # Log warnings but continue
+            warnings = [e for e in errors if "Warning" in e]
+            for warning in warnings:
+                self.logger.log_message(warning, color="orange")
+
             # Resolve the directory of the YAML file to handle relative paths
             yaml_dir = Path(yaml_path).parent
 
-            # Upload SBML model
-            sbml_file_path = (
-                yaml_dir / yaml_content["problems"][0]["sbml_files"][0]
+            # Validate file existence
+            all_exist, missing_files = self._validate_files_exist(
+                yaml_dir, yaml_content
             )
-            self.sbml_controller.overwrite_sbml(sbml_file_path)
-            self.measurement_controller.open_table(
-                yaml_dir / yaml_content["problems"][0]["measurement_files"][0]
-            )
-            self.observable_controller.open_table(
-                yaml_dir / yaml_content["problems"][0]["observable_files"][0]
-            )
-            self.parameter_controller.open_table(
-                yaml_dir / yaml_content["parameter_file"]
-            )
-            self.condition_controller.open_table(
-                yaml_dir / yaml_content["problems"][0]["condition_files"][0]
-            )
-            # Visualization is optional
-            vis_path = yaml_content["problems"][0].get("visualization_files")
-            if vis_path:
-                self.visualization_controller.open_table(
-                    yaml_dir / vis_path[0]
+            if not all_exist:
+                error_msg = (
+                    "The following files referenced in the YAML are missing:\n  - "
+                    + "\n  - ".join(missing_files)
+                )
+                self.logger.log_message(error_msg, color="red")
+                QMessageBox.critical(self.view, "Missing Files", error_msg)
+                return
+
+            problem = yaml_content["problems"][0]
+
+            # Load SBML model (required, single file)
+            sbml_files = problem.get("sbml_files", [])
+            if sbml_files:
+                sbml_file_path = yaml_dir / sbml_files[0]
+                self.sbml_controller.overwrite_sbml(sbml_file_path)
+                self.logger.log_message(
+                    f"Loaded SBML file: {sbml_files[0]}", color="blue"
+                )
+
+            # Load measurement files (multiple allowed)
+            measurement_files = problem.get("measurement_files", [])
+            if measurement_files:
+                self._load_file_list(
+                    self.measurement_controller,
+                    measurement_files,
+                    "measurement",
+                    yaml_dir,
+                )
+
+            # Load observable files (multiple allowed)
+            observable_files = problem.get("observable_files", [])
+            if observable_files:
+                self._load_file_list(
+                    self.observable_controller,
+                    observable_files,
+                    "observable",
+                    yaml_dir,
+                )
+
+            # Load condition files (multiple allowed)
+            condition_files = problem.get("condition_files", [])
+            if condition_files:
+                self._load_file_list(
+                    self.condition_controller,
+                    condition_files,
+                    "condition",
+                    yaml_dir,
+                )
+
+            # Load parameter file (required, single file at root level)
+            if "parameter_file" in yaml_content:
+                param_file = yaml_content["parameter_file"]
+                self.parameter_controller.open_table(yaml_dir / param_file)
+                self.logger.log_message(
+                    f"Loaded parameter file: {param_file}", color="blue"
+                )
+
+            # Load visualization files (optional, multiple allowed)
+            visualization_files = problem.get("visualization_files", [])
+            if visualization_files:
+                self._load_file_list(
+                    self.visualization_controller,
+                    visualization_files,
+                    "visualization",
+                    yaml_dir,
                 )
             else:
                 self.visualization_controller.clear_table()
+
             # Simulation should be cleared
             self.simulation_controller.clear_table()
+
             self.logger.log_message(
                 "All files opened successfully from the YAML configuration.",
                 color="green",
             )
             self.check_model()
-            # rerun the completers
+
+            # Rerun the completers
             for controller in self.controllers:
                 if controller == self.sbml_controller:
                     continue
                 controller.setup_completers()
             self.unsaved_changes_change(False)
 
+        except FileNotFoundError as e:
+            error_msg = f"File not found: {e.filename if hasattr(e, 'filename') else str(e)}"
+            self.logger.log_message(error_msg, color="red")
+            QMessageBox.warning(self.view, "File Not Found", error_msg)
+        except KeyError as e:
+            error_msg = f"Missing required field in YAML: {str(e)}"
+            self.logger.log_message(error_msg, color="red")
+            QMessageBox.warning(self.view, "Invalid YAML", error_msg)
+        except ValueError as e:
+            error_msg = f"Invalid YAML structure: {str(e)}"
+            self.logger.log_message(error_msg, color="red")
+            QMessageBox.warning(self.view, "Invalid YAML", error_msg)
+        except yaml.YAMLError as e:
+            error_msg = f"YAML parsing error: {str(e)}"
+            self.logger.log_message(error_msg, color="red")
+            QMessageBox.warning(self.view, "YAML Parsing Error", error_msg)
         except Exception as e:
-            self.logger.log_message(
-                f"Failed to open files from YAML: {str(e)}", color="red"
-            )
+            error_msg = f"Unexpected error loading YAML: {str(e)}"
+            self.logger.log_message(error_msg, color="red")
+            logging.exception("Full traceback for YAML loading error:")
+            QMessageBox.critical(self.view, "Error", error_msg)
 
     def open_omex_and_load_files(self, omex_path=None):
         """Opens a petab problem from a COMBINE Archive."""

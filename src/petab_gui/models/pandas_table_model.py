@@ -1095,7 +1095,7 @@ class MeasurementModel(PandasTableModel):
     possibly_new_observable = Signal(str)  # Signal for new observable
 
     def __init__(self, data_frame, type: str = "measurement", parent=None):
-        allowed_columns = COLUMNS[type]
+        allowed_columns = COLUMNS[type].copy()
         super().__init__(
             data_frame=data_frame,
             allowed_columns=allowed_columns,
@@ -1128,7 +1128,7 @@ class ObservableModel(IndexedPandasTableModel):
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
-            allowed_columns=COLUMNS["observable"],
+            allowed_columns=COLUMNS["observable"].copy(),
             table_type="observable",
             parent=parent,
         )
@@ -1140,7 +1140,7 @@ class ParameterModel(IndexedPandasTableModel):
     def __init__(self, data_frame, parent=None, sbml_model=None):
         super().__init__(
             data_frame=data_frame,
-            allowed_columns=COLUMNS["parameter"],
+            allowed_columns=COLUMNS["parameter"].copy(),
             table_type="parameter",
             parent=parent,
         )
@@ -1153,9 +1153,11 @@ class ConditionModel(IndexedPandasTableModel):
     """Table model for the condition data."""
 
     def __init__(self, data_frame, parent=None):
+        # Use a copy to avoid mutating the global COLUMNS constant
+        condition_columns = COLUMNS["condition"].copy()
         super().__init__(
             data_frame=data_frame,
-            allowed_columns=COLUMNS["condition"],
+            allowed_columns=condition_columns,
             table_type="condition",
             parent=parent,
         )
@@ -1206,7 +1208,7 @@ class VisualizationModel(PandasTableModel):
     def __init__(self, data_frame, parent=None):
         super().__init__(
             data_frame=data_frame,
-            allowed_columns=COLUMNS["visualization"],
+            allowed_columns=COLUMNS["visualization"].copy(),
             table_type="visualization",
             parent=parent,
         )
