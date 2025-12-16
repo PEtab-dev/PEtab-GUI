@@ -7,6 +7,7 @@ from typing import Any
 import antimony
 import numpy as np
 import pandas as pd
+import petab.v1 as petab
 import qtawesome as qta
 from matplotlib.backends.backend_qt5agg import (
     FigureCanvasQTAgg as FigureCanvas,
@@ -253,11 +254,11 @@ def create_empty_dataframe(column_dict: dict, table_type: str):
     df = pd.DataFrame(columns=columns).astype(dtypes)
     # set potential index columns
     if table_type == "observable":
-        df.set_index("observableId", inplace=True)
+        df.set_index(petab.C.OBSERVABLE_ID, inplace=True)
     elif table_type == "parameter":
-        df.set_index("parameterId", inplace=True)
+        df.set_index(petab.C.PARAMETER_ID, inplace=True)
     elif table_type == "condition":
-        df.set_index("conditionId", inplace=True)
+        df.set_index(petab.C.CONDITION_ID, inplace=True)
     return df
 
 
@@ -408,17 +409,26 @@ def process_file(filepath, logger):
             return None, None
 
         # Case 3.2: Identify the table type based on header content
-        if {"observableId", "measurement", "time"}.issubset(header):
+        if {petab.C.OBSERVABLE_ID, petab.C.MEASUREMENT, petab.C.TIME}.issubset(
+            header
+        ):
             return "measurement", separator
-        if {"observableId", "simulation", "time"}.issubset(header):
+        if {petab.C.OBSERVABLE_ID, petab.C.SIMULATION, petab.C.TIME}.issubset(
+            header
+        ):
             return "simulation", separator
-        if {"observableId", "observableFormula"}.issubset(header):
+        if {petab.C.OBSERVABLE_ID, petab.C.OBSERVABLE_FORMULA}.issubset(
+            header
+        ):
             return "observable", separator
-        if "parameterId" in header:
+        if petab.C.PARAMETER_ID in header:
             return "parameter", separator
-        if "conditionId" in header or "\ufeffconditionId" in header:
+        if (
+            petab.C.CONDITION_ID in header
+            or f"\ufeff{petab.C.CONDITION_ID}" in header
+        ):
             return "condition", separator
-        if "plotId" in header:
+        if petab.C.PLOT_ID in header:
             return "visualization", separator
         logger.log_message(
             f"Unrecognized table type for file: {filepath}. Uploading as "

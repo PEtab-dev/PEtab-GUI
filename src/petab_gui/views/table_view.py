@@ -1,3 +1,4 @@
+import petab.v1 as petab
 from PySide6.QtCore import QPropertyAnimation, QRect, Qt
 from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtWidgets import (
@@ -263,7 +264,7 @@ class ParameterIdSuggestionDelegate(QStyledItemDelegate):
             # substract the current parameter ids except for the current row
             row = index.row()
             selected_parameter_id = self.par_model.get_value_from_column(
-                "parameterId", row
+                petab.C.PARAMETER_ID, row
             )
             current_parameter_ids = self.par_model.get_df().index.tolist()
             if selected_parameter_id in current_parameter_ids:

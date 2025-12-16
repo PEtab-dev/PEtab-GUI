@@ -5,6 +5,7 @@ from collections import Counter
 
 import numpy as np
 import pandas as pd
+import petab.v1 as petab
 
 from ..C import (
     COPY_FROM,
@@ -94,9 +95,9 @@ class DefaultHandlerModel:
         if column_name not in self.model:
             return ""
         column_data = self.model[column_name].replace("", np.nan).dropna()
-        if column_name in ["upperBound", "lowerBound"]:
+        if column_name in [petab.C.UPPER_BOUND, petab.C.LOWER_BOUND]:
             column_data = column_data.loc[
-                self.model["parameterScale"] == par_scale
+                self.model[petab.C.PARAMETER_SCALE] == par_scale
             ]
         if not column_data.empty:
             return column_data.min()
@@ -106,9 +107,9 @@ class DefaultHandlerModel:
         if column_name not in self.model:
             return ""
         column_data = self.model[column_name].replace("", np.nan).dropna()
-        if column_name in ["upperBound", "lowerBound"]:
+        if column_name in [petab.C.UPPER_BOUND, petab.C.LOWER_BOUND]:
             column_data = column_data.loc[
-                self.model["parameterScale"] == par_scale
+                self.model[petab.C.PARAMETER_SCALE] == par_scale
             ]
         if not column_data.empty:
             return column_data.max()
