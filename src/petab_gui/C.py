@@ -1,6 +1,7 @@
 """Constants for the PEtab edit GUI."""
 
 import numpy as np
+import petab.v1.C as PETAB_C
 
 #: Application name
 APP_NAME = "PEtab-GUI"
@@ -11,73 +12,94 @@ DOCS_URL = "https://petab-gui.readthedocs.io/en/latest/"
 
 COLUMNS = {
     "measurement": {
-        "observableId": {"type": np.object_, "optional": False},
-        "preequilibrationConditionId": {"type": np.object_, "optional": True},
-        "simulationConditionId": {"type": np.object_, "optional": False},
-        "time": {"type": np.float64, "optional": False},
-        "measurement": {"type": np.float64, "optional": False},
-        "observableParameters": {"type": np.object_, "optional": True},
-        "noiseParameters": {"type": np.object_, "optional": True},
-        "datasetId": {"type": np.object_, "optional": True},
-        "replicateId": {"type": np.object_, "optional": True},
+        PETAB_C.OBSERVABLE_ID: {"type": np.object_, "optional": False},
+        PETAB_C.PREEQUILIBRATION_CONDITION_ID: {
+            "type": np.object_,
+            "optional": True,
+        },
+        PETAB_C.SIMULATION_CONDITION_ID: {
+            "type": np.object_,
+            "optional": False,
+        },
+        PETAB_C.TIME: {"type": np.float64, "optional": False},
+        PETAB_C.MEASUREMENT: {"type": np.float64, "optional": False},
+        PETAB_C.OBSERVABLE_PARAMETERS: {"type": np.object_, "optional": True},
+        PETAB_C.NOISE_PARAMETERS: {"type": np.object_, "optional": True},
+        PETAB_C.DATASET_ID: {"type": np.object_, "optional": True},
+        PETAB_C.REPLICATE_ID: {"type": np.object_, "optional": True},
     },
     "simulation": {
-        "observableId": {"type": np.object_, "optional": False},
-        "preequilibrationConditionId": {"type": np.object_, "optional": True},
-        "simulationConditionId": {"type": np.object_, "optional": False},
-        "time": {"type": np.float64, "optional": False},
-        "simulation": {"type": np.float64, "optional": False},
-        "observableParameters": {"type": np.object_, "optional": True},
-        "noiseParameters": {"type": np.object_, "optional": True},
-        "datasetId": {"type": np.object_, "optional": True},
-        "replicateId": {"type": np.object_, "optional": True},
+        PETAB_C.OBSERVABLE_ID: {"type": np.object_, "optional": False},
+        PETAB_C.PREEQUILIBRATION_CONDITION_ID: {
+            "type": np.object_,
+            "optional": True,
+        },
+        PETAB_C.SIMULATION_CONDITION_ID: {
+            "type": np.object_,
+            "optional": False,
+        },
+        PETAB_C.TIME: {"type": np.float64, "optional": False},
+        PETAB_C.SIMULATION: {"type": np.float64, "optional": False},
+        PETAB_C.OBSERVABLE_PARAMETERS: {"type": np.object_, "optional": True},
+        PETAB_C.NOISE_PARAMETERS: {"type": np.object_, "optional": True},
+        PETAB_C.DATASET_ID: {"type": np.object_, "optional": True},
+        PETAB_C.REPLICATE_ID: {"type": np.object_, "optional": True},
     },
     "observable": {
-        "observableId": {"type": np.object_, "optional": False},
-        "observableName": {"type": np.object_, "optional": True},
-        "observableFormula": {"type": np.object_, "optional": False},
-        "observableTransformation": {"type": np.object_, "optional": True},
-        "noiseFormula": {"type": np.object_, "optional": False},
-        "noiseDistribution": {"type": np.object_, "optional": True},
+        PETAB_C.OBSERVABLE_ID: {"type": np.object_, "optional": False},
+        PETAB_C.OBSERVABLE_NAME: {"type": np.object_, "optional": True},
+        PETAB_C.OBSERVABLE_FORMULA: {"type": np.object_, "optional": False},
+        PETAB_C.OBSERVABLE_TRANSFORMATION: {
+            "type": np.object_,
+            "optional": True,
+        },
+        PETAB_C.NOISE_FORMULA: {"type": np.object_, "optional": False},
+        PETAB_C.NOISE_DISTRIBUTION: {"type": np.object_, "optional": True},
     },
     "parameter": {
-        "parameterId": {"type": np.object_, "optional": False},
-        "parameterName": {"type": np.object_, "optional": True},
-        "parameterScale": {"type": np.object_, "optional": False},
-        "lowerBound": {"type": np.float64, "optional": False},
-        "upperBound": {"type": np.float64, "optional": False},
-        "nominalValue": {"type": np.float64, "optional": False},
-        "estimate": {"type": np.object_, "optional": False},
-        "initializationPriorType": {"type": np.object_, "optional": True},
-        "initializationPriorParameters": {
+        PETAB_C.PARAMETER_ID: {"type": np.object_, "optional": False},
+        PETAB_C.PARAMETER_NAME: {"type": np.object_, "optional": True},
+        PETAB_C.PARAMETER_SCALE: {"type": np.object_, "optional": False},
+        PETAB_C.LOWER_BOUND: {"type": np.float64, "optional": False},
+        PETAB_C.UPPER_BOUND: {"type": np.float64, "optional": False},
+        PETAB_C.NOMINAL_VALUE: {"type": np.float64, "optional": False},
+        PETAB_C.ESTIMATE: {"type": np.object_, "optional": False},
+        PETAB_C.INITIALIZATION_PRIOR_TYPE: {
             "type": np.object_,
             "optional": True,
         },
-        "objectivePriorType": {"type": np.object_, "optional": True},
-        "objectivePriorParameters": {"type": np.object_, "optional": True},
+        PETAB_C.INITIALIZATION_PRIOR_PARAMETERS: {
+            "type": np.object_,
+            "optional": True,
+        },
+        PETAB_C.OBJECTIVE_PRIOR_TYPE: {"type": np.object_, "optional": True},
+        PETAB_C.OBJECTIVE_PRIOR_PARAMETERS: {
+            "type": np.object_,
+            "optional": True,
+        },
     },
     "condition": {
-        "conditionId": {"type": np.object_, "optional": False},
-        "conditionName": {"type": np.object_, "optional": False},
+        PETAB_C.CONDITION_ID: {"type": np.object_, "optional": False},
+        PETAB_C.CONDITION_NAME: {"type": np.object_, "optional": False},
     },
     "visualization": {
-        "plotId": {"type": np.object_, "optional": False},
-        "plotName": {"type": np.object_, "optional": True},
-        "plotTypeSimulation": {
+        PETAB_C.PLOT_ID: {"type": np.object_, "optional": False},
+        PETAB_C.PLOT_NAME: {"type": np.object_, "optional": True},
+        PETAB_C.PLOT_TYPE_SIMULATION: {
             "type": np.object_,
             "optional": True,
         },
-        "plotTypeData": {"type": np.object_, "optional": True},
-        "datasetId": {"type": np.object_, "optional": True},
-        "xValues": {"type": np.object_, "optional": True},
-        "xOffset": {"type": np.float64, "optional": True},
-        "xLabel": {"type": np.object_, "optional": True},
-        "xScale": {"type": np.object_, "optional": True},
-        "yValues": {"type": np.object_, "optional": True},
-        "yOffset": {"type": np.float64, "optional": True},
-        "yLabel": {"type": np.object_, "optional": True},
-        "yScale": {"type": np.object_, "optional": True},
-        "legendEntry": {"type": np.object_, "optional": True},
+        PETAB_C.PLOT_TYPE_DATA: {"type": np.object_, "optional": True},
+        PETAB_C.DATASET_ID: {"type": np.object_, "optional": True},
+        PETAB_C.X_VALUES: {"type": np.object_, "optional": True},
+        PETAB_C.X_OFFSET: {"type": np.float64, "optional": True},
+        PETAB_C.X_LABEL: {"type": np.object_, "optional": True},
+        PETAB_C.X_SCALE: {"type": np.object_, "optional": True},
+        PETAB_C.Y_VALUES: {"type": np.object_, "optional": True},
+        PETAB_C.Y_OFFSET: {"type": np.float64, "optional": True},
+        PETAB_C.Y_LABEL: {"type": np.object_, "optional": True},
+        PETAB_C.Y_SCALE: {"type": np.object_, "optional": True},
+        PETAB_C.LEGEND_ENTRY: {"type": np.object_, "optional": True},
     },
 }
 
@@ -126,36 +148,48 @@ DEFAULT_VALUE = "default_value"
 
 # Default Configurations of Default Values
 ALLOWED_STRATEGIES_OBS = {
-    "observableId": STRATEGIES_DEFAULT,
-    "observableName": STRATEGIES_DEFAULT,
-    "observableFormula": STRATEGIES_DEFAULT,
-    "observableTransformation": [USE_DEFAULT, NO_DEFAULT, MODE],
-    "noiseFormula": [COPY_FROM, USE_DEFAULT, NO_DEFAULT, MODE],
-    "noiseDistribution": [USE_DEFAULT, NO_DEFAULT, MODE],
+    PETAB_C.OBSERVABLE_ID: STRATEGIES_DEFAULT,
+    PETAB_C.OBSERVABLE_NAME: STRATEGIES_DEFAULT,
+    PETAB_C.OBSERVABLE_FORMULA: STRATEGIES_DEFAULT,
+    PETAB_C.OBSERVABLE_TRANSFORMATION: [USE_DEFAULT, NO_DEFAULT, MODE],
+    PETAB_C.NOISE_FORMULA: [COPY_FROM, USE_DEFAULT, NO_DEFAULT, MODE],
+    PETAB_C.NOISE_DISTRIBUTION: [USE_DEFAULT, NO_DEFAULT, MODE],
 }
 ALLOWED_STRATEGIES_PAR = {
-    "parameterId": STRATEGIES_DEFAULT,
-    "parameterName": STRATEGIES_DEFAULT,
-    "parameterScale": [USE_DEFAULT, NO_DEFAULT, MODE],
-    "lowerBound": [MIN_COLUMN, MAX_COLUMN, USE_DEFAULT, NO_DEFAULT, MODE],
-    "upperBound": [MAX_COLUMN, MAX_COLUMN, USE_DEFAULT, NO_DEFAULT, MODE],
-    "nominalValue": [USE_DEFAULT, NO_DEFAULT, SBML_LOOK],
-    "estimate": [USE_DEFAULT, NO_DEFAULT, MODE],
+    PETAB_C.PARAMETER_ID: STRATEGIES_DEFAULT,
+    PETAB_C.PARAMETER_NAME: STRATEGIES_DEFAULT,
+    PETAB_C.PARAMETER_SCALE: [USE_DEFAULT, NO_DEFAULT, MODE],
+    PETAB_C.LOWER_BOUND: [
+        MIN_COLUMN,
+        MAX_COLUMN,
+        USE_DEFAULT,
+        NO_DEFAULT,
+        MODE,
+    ],
+    PETAB_C.UPPER_BOUND: [
+        MAX_COLUMN,
+        MAX_COLUMN,
+        USE_DEFAULT,
+        NO_DEFAULT,
+        MODE,
+    ],
+    PETAB_C.NOMINAL_VALUE: [USE_DEFAULT, NO_DEFAULT, SBML_LOOK],
+    PETAB_C.ESTIMATE: [USE_DEFAULT, NO_DEFAULT, MODE],
 }
 ALLOWED_STRATEGIES_COND = {
-    "conditionId": STRATEGIES_DEFAULT,
-    "conditionName": STRATEGIES_DEFAULT,
+    PETAB_C.CONDITION_ID: STRATEGIES_DEFAULT,
+    PETAB_C.CONDITION_NAME: STRATEGIES_DEFAULT,
 }
 ALLOWED_STRATEGIES_MEAS = {
-    "observableId": STRATEGIES_DEFAULT,
-    "preequilibrationConditionId": STRATEGIES_DEFAULT_EXT,
-    "simulationConditionId": STRATEGIES_DEFAULT_EXT,
-    "time": [NO_DEFAULT, USE_DEFAULT, MODE],
-    "measurement": [NO_DEFAULT, USE_DEFAULT, MODE],
-    "observableParameters": STRATEGIES_DEFAULT_EXT,
-    "noiseParameters": STRATEGIES_DEFAULT_EXT,
-    "datasetId": [COPY_FROM, USE_DEFAULT, NO_DEFAULT, MODE],
-    "replicateId": [COPY_FROM, USE_DEFAULT, NO_DEFAULT, MODE],
+    PETAB_C.OBSERVABLE_ID: STRATEGIES_DEFAULT,
+    PETAB_C.PREEQUILIBRATION_CONDITION_ID: STRATEGIES_DEFAULT_EXT,
+    PETAB_C.SIMULATION_CONDITION_ID: STRATEGIES_DEFAULT_EXT,
+    PETAB_C.TIME: [NO_DEFAULT, USE_DEFAULT, MODE],
+    PETAB_C.MEASUREMENT: [NO_DEFAULT, USE_DEFAULT, MODE],
+    PETAB_C.OBSERVABLE_PARAMETERS: STRATEGIES_DEFAULT_EXT,
+    PETAB_C.NOISE_PARAMETERS: STRATEGIES_DEFAULT_EXT,
+    PETAB_C.DATASET_ID: [COPY_FROM, USE_DEFAULT, NO_DEFAULT, MODE],
+    PETAB_C.REPLICATE_ID: [COPY_FROM, USE_DEFAULT, NO_DEFAULT, MODE],
 }
 ALLOWED_STRATEGIES = {
     "observable": ALLOWED_STRATEGIES_OBS,
@@ -164,34 +198,49 @@ ALLOWED_STRATEGIES = {
     "measurement": ALLOWED_STRATEGIES_MEAS,
 }
 DEFAULT_OBS_CONFIG = {
-    "observableId": {
+    PETAB_C.OBSERVABLE_ID: {
         "strategy": COPY_FROM,
-        SOURCE_COLUMN: "observableFormula",
+        SOURCE_COLUMN: PETAB_C.OBSERVABLE_FORMULA,
         DEFAULT_VALUE: "new_observable",
     },
-    "observableName": {"strategy": COPY_FROM, SOURCE_COLUMN: "observableId"},
-    "noiseFormula": {"strategy": USE_DEFAULT, DEFAULT_VALUE: 1},
-    "observableTransformation": {
-        "strategy": USE_DEFAULT,
-        DEFAULT_VALUE: "lin",
+    PETAB_C.OBSERVABLE_NAME: {
+        "strategy": COPY_FROM,
+        SOURCE_COLUMN: PETAB_C.OBSERVABLE_ID,
     },
-    "noiseDistribution": {"strategy": USE_DEFAULT, DEFAULT_VALUE: "normal"},
+    PETAB_C.NOISE_FORMULA: {"strategy": USE_DEFAULT, DEFAULT_VALUE: 1},
+    PETAB_C.OBSERVABLE_TRANSFORMATION: {
+        "strategy": USE_DEFAULT,
+        DEFAULT_VALUE: PETAB_C.LIN,
+    },
+    PETAB_C.NOISE_DISTRIBUTION: {
+        "strategy": USE_DEFAULT,
+        DEFAULT_VALUE: PETAB_C.NORMAL,
+    },
 }
 DEFAULT_PAR_CONFIG = {
-    "parameterName": {
+    PETAB_C.PARAMETER_NAME: {
         "strategy": COPY_FROM,
-        SOURCE_COLUMN: "parameterId",
+        SOURCE_COLUMN: PETAB_C.PARAMETER_ID,
         DEFAULT_VALUE: "new_parameter",
     },
-    "parameterScale": {"strategy": USE_DEFAULT, DEFAULT_VALUE: "log10"},
-    "lowerBound": {"strategy": MIN_COLUMN},
-    "upperBound": {"strategy": MAX_COLUMN},
-    "estimate": {"strategy": USE_DEFAULT, DEFAULT_VALUE: 1},
-    "nominalValue": {"strategy": SBML_LOOK},
+    PETAB_C.PARAMETER_SCALE: {
+        "strategy": USE_DEFAULT,
+        DEFAULT_VALUE: PETAB_C.LOG10,
+    },
+    PETAB_C.LOWER_BOUND: {"strategy": MIN_COLUMN},
+    PETAB_C.UPPER_BOUND: {"strategy": MAX_COLUMN},
+    PETAB_C.ESTIMATE: {"strategy": USE_DEFAULT, DEFAULT_VALUE: 1},
+    PETAB_C.NOMINAL_VALUE: {"strategy": SBML_LOOK},
 }
 DEFAULT_COND_CONFIG = {
-    "conditionId": {"strategy": USE_DEFAULT, DEFAULT_VALUE: "new_condition"},
-    "conditionName": {"strategy": COPY_FROM, SOURCE_COLUMN: "conditionId"},
+    PETAB_C.CONDITION_ID: {
+        "strategy": USE_DEFAULT,
+        DEFAULT_VALUE: "new_condition",
+    },
+    PETAB_C.CONDITION_NAME: {
+        "strategy": COPY_FROM,
+        SOURCE_COLUMN: PETAB_C.CONDITION_ID,
+    },
 }
 DEFAULT_MEAS_CONFIG = {}
 DEFAULT_CONFIGS = {

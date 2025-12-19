@@ -667,18 +667,18 @@ class MeasurementController(TableController):
         """
         measurement_df = self.model.measurement._data_frame
         matching_rows = measurement_df[
-            measurement_df["observableId"] == observable_id
+            measurement_df[petab.C.OBSERVABLE_ID] == observable_id
         ]
         if matching_rows.empty:
             return ""
         if not condition_id:
-            return matching_rows["noiseParameters"].iloc[0]
+            return matching_rows[petab.C.NOISE_PARAMETERS].iloc[0]
         preferred_row = matching_rows[
-            matching_rows["simulationConditionId"] == condition_id
+            matching_rows[petab.C.SIMULATION_CONDITION_ID] == condition_id
         ]
         if not preferred_row.empty:
-            return preferred_row["noiseParameters"].iloc[0]
-        return matching_rows["noiseParameters"].iloc[0]
+            return preferred_row[petab.C.NOISE_PARAMETERS].iloc[0]
+        return matching_rows[petab.C.NOISE_PARAMETERS].iloc[0]
 
     def upload_data_matrix(self):
         """Upload a data matrix to the measurement table.
@@ -713,13 +713,15 @@ class MeasurementController(TableController):
             dose_col_sel: str | None = None
             time_col = self._detect_time_column(data_matrix)
             if time_col:
-                df_proc = data_matrix.rename(columns={time_col: "time"})
+                df_proc = data_matrix.rename(columns={time_col: petab.C.TIME})
                 cond_dialog = ConditionInputDialog()
                 if cond_dialog.exec():
                     conditions = cond_dialog.get_inputs()
-                    condition_id = conditions.get("simulationConditionId", "")
+                    condition_id = conditions.get(
+                        petab.C.SIMULATION_CONDITION_ID, ""
+                    )
                     preeq_id = conditions.get(
-                        "preequilibrationConditionId", ""
+                        petab.C.PREEQUILIBRATION_CONDITION_ID, ""
                     )
                 else:
                     return
@@ -739,10 +741,10 @@ class MeasurementController(TableController):
                     isinstance(time_choice, str)
                     and time_choice.strip().lower() == "inf"
                 ):
-                    df_proc["time"] = "inf"
+                    df_proc[petab.C.TIME] = "inf"
                 else:
                     try:
-                        df_proc["time"] = float(time_choice)
+                        df_proc[petab.C.TIME] = float(time_choice)
                     except Exception:
                         self.logger.log_message(
                             f"Invalid time value: {time_choice}", color="red"
@@ -937,7 +939,7 @@ class MeasurementController(TableController):
             for cid in sorted(set(condition_ids)):
                 self.model.relevant_id_changed.emit(cid, "", "condition")
         for col in data_matrix.columns:
-            if col == "time":
+            if col == petab.C.TIME:
                 continue
             if dose_col and col == dose_col:
                 continue
@@ -952,7 +954,7 @@ class MeasurementController(TableController):
             if preeq_id:
                 self.model.relevant_id_changed.emit(preeq_id, "", "condition")
             self.add_measurement_rows(
-                data_matrix[["time", observable_id]],
+                data_matrix[[petab.C.TIME, observable_id]],
                 observable_id,
                 condition_id,
                 preeq_id,
@@ -985,11 +987,11 @@ class MeasurementController(TableController):
             self.model.fill_row(
                 i_row + current_rows,
                 data={
-                    "observableId": observable_id,
-                    "time": row["time"],
-                    "measurement": row[observable_id],
-                    "simulationConditionId": cid,
-                    "preequilibrationConditionId": preeq_id,
+                    petab.C.OBSERVABLE_ID: observable_id,
+                    petab.C.TIME: row[petab.C.TIME],
+                    petab.C.MEASUREMENT: row[observable_id],
+                    petab.C.SIMULATION_CONDITION_ID: cid,
+                    petab.C.PREEQUILIBRATION_CONDITION_ID: preeq_id,
                 },
             )
         bottom, right = (x - 1 for x in self.model.get_df().shape)
@@ -1004,52 +1006,59 @@ class MeasurementController(TableController):
         """Set completers for the measurement table."""
         table_view = self.view.table_view
         # observableId
-        observableId_index = self.model.return_column_index("observableId")
+        observableId_index = self.model.return_column_index(
+            petab.C.OBSERVABLE_ID
+        )
         if observableId_index > -1:
-            self.completers["observableId"] = ColumnSuggestionDelegate(
-                self.mother_controller.model.observable, "observableId"
+            self.completers[petab.C.OBSERVABLE_ID] = ColumnSuggestionDelegate(
+                self.mother_controller.model.observable, petab.C.OBSERVABLE_ID
             )
             table_view.setItemDelegateForColumn(
-                observableId_index, self.completers["observableId"]
+                observableId_index, self.completers[petab.C.OBSERVABLE_ID]
             )
         # preequilibrationConditionId
         preequilibrationConditionId_index = self.model.return_column_index(
-            "preequilibrationConditionId"
+            petab.C.PREEQUILIBRATION_CONDITION_ID
         )
         if preequilibrationConditionId_index > -1:
-            self.completers["preequilibrationConditionId"] = (
+            self.completers[petab.C.PREEQUILIBRATION_CONDITION_ID] = (
                 ColumnSuggestionDelegate(
-                    self.mother_controller.model.condition, "conditionId"
+                    self.mother_controller.model.condition,
+                    petab.C.CONDITION_ID,
                 )
             )
             table_view.setItemDelegateForColumn(
                 preequilibrationConditionId_index,
-                self.completers["preequilibrationConditionId"],
+                self.completers[petab.C.PREEQUILIBRATION_CONDITION_ID],
             )
         # simulationConditionId
         simulationConditionId_index = self.model.return_column_index(
-            "simulationConditionId"
+            petab.C.SIMULATION_CONDITION_ID
         )
         if simulationConditionId_index > -1:
-            self.completers["simulationConditionId"] = (
+            self.completers[petab.C.SIMULATION_CONDITION_ID] = (
                 ColumnSuggestionDelegate(
-                    self.mother_controller.model.condition, "conditionId"
+                    self.mother_controller.model.condition,
+                    petab.C.CONDITION_ID,
                 )
             )
             table_view.setItemDelegateForColumn(
                 simulationConditionId_index,
-                self.completers["simulationConditionId"],
+                self.completers[petab.C.SIMULATION_CONDITION_ID],
             )
         # noiseParameters
         noiseParameters_index = self.model.return_column_index(
-            "noiseParameters"
+            petab.C.NOISE_PARAMETERS
         )
         if noiseParameters_index > -1:
-            self.completers["noiseParameters"] = SingleSuggestionDelegate(
-                self.model, "observableId", afix="sd_"
+            self.completers[petab.C.NOISE_PARAMETERS] = (
+                SingleSuggestionDelegate(
+                    self.model, petab.C.OBSERVABLE_ID, afix="sd_"
+                )
             )
             table_view.setItemDelegateForColumn(
-                noiseParameters_index, self.completers["noiseParameters"]
+                noiseParameters_index,
+                self.completers[petab.C.NOISE_PARAMETERS],
             )
 
 
@@ -1095,7 +1104,7 @@ class ConditionController(TableController):
         If so, emits a signal to rename the conditions in the measurement_df.
         """
         df = self.mother_controller.measurement_controller.model.get_df()
-        if old_id not in df["simulationConditionId"].values:
+        if old_id not in df[petab.C.SIMULATION_CONDITION_ID].values:
             return
         reply = QMessageBox.question(
             self.view,
@@ -1121,7 +1130,7 @@ class ConditionController(TableController):
         self.model.insertRows(position=None, rows=1)
         self.model.fill_row(
             self.model.get_df().shape[0] - 1,
-            data={"conditionId": condition_id},
+            data={petab.C.CONDITION_ID: condition_id},
         )
         self.model.cell_needs_validation.emit(
             self.model.get_df().shape[0] - 1, 0
@@ -1136,16 +1145,18 @@ class ConditionController(TableController):
         """Set completers for the condition table."""
         table_view = self.view.table_view
         # conditionName
-        conditionName_index = self.model.return_column_index("conditionName")
+        conditionName_index = self.model.return_column_index(
+            petab.C.CONDITION_NAME
+        )
         if conditionName_index > -1:
-            self.completers["conditionName"] = SingleSuggestionDelegate(
-                self.model, "conditionId"
+            self.completers[petab.C.CONDITION_NAME] = SingleSuggestionDelegate(
+                self.model, petab.C.CONDITION_ID
             )
             table_view.setItemDelegateForColumn(
-                conditionName_index, self.completers["conditionName"]
+                conditionName_index, self.completers[petab.C.CONDITION_NAME]
             )
         for column in self.model.get_df().columns:
-            if column in ["conditionId", "conditionName"]:
+            if column in [petab.C.CONDITION_ID, petab.C.CONDITION_NAME]:
                 continue
             column_index = self.model.return_column_index(column)
             if column_index > -1:
@@ -1170,45 +1181,50 @@ class ObservableController(TableController):
         """Set completers for the observable table."""
         table_view = self.view.table_view
         # observableName
-        observableName_index = self.model.return_column_index("observableName")
+        observableName_index = self.model.return_column_index(
+            petab.C.OBSERVABLE_NAME
+        )
         if observableName_index > -1:
-            self.completers["observableName"] = SingleSuggestionDelegate(
-                self.model, "observableId"
+            self.completers[petab.C.OBSERVABLE_NAME] = (
+                SingleSuggestionDelegate(self.model, petab.C.OBSERVABLE_ID)
             )
             table_view.setItemDelegateForColumn(
-                observableName_index, self.completers["observableName"]
+                observableName_index, self.completers[petab.C.OBSERVABLE_NAME]
             )
         # observableTransformation
         observableTransformation_index = self.model.return_column_index(
-            "observableTransformation"
+            petab.C.OBSERVABLE_TRANSFORMATION
         )
         if observableTransformation_index > -1:
-            self.completers["observableTransformation"] = ComboBoxDelegate(
-                ["lin", "log", "log10"]
+            self.completers[petab.C.OBSERVABLE_TRANSFORMATION] = (
+                ComboBoxDelegate([petab.C.LIN, petab.C.LOG, petab.C.LOG10])
             )
             table_view.setItemDelegateForColumn(
                 observableTransformation_index,
-                self.completers["observableTransformation"],
+                self.completers[petab.C.OBSERVABLE_TRANSFORMATION],
             )
         # noiseFormula
-        noiseFormula_index = self.model.return_column_index("noiseFormula")
+        noiseFormula_index = self.model.return_column_index(
+            petab.C.NOISE_FORMULA
+        )
         if noiseFormula_index > -1:
-            self.completers["noiseFormula"] = SingleSuggestionDelegate(
-                self.model, "observableId", afix="noiseParameter1_"
+            self.completers[petab.C.NOISE_FORMULA] = SingleSuggestionDelegate(
+                self.model, petab.C.OBSERVABLE_ID, afix="noiseParameter1_"
             )
             table_view.setItemDelegateForColumn(
-                noiseFormula_index, self.completers["noiseFormula"]
+                noiseFormula_index, self.completers[petab.C.NOISE_FORMULA]
             )
         # noiseDistribution
         noiseDistribution_index = self.model.return_column_index(
-            "noiseDistribution"
+            petab.C.NOISE_DISTRIBUTION
         )
         if noiseDistribution_index > -1:
-            self.completers["noiseDistribution"] = ComboBoxDelegate(
-                ["normal", "laplace"]
+            self.completers[petab.C.NOISE_DISTRIBUTION] = ComboBoxDelegate(
+                [petab.C.NORMAL, petab.C.LAPLACE]
             )
             table_view.setItemDelegateForColumn(
-                noiseDistribution_index, self.completers["noiseDistribution"]
+                noiseDistribution_index,
+                self.completers[petab.C.NOISE_DISTRIBUTION],
             )
 
     def setup_connections_specific(self):
@@ -1238,7 +1254,7 @@ class ObservableController(TableController):
         If so, emits a signal to rename the observables in the measurement_df.
         """
         df = self.mother_controller.measurement_controller.model.get_df()
-        if old_id not in df["observableId"].values:
+        if old_id not in df[petab.C.OBSERVABLE_ID].values:
             return
         reply = QMessageBox.question(
             self.view,
@@ -1268,7 +1284,7 @@ class ObservableController(TableController):
         self.model.insertRows(position=None, rows=1)
         self.model.fill_row(
             self.model.get_df().shape[0] - 1,
-            data={"observableId": observable_id},
+            data={petab.C.OBSERVABLE_ID: observable_id},
         )
         self.model.cell_needs_validation.emit(
             self.model.get_df().shape[0] - 1, 0
@@ -1300,57 +1316,65 @@ class ParameterController(TableController):
         """Set completers for the parameter table."""
         table_view = self.view.table_view
         # parameterName
-        parameterName_index = self.model.return_column_index("parameterName")
+        parameterName_index = self.model.return_column_index(
+            petab.C.PARAMETER_NAME
+        )
         if parameterName_index > -1:
-            self.completers["parameterName"] = SingleSuggestionDelegate(
-                self.model, "parameterId"
+            self.completers[petab.C.PARAMETER_NAME] = SingleSuggestionDelegate(
+                self.model, petab.C.PARAMETER_ID
             )
             table_view.setItemDelegateForColumn(
-                parameterName_index, self.completers["parameterName"]
+                parameterName_index, self.completers[petab.C.PARAMETER_NAME]
             )
         # parameterScale
-        parameterScale_index = self.model.return_column_index("parameterScale")
+        parameterScale_index = self.model.return_column_index(
+            petab.C.PARAMETER_SCALE
+        )
         if parameterScale_index > -1:
-            self.completers["parameterScale"] = ComboBoxDelegate(
-                ["lin", "log", "log10"]
+            self.completers[petab.C.PARAMETER_SCALE] = ComboBoxDelegate(
+                [petab.C.LIN, petab.C.LOG, petab.C.LOG10]
             )
             table_view.setItemDelegateForColumn(
-                parameterScale_index, self.completers["parameterScale"]
+                parameterScale_index, self.completers[petab.C.PARAMETER_SCALE]
             )
         # lowerBound
-        lowerBound_index = self.model.return_column_index("lowerBound")
+        lowerBound_index = self.model.return_column_index(petab.C.LOWER_BOUND)
         if lowerBound_index > -1:
-            self.completers["lowerBound"] = ColumnSuggestionDelegate(
-                self.model, "lowerBound", QCompleter.PopupCompletion
+            self.completers[petab.C.LOWER_BOUND] = ColumnSuggestionDelegate(
+                self.model, petab.C.LOWER_BOUND, QCompleter.PopupCompletion
             )
             table_view.setItemDelegateForColumn(
-                lowerBound_index, self.completers["lowerBound"]
+                lowerBound_index, self.completers[petab.C.LOWER_BOUND]
             )
         # upperBound
-        upperBound_index = self.model.return_column_index("upperBound")
+        upperBound_index = self.model.return_column_index(petab.C.UPPER_BOUND)
         if upperBound_index > -1:
-            self.completers["upperBound"] = ColumnSuggestionDelegate(
-                self.model, "upperBound", QCompleter.PopupCompletion
+            self.completers[petab.C.UPPER_BOUND] = ColumnSuggestionDelegate(
+                self.model, petab.C.UPPER_BOUND, QCompleter.PopupCompletion
             )
             table_view.setItemDelegateForColumn(
-                upperBound_index, self.completers["upperBound"]
+                upperBound_index, self.completers[petab.C.UPPER_BOUND]
             )
         # estimate
-        estimate_index = self.model.return_column_index("estimate")
+        estimate_index = self.model.return_column_index(petab.C.ESTIMATE)
         if estimate_index > -1:
-            self.completers["estimate"] = ComboBoxDelegate(["1", "0"])
+            self.completers[petab.C.ESTIMATE] = ComboBoxDelegate(["1", "0"])
             table_view.setItemDelegateForColumn(
-                estimate_index, self.completers["estimate"]
+                estimate_index, self.completers[petab.C.ESTIMATE]
             )
         # parameterId: retrieved from the sbml model
-        parameterId_index = self.model.return_column_index("parameterId")
+        parameterId_index = self.model.return_column_index(
+            petab.C.PARAMETER_ID
+        )
         sbml_model = self.mother_controller.model.sbml
         if parameterId_index > -1:
-            self.completers["parameterId"] = ParameterIdSuggestionDelegate(
-                par_model=self.model, sbml_model=sbml_model
+            self.completers[petab.C.PARAMETER_ID] = (
+                ParameterIdSuggestionDelegate(
+                    par_model=self.model, sbml_model=sbml_model
+                )
             )
             table_view.setItemDelegateForColumn(
-                parameterId_index, self.completers["parameterId"]
+                parameterId_index, self.completers[petab.C.PARAMETER_ID]
             )
 
     @linter_wrapper(additional_error_check=True)
@@ -1431,56 +1455,61 @@ class VisualizationController(TableController):
         """Set completers for the visualization table."""
         table_view = self.view.table_view
         # plotTypeSimulation
-        index = self.model.return_column_index("plotTypeSimulation")
+        index = self.model.return_column_index(petab.C.PLOT_TYPE_SIMULATION)
         if index and index > -1:
-            self.completers["plotTypeSimulation"] = ComboBoxDelegate(
-                ["LinePlot", "BarPlot", "ScatterPlot"]
+            self.completers[petab.C.PLOT_TYPE_SIMULATION] = ComboBoxDelegate(
+                [petab.C.LINE_PLOT, petab.C.BAR_PLOT, petab.C.SCATTER_PLOT]
             )
             table_view.setItemDelegateForColumn(
-                index, self.completers["plotTypeSimulation"]
+                index, self.completers[petab.C.PLOT_TYPE_SIMULATION]
             )
         # plotTypeData
-        index = self.model.return_column_index("plotTypeData")
+        index = self.model.return_column_index(petab.C.PLOT_TYPE_DATA)
         if index and index > -1:
-            self.completers["plotTypeData"] = ComboBoxDelegate(
-                ["MeanAndSD", "MeanAndSEM", "replicate", "provided"]
+            self.completers[petab.C.PLOT_TYPE_DATA] = ComboBoxDelegate(
+                [
+                    petab.C.MEAN_AND_SD,
+                    petab.C.MEAN_AND_SEM,
+                    petab.C.REPLICATE,
+                    petab.C.PROVIDED,
+                ]
             )
             table_view.setItemDelegateForColumn(
-                index, self.completers["plotTypeData"]
+                index, self.completers[petab.C.PLOT_TYPE_DATA]
             )
         # datasetId
-        index = self.model.return_column_index("datasetId")
+        index = self.model.return_column_index(petab.C.DATASET_ID)
         if index and index > -1:
-            self.completers["datasetId"] = ColumnSuggestionDelegate(
-                self.mother_controller.model.measurement, "datasetId"
+            self.completers[petab.C.DATASET_ID] = ColumnSuggestionDelegate(
+                self.mother_controller.model.measurement, petab.C.DATASET_ID
             )
             table_view.setItemDelegateForColumn(
-                index, self.completers["datasetId"]
+                index, self.completers[petab.C.DATASET_ID]
             )
         # yValues
-        index = self.model.return_column_index("yValues")
+        index = self.model.return_column_index(petab.C.Y_VALUES)
         if index and index > -1:
-            self.completers["yValues"] = ColumnSuggestionDelegate(
-                self.mother_controller.model.observable, "observableId"
+            self.completers[petab.C.Y_VALUES] = ColumnSuggestionDelegate(
+                self.mother_controller.model.observable, petab.C.OBSERVABLE_ID
             )
             table_view.setItemDelegateForColumn(
-                index, self.completers["yValues"]
+                index, self.completers[petab.C.Y_VALUES]
             )
         # xScale
-        index = self.model.return_column_index("xScale")
+        index = self.model.return_column_index(petab.C.X_SCALE)
         if index and index > -1:
-            self.completers["xScale"] = ComboBoxDelegate(
-                ["lin", "log", "log10", "order"]
+            self.completers[petab.C.X_SCALE] = ComboBoxDelegate(
+                [petab.C.LIN, petab.C.LOG, petab.C.LOG10, "order"]
             )
             table_view.setItemDelegateForColumn(
-                index, self.completers["xScale"]
+                index, self.completers[petab.C.X_SCALE]
             )
         # yScale
-        index = self.model.return_column_index("yScale")
+        index = self.model.return_column_index(petab.C.Y_SCALE)
         if index and index > -1:
-            self.completers["yScale"] = ComboBoxDelegate(
-                ["lin", "log", "log10", "order"]
+            self.completers[petab.C.Y_SCALE] = ComboBoxDelegate(
+                [petab.C.LIN, petab.C.LOG, petab.C.LOG10, "order"]
             )
             table_view.setItemDelegateForColumn(
-                index, self.completers["yScale"]
+                index, self.completers[petab.C.Y_SCALE]
             )

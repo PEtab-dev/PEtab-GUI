@@ -1,5 +1,6 @@
 from typing import Any
 
+import petab.v1 as petab
 from PySide6.QtCore import (
     QAbstractTableModel,
     QMimeData,
@@ -391,7 +392,7 @@ class PandasTableModel(QAbstractTableModel):
             return False
 
         # Special ID emitters
-        if column_name == "observableId":
+        if column_name == petab.C.OBSERVABLE_ID:
             if fill_with_defaults:
                 self.get_default_values(index, {column_name: value})
             self.relevant_id_changed.emit(value, old_value, "observable")
@@ -401,9 +402,9 @@ class PandasTableModel(QAbstractTableModel):
             return True
 
         if column_name in [
-            "conditionId",
-            "simulationConditionId",
-            "preequilibrationConditionId",
+            petab.C.CONDITION_ID,
+            petab.C.SIMULATION_CONDITION_ID,
+            petab.C.PREEQUILIBRATION_CONDITION_ID,
         ]:
             if fill_with_defaults:
                 self.get_default_values(index, {column_name: value})
@@ -993,9 +994,9 @@ class IndexedPandasTableModel(PandasTableModel):
         columns_with_index = [df.index.name] if df.index.name else []
         columns_with_index += list(df.columns)
         # ensure parameterScale is before lowerBound and upperBound (potential)
-        if "parameterScale" in columns_with_index:
-            columns_with_index.remove("parameterScale")
-            columns_with_index.insert(1, "parameterScale")
+        if petab.C.PARAMETER_SCALE in columns_with_index:
+            columns_with_index.remove(petab.C.PARAMETER_SCALE)
+            columns_with_index.insert(1, petab.C.PARAMETER_SCALE)
 
         for colname in columns_with_index:
             if changed and colname in changed:
@@ -1010,11 +1011,11 @@ class IndexedPandasTableModel(PandasTableModel):
                 ) and bool(default_value):
                     rename_needed = True
                     new_index = default_value
-            elif colname in ["upperBound", "lowerBound"]:
+            elif colname in [petab.C.UPPER_BOUND, petab.C.LOWER_BOUND]:
                 par_scale = (
-                    changes[(row_key, "parameterScale")][1]
-                    if (row_key, "parameterScale") in changes
-                    else changed["parameterScale"]
+                    changes[(row_key, petab.C.PARAMETER_SCALE)][1]
+                    if (row_key, petab.C.PARAMETER_SCALE) in changes
+                    else changed[petab.C.PARAMETER_SCALE]
                 )
                 default_value = self.default_handler.get_default(
                     colname, row_key, par_scale
@@ -1161,7 +1162,7 @@ class ConditionModel(IndexedPandasTableModel):
             table_type="condition",
             parent=parent,
         )
-        self._allowed_columns.pop("conditionId")
+        self._allowed_columns.pop(petab.C.CONDITION_ID)
 
 
 class PandasTableFilterProxy(QSortFilterProxyModel):
