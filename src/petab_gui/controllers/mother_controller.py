@@ -308,6 +308,11 @@ class MainController:
         actions["add"].triggered.connect(
             partial(self.open_file, mode="append")
         )
+        # Load Example
+        actions["load_example"] = QAction(
+            qta.icon("mdi6.book-open-page-variant"), "Load Example", self.view
+        )
+        actions["load_example"].triggered.connect(self.load_example)
         # Save
         actions["save"] = QAction(
             qta.icon("mdi6.content-save-all"), "&Save As...", self.view
@@ -1071,6 +1076,63 @@ class MainController:
             controller.clear_table()
         self.view.plot_dock.plot_it()
         self.unsaved_changes_change(False)
+
+    def load_example(self):
+        """Load the internal example PEtab problem.
+
+        Finds and loads the example dataset from the package directory.
+        No internet connection required - the example is bundled with the package.
+        """
+        try:
+            # Use importlib.resources to access packaged example files
+            from importlib.resources import files
+
+            example_files = files("petab_gui.example")
+
+            # Check if the example package exists
+            if not example_files.is_dir():
+                error_msg = (
+                    "Could not find the example dataset. "
+                    "The example folder may not be properly installed."
+                )
+                self.logger.log_message(error_msg, color="red")
+                QMessageBox.warning(self.view, "Example Not Found", error_msg)
+                return
+
+            # Get the problem.yaml file path
+            yaml_file = example_files.joinpath("problem.yaml")
+
+            # For importlib.resources, we need to handle this differently
+            # in Python 3.9+ we can use as_file context manager
+            from importlib.resources import as_file
+
+            with as_file(yaml_file) as yaml_path:
+                if not yaml_path.exists():
+                    error_msg = "Example dataset found, but problem.yaml file is missing."
+                    self.logger.log_message(error_msg, color="red")
+                    QMessageBox.warning(
+                        self.view, "Example Invalid", error_msg
+                    )
+                    return
+
+                # Load the example
+                self.logger.log_message(
+                    "Loading bundled example dataset...", color="blue"
+                )
+                self.open_yaml_and_load_files(str(yaml_path))
+
+        except ModuleNotFoundError as e:
+            error_msg = (
+                "Example dataset not found. It may not be installed properly. "
+                f"Error: {str(e)}"
+            )
+            self.logger.log_message(error_msg, color="red")
+            QMessageBox.warning(self.view, "Example Not Found", error_msg)
+        except Exception as e:
+            error_msg = f"Failed to load example: {str(e)}"
+            self.logger.log_message(error_msg, color="red")
+            logging.exception("Full traceback for load example error:")
+            QMessageBox.critical(self.view, "Error Loading Example", error_msg)
 
     def check_model(self):
         """Check the consistency of the model. And log the results."""

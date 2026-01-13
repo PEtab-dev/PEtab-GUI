@@ -52,6 +52,7 @@ class FileMenu(BasicMenu):
         self.menu.addAction(actions["new"])
         self.menu.addAction(actions["open"])
         self.menu.addAction(actions["add"])
+        self.menu.addAction(actions["load_example"])
         self.menu.addAction(actions["save"])
         self.menu.addMenu(actions["recent_files"])
         self.menu.addSeparator()
