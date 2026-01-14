@@ -120,6 +120,7 @@ class ViewMenu(BasicMenu):
         self.menu.addAction(actions["show_plot"])
         self.menu.addAction(actions["show_visualization"])
         self.menu.addAction(actions["show_simulation"])
+        self.menu.addAction(actions["show_sbml_editor"])
         self.menu.addSeparator()
         self.menu.addAction(actions["reset_view"])
         self.menu.addAction(actions["clear_log"])

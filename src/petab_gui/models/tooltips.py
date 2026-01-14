@@ -177,7 +177,8 @@ SBML_VIEW_TOOLTIP = (
     "<b>SBML (XML) view</b><br>"
     "• Edit or paste valid SBML.<br>"
     "• Use <i>Forward → Antimony</i> to sync.<br>"
-    "• Some constructs may not round-trip."
+    "• Some constructs may not round-trip.<br>"
+    "• Hide/show via <i>View → SBML Editor</i> menu."
 )
 
 ANTIMONY_VIEW_TOOLTIP = (
