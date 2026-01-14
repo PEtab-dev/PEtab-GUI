@@ -444,6 +444,9 @@ class MainController:
         actions["show_plot"] = QAction("Data Plot", self.view)
         actions["show_plot"].setCheckable(True)
         actions["show_plot"].setChecked(True)
+        actions["show_sbml_editor"] = QAction("SBML Editor", self.view)
+        actions["show_sbml_editor"].setCheckable(True)
+        actions["show_sbml_editor"].setChecked(True)
 
         # What's This action
         actions["whats_this"] = QAction(
@@ -535,6 +538,11 @@ class MainController:
             # Connect QAction ↔ DockWidget syncing
             action.toggled.connect(dock.setVisible)
             dock.visibilityChanged.connect(action.setChecked)
+
+        # Connect SBML editor visibility toggle
+        sbml_action = self.actions["show_sbml_editor"]
+        sbml_widget = self.view.sbml_viewer.sbml_widget
+        sbml_action.toggled.connect(sbml_widget.setVisible)
 
     def save_model(self):
         options = QFileDialog.Options()

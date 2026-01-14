@@ -58,14 +58,14 @@ class SbmlViewer(QWidget):
         antimony_layout.addWidget(self.forward_antimony_button)
 
         # Create widgets to hold SBML and Antimony sections
-        sbml_widget = QWidget()
-        sbml_widget.setLayout(sbml_layout)
+        self.sbml_widget = QWidget()
+        self.sbml_widget.setLayout(sbml_layout)
 
         antimony_widget = QWidget()
         antimony_widget.setLayout(antimony_layout)
 
         # Add widgets to the splitter
-        splitter.addWidget(sbml_widget)
+        splitter.addWidget(self.sbml_widget)
         splitter.addWidget(antimony_widget)
 
         # Add the splitter to the main layout
