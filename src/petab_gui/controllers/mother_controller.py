@@ -542,6 +542,11 @@ class MainController:
         # Connect SBML editor visibility toggle
         sbml_action = self.actions["show_sbml_editor"]
         sbml_widget = self.view.sbml_viewer.sbml_widget
+
+        # Store action reference in view for context menus
+        self.view.sbml_viewer.sbml_toggle_action = sbml_action
+
+        # Connect menu action to widget visibility
         sbml_action.toggled.connect(sbml_widget.setVisible)
 
     def save_model(self):
