@@ -150,14 +150,14 @@ You should see the main window with empty table panels.
    :width: 100%
    :align: center
 
-   PEtab-GUI on first launch - Data Tables tab showing empty tables ready for a new project
+   PEtab-GUI on first launch - Data Tables tab showing empty tables ready for a new project.
 
 .. figure:: _static/empty_GUI_2.png
    :alt: PEtab-GUI Main Window on First Launch - SBML Model View
    :width: 100%
    :align: center
 
-   PEtab-GUI on first launch - SBML Model tab with empty editors
+   PEtab-GUI on first launch - SBML Model tab with empty editors.
 
 Step 2: Create the SBML Model
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -189,7 +189,7 @@ We'll create a simple model using the Antimony editor.
    :width: 100%
    :align: center
 
-   Creating a simple conversion model in Antimony (right panel) and converting it to SBML (left panel)
+   Creating a simple conversion model in Antimony (right panel) and converting it to SBML (left panel).
 
 **What you should see**: The SBML editor should now contain XML code with ``<listOfSpecies>``, ``<listOfParameters>`` and ``<listOfReactions>`` elements.
 The Info panel at the bottom might show a message confirming the conversion.
@@ -207,7 +207,7 @@ Now we'll import experimental measurements.
 
 **Option B: Creating the file yourself**
 
-Create a file named ``simple_conversion_measurements.tsv`` with the following content (a tab-separated matrix format):
+Create a file named ``simple_conversion_measurements.tsv`` with the following content (a tab-separated values format):
 
 .. code-block:: text
 
@@ -223,7 +223,7 @@ Create a file named ``simple_conversion_measurements.tsv`` with the following co
    18	1.6	8.2
    20	1.3	8.5
 
-Then drag and drop this file onto the **Measurement Table** panel. When prompted, enter ``SimulationCondition``.
+Then drag and drop this file onto the **Measurement Table** panel. When prompted, enter ``cond_1`` for `Simulation Condition`.
 You should now see the measurements imported, the condition and observables created, but some things are marked red.
 This is the petab linter telling you that some required fields are missing, namely the observable formula, which the GUI
 can not set automatically. We will fix this in the next steps.
@@ -233,7 +233,7 @@ can not set automatically. We will fix this in the next steps.
    :width: 100%
    :align: center
 
-   Dialog when uploading data matrix asking for SimulationConditionId
+   Dialog when uploading data matrix asking for SimulationConditionId.
 
 **What you should see**: The Measurement Table should now contain 20 rows with your measurement data (10 time points for each of the two species).
 The Info panel will likely show messages about auto-generated observables and conditions.
@@ -243,7 +243,7 @@ The Info panel will likely show messages about auto-generated observables and co
    :width: 100%
    :align: center
 
-   Measurement Table after importing data - 10 time points with measurements for both species A and B
+   Measurement Table after importing data - 10 time points with measurements for both species A and B.
 
 Step 4: Define the Observable Formulas
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -274,7 +274,7 @@ You should now see a complete observable table and no more errors in the Info pa
    :width: 100%
    :align: center
 
-   Observable Table with formulas for both species A and B, each with noise standard deviation set to 0.5
+   Observable Table with formulas for both species A and B, each with noise standard deviation set to 0.5.
 
 **What you should see**: The Info panel might show validation messages confirming the observables are now properly defined.
 
@@ -296,9 +296,9 @@ Now we specify which parameters should be estimated and their bounds.
 1. Switch to the **Parameter Table** panel
 2. Click the **"Add Row"** button in the toolbar (or use :menuselection:`&Edit --> Add Row`) or just add it directly
    by double clicking in the first empty row.
-3. Start filling in `k_`, you should automatically be prompted to select `k_conversion` from a dropdown of model parameters.
-4. The `nominalValue` will be taken from your SBML model, the `parameterScale` should be set to `log10` by default and `estimate` should set to 1.
-5. You only need to fill out the lower and upper bounds now. Fill in `0.001` and `100` respectively.
+3. Start filling in ``k_``, you should automatically be prompted to select ``k_conversion`` from a dropdown of model parameters.
+4. The `nominalValue` will be taken from your SBML model, the `parameterScale` should be set to ``log10`` by default and `estimate` should set to ``1``.
+5. You only need to fill out the lower and upper bounds now. Fill in ``0.001`` and ``100`` respectively.
 
 .. note::
 
@@ -310,7 +310,7 @@ Now we specify which parameters should be estimated and their bounds.
    :width: 100%
    :align: center
 
-   Parameter Table configured for estimating `k_conversion` with bounds [0.001, 100] on log10 scale
+   Parameter Table configured for estimating `k_conversion` with bounds [0.001, 100] on log10 scale.
 
 **What you should see**: One row in the Parameter Table with all columns filled. Nothing should be colored red anymore.
 
@@ -330,7 +330,7 @@ Let's see what our measurement data looks like.
    :width: 100%
    :align: center
 
-   Measurement Plot showing the experimental data - time points vs. measured values for both species A (decreasing) and species B (increasing)
+   Measurement Plot showing the experimental data - time points vs. measured values for both species A (decreasing) and species B (increasing).
 
 **Try this**: In the :guilabel:`Measurement Table` select one or multiple rows. The corresponding point(s) in the
 :guilabel:`Data Plot` will be highlighted. This linking lets you explore and validate your data early on.
@@ -376,7 +376,7 @@ Congratulations! Your PEtab problem is complete. Now let's save it.
    :width: 100%
    :align: center
 
-   Saving your PEtab problem - choose folder format for easy editing or COMBINE archive for sharing
+   Saving your PEtab problem - choose folder format for easy editing or COMBINE archive for sharing.
 
 Congratulations!
 ~~~~~~~~~~~~~~~~
