@@ -1,7 +1,7 @@
-include  example/*.csv
-include  example/*.tsv
-include  example/*.xml
-include  example/*.yaml
-include  example/*.yml
+include  example/*/*.csv
+include  example/*/*.tsv
+include  example/*/*.xml
+include  example/*/*.yaml
+include  example/*/*.yml
 exclude .git_archival.txt
 exclude .gitattributes

@@ -308,11 +308,23 @@ class MainController:
         actions["add"].triggered.connect(
             partial(self.open_file, mode="append")
         )
-        # Load Example
-        actions["load_example"] = QAction(
-            qta.icon("mdi6.book-open-page-variant"), "Load Example", self.view
+        # Load Examples
+        actions["load_example_boehm"] = QAction(
+            qta.icon("mdi6.book-open-page-variant"),
+            "Load Example: Boehm",
+            self.view,
         )
-        actions["load_example"].triggered.connect(self.load_example)
+        actions["load_example_boehm"].triggered.connect(
+            partial(self.load_example, "Boehm")
+        )
+        actions["load_example_simple"] = QAction(
+            qta.icon("mdi6.book-open-page-variant"),
+            "Load Example: Simple Conversion",
+            self.view,
+        )
+        actions["load_example_simple"].triggered.connect(
+            partial(self.load_example, "Simple_Conversion")
+        )
         # Save
         actions["save"] = QAction(
             qta.icon("mdi6.content-save-all"), "&Save As...", self.view
@@ -1077,8 +1089,13 @@ class MainController:
         self.view.plot_dock.plot_it()
         self.unsaved_changes_change(False)
 
-    def load_example(self):
-        """Load the internal example PEtab problem.
+    def load_example(self, example_name):
+        """Load an internal example PEtab problem.
+
+        Parameters
+        ----------
+        example_name : str
+            Name of the example subdirectory (e.g., "Boehm", "Simple_Conversion").
 
         Finds and loads the example dataset from the package directory.
         No internet connection required - the example is bundled with the package.
@@ -1099,8 +1116,8 @@ class MainController:
                 QMessageBox.warning(self.view, "Example Not Found", error_msg)
                 return
 
-            # Get the problem.yaml file path
-            yaml_file = example_files.joinpath("problem.yaml")
+            # Get the problem.yaml file path for the specified example
+            yaml_file = example_files.joinpath(example_name, "problem.yaml")
 
             # For importlib.resources, we need to handle this differently
             # in Python 3.9+ we can use as_file context manager
@@ -1108,7 +1125,7 @@ class MainController:
 
             with as_file(yaml_file) as yaml_path:
                 if not yaml_path.exists():
-                    error_msg = "Example dataset found, but problem.yaml file is missing."
+                    error_msg = f"Example '{example_name}' not found or problem.yaml file is missing."
                     self.logger.log_message(error_msg, color="red")
                     QMessageBox.warning(
                         self.view, "Example Invalid", error_msg
@@ -1117,7 +1134,8 @@ class MainController:
 
                 # Load the example
                 self.logger.log_message(
-                    "Loading bundled example dataset...", color="blue"
+                    f"Loading '{example_name}' example dataset...",
+                    color="blue",
                 )
                 self.open_yaml_and_load_files(str(yaml_path))
 
