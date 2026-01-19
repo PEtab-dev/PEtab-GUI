@@ -117,9 +117,17 @@ class TableController(QObject):
         settings_manager.settings_changed.connect(self.update_defaults)
 
     def setup_context_menu(self, actions):
-        """Setup context menu for this table."""
+        """Setup context menus for this table.
+
+        Sets up both the table body context menu and the header context menus
+        using the same actions dictionary for consistency.
+
+        Args:
+            actions: Dictionary of QAction objects
+        """
         view = self.view.table_view
         view.setup_context_menu(actions)
+        view.setup_header_context_menus(actions)
 
     def validate_changed_cell(self, row, column):
         """Validate the changed cell and whether its linting is correct."""
