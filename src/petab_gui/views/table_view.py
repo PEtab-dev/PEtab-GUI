@@ -321,6 +321,191 @@ class CustomTableView(QTableView):
             self.context_menu_manager.create_context_menu
         )
 
+    def setup_header_context_menus(self, actions):
+        """Set up context menus for row and column deletion.
+
+        Enables right-click context menus on both the vertical (row) and
+        horizontal (column) headers. The menus provide options to delete the
+        clicked row or column using the same actions as the table body context
+        menu.
+
+        Args:
+            actions: Dictionary of QAction objects (same as setup_context_menu)
+        """
+        # Store references to the delete actions for header menus
+        self.delete_row_action = actions["delete_row"]
+        self.delete_column_action = actions["delete_column"]
+
+        # Enable custom context menus on headers
+        self.verticalHeader().setContextMenuPolicy(Qt.CustomContextMenu)
+        self.horizontalHeader().setContextMenuPolicy(Qt.CustomContextMenu)
+
+        # Connect signals
+        self.verticalHeader().customContextMenuRequested.connect(
+            self._show_row_context_menu
+        )
+        self.horizontalHeader().customContextMenuRequested.connect(
+            self._show_column_context_menu
+        )
+
+    def _show_row_context_menu(self, position):
+        """Show context menu for row deletion.
+
+        Supports multi-row deletion. If the clicked row is not selected,
+        it selects it. If multiple rows are already selected, it keeps
+        the selection and deletes all selected rows (Excel-like behavior).
+
+        Uses the same delete_row action as the table body context menu.
+
+        Args:
+            position: The position where the context menu was requested
+        """
+        from PySide6.QtCore import QItemSelectionModel
+        from PySide6.QtWidgets import QMenu
+
+        from ..utils import get_selected
+
+        vertical_header = self.verticalHeader()
+        row = vertical_header.logicalIndexAt(position)
+
+        model = self.model()
+        # Handle proxy model if present
+        if hasattr(model, "sourceModel"):
+            source_model = model.sourceModel()
+        else:
+            source_model = model
+
+        # Don't show menu for the "new row" at the end
+        if row >= source_model.get_df().shape[0]:
+            return
+
+        # Selection logic: select clicked row if not already selected
+        selection_model = self.selectionModel()
+        selected_rows = get_selected(self)
+        if row not in selected_rows:
+            # Select the entire row
+            selection_model.select(
+                model.index(row, 0),
+                QItemSelectionModel.Select | QItemSelectionModel.Rows,
+            )
+            selected_rows = {row}
+
+        # Create menu with count indicator using the existing action
+        menu = QMenu()
+        row_count = len(selected_rows)
+        if row_count == 1:
+            # Update action text temporarily for single row
+            original_text = self.delete_row_action.text()
+            self.delete_row_action.setText("Delete Row")
+            menu.addAction(self.delete_row_action)
+        else:
+            # Update action text temporarily for multiple rows
+            original_text = self.delete_row_action.text()
+            self.delete_row_action.setText(f"Delete {row_count} Rows")
+            menu.addAction(self.delete_row_action)
+
+        menu.exec_(vertical_header.mapToGlobal(position))
+
+        # Restore original action text
+        self.delete_row_action.setText(original_text)
+
+    def _show_column_context_menu(self, position):
+        """Show context menu for column deletion.
+
+        Supports multi-column deletion. If the clicked column is not selected,
+        it selects it. If multiple columns are already selected, it keeps
+        the selection and deletes all selected columns (Excel-like behavior).
+
+        Shows informative text for required columns. Uses the same
+        delete_column action as the table body context menu.
+
+        Args:
+            position: The position where the context menu was requested
+        """
+        from PySide6.QtCore import QItemSelectionModel
+        from PySide6.QtWidgets import QMenu
+
+        from ..C import COLUMN
+        from ..utils import get_selected
+
+        horizontal_header = self.horizontalHeader()
+        column = horizontal_header.logicalIndexAt(position)
+
+        model = self.model()
+        # Handle proxy model if present
+        if hasattr(model, "sourceModel"):
+            source_model = model.sourceModel()
+        else:
+            source_model = model
+
+        # Selection logic: select clicked column if not already selected
+        selection_model = self.selectionModel()
+        selected_columns = get_selected(self, mode=COLUMN)
+        if column not in selected_columns:
+            # Select the entire column
+            selection_model.select(
+                model.index(0, column),
+                QItemSelectionModel.Select | QItemSelectionModel.Columns,
+            )
+            selected_columns = {column}
+
+        # Check which columns can be deleted and build required column list
+        required_columns = []
+        deletable_columns = []
+        for col in selected_columns:
+            can_delete, col_name = source_model.allow_column_deletion(col)
+            if can_delete:
+                deletable_columns.append(col)
+            else:
+                required_columns.append(col_name)
+
+        # Create menu with appropriate text using the existing action
+        menu = QMenu()
+        column_count = len(selected_columns)
+        deletable_count = len(deletable_columns)
+
+        # Store original action text and enabled state
+        original_text = self.delete_column_action.text()
+        original_enabled = self.delete_column_action.isEnabled()
+
+        if column_count == 1:
+            if deletable_count == 1:
+                self.delete_column_action.setText("Delete Column")
+                self.delete_column_action.setEnabled(True)
+            else:
+                # Single required column
+                self.delete_column_action.setText(
+                    f"Delete Column (Required: '{required_columns[0]}')"
+                )
+                self.delete_column_action.setEnabled(False)
+        else:
+            # Multiple columns selected
+            if deletable_count == column_count:
+                menu_text = f"Delete {column_count} Columns"
+                self.delete_column_action.setText(menu_text)
+                self.delete_column_action.setEnabled(True)
+            elif deletable_count == 0:
+                # All required
+                menu_text = f"Delete {column_count} Columns (All required)"
+                self.delete_column_action.setText(menu_text)
+                self.delete_column_action.setEnabled(False)
+            else:
+                # Some required, some deletable
+                required_count = len(required_columns)
+                menu_text = (
+                    f"Delete {deletable_count} Columns "
+                    f"({required_count} required will be skipped)"
+                )
+                self.delete_column_action.setText(menu_text)
+                self.delete_column_action.setEnabled(True)
+
+        menu.addAction(self.delete_column_action)
+        menu.exec_(horizontal_header.mapToGlobal(position))
+
+        # Restore original action text and enabled state
+        self.delete_column_action.setText(original_text)
+        self.delete_column_action.setEnabled(original_enabled)
+
     def setModel(self, model):
         """Set the model for the table view.
 
