@@ -123,15 +123,15 @@ Quick Start: Your First PEtab Problem
 --------------------------------------
 
 This section provides a complete, hands-on walkthrough to create your first PEtab parameter estimation problem from scratch.
-You will create a simple exponential decay model, import measurement data, and validate the complete problem.
+You will create a simple conversion model where species A converts to species B, import measurement data for both species in matrix format, and validate the complete problem.
 
-**What we'll build**: A model describing first-order exponential decay of a molecular species A, with experimental measurements at different time points.
+**What we'll build**: A model describing first-order conversion of species A to species B, with experimental measurements for both species at different time points.
 
 .. note::
 
    **Expected time**: 10-15 minutes
 
-   **Sample data files**: Download the example files from the `GitHub repository <https://github.com/PEtab-dev/PEtab-GUI/tree/main/docs/source/examples>`__
+   **Sample data files**: Download the example files from the `GitHub repository <https://github.com/PEtab-dev/PEtab-GUI/tree/main/example>`__
    or create them as described below.
 
 Step 1: Launch PEtab-GUI
@@ -145,10 +145,19 @@ Start PEtab-GUI from the command line:
 
 You should see the main window with empty table panels.
 
-.. note::
+.. figure:: _static/empty_GUI_1.png
+   :alt: PEtab-GUI Main Window on First Launch - Table View
+   :width: 100%
+   :align: center
 
-   **Picture needed**: Screenshot of empty PEtab-GUI main window on first launch
-   Caption: "PEtab-GUI on first launch - all tables are empty and ready for a new project"
+   PEtab-GUI on first launch - Data Tables tab showing empty tables ready for a new project
+
+.. figure:: _static/empty_GUI_2.png
+   :alt: PEtab-GUI Main Window on First Launch - SBML Model View
+   :width: 100%
+   :align: center
+
+   PEtab-GUI on first launch - SBML Model tab with empty editors
 
 Step 2: Create the SBML Model
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -160,26 +169,29 @@ We'll create a simple model using the Antimony editor.
 
    .. code-block:: antimony
 
-      model *SimpleDecay
-        // Reactions
-        decay: A -> ; k_decay * A
+      model *SimpleConversion
+        // Reactions:
+        conversion: A -> B; k_conversion * A
 
-        // Species initialization
+        // Species initializations:
         A = 10.0  # Initial amount of species A
+        B = 0.0   # Initial amount of species B
 
-        // Parameters
-        k_decay = 0.1  # Decay rate constant
+        // Variable initializations:
+        k_conversion = 0.1  # Conversion rate constant
       end
 
-3. Click the **"Antimony → SBML"** button below the Antimony editor
+3. Click the **"Forward changes to SBML"** button below the Antimony editor
 4. You should see the SBML XML representation appear in the **SBML Model Editor** (left panel)
 
-.. note::
+.. figure:: _static/simple_sbml.png
+   :alt: SBML Model Tab with Simple Conversion Model
+   :width: 100%
+   :align: center
 
-   **Picture needed**: Screenshot of the SBML Model tab showing both Antimony editor (right) with the model code and SBML editor (left) with the converted XML
-   Caption: "Creating a simple decay model in Antimony (right panel) and converting it to SBML (left panel)"
+   Creating a simple conversion model in Antimony (right panel) and converting it to SBML (left panel)
 
-**What you should see**: The SBML editor should now contain XML code with ``<species>`` and ``<reaction>`` elements.
+**What you should see**: The SBML editor should now contain XML code with ``<listOfSpecies>``, ``<listOfParameters>`` and ``<listOfReactions>`` elements.
 The Info panel at the bottom might show a message confirming the conversion.
 
 Step 3: Import Measurement Data
@@ -189,48 +201,56 @@ Now we'll import experimental measurements.
 
 **Option A: Using the provided sample file**
 
-1. Download ``simple_decay_measurements.csv`` from the examples folder
+1. Download ``simple_conversion_measurements.tsv`` from the examples folder
 2. Switch back to the **Data Tables** tab
-3. Drag and drop the CSV file onto the **Measurement Table** panel
+3. Drag and drop the TSV file onto the **Measurement Table** panel
 
 **Option B: Creating the file yourself**
 
-Create a file named ``simple_decay_measurements.csv`` with the following content:
+Create a file named ``simple_conversion_measurements.tsv`` with the following content (a tab-separated matrix format):
 
 .. code-block:: text
 
-   observableId,simulationConditionId,measurement,time
-   obs_species_A,condition1,10.2,0
-   obs_species_A,condition1,7.8,2
-   obs_species_A,condition1,5.9,4
-   obs_species_A,condition1,4.5,6
-   obs_species_A,condition1,3.3,8
-   obs_species_A,condition1,2.4,10
-   obs_species_A,condition1,1.8,12
-   obs_species_A,condition1,1.3,15
-   obs_species_A,condition1,1.0,18
-   obs_species_A,condition1,0.7,20
+   time	obs_A	obs_B
+   0	10.1	0.1
+   2	8.0	2.1
+   4	6.8	3.4
+   6	5.6	4.6
+   8	4.4	5.4
+   10	3.8	6.4
+   12	3.1	7.2
+   15	2.3	7.9
+   18	1.6	8.2
+   20	1.3	8.5
 
-Then drag and drop this file onto the **Measurement Table** panel.
+Then drag and drop this file onto the **Measurement Table** panel. When propmted, enter `SimulationCondition.
+You should now see the measurements imported, the condition and observables created, but some things are marked
+<span style="color: red">red</span>.
+This is the petablinter telling you that some required fields are missing, namely the observable formula, which the GUI
+can not set automatically. We will fix this in the next steps.
 
-.. note::
+.. figure:: _static/upload_data_matrix.png
+   :alt: Data Matrix Upload Dialog
+   :width: 100%
+   :align: center
 
-   **Picture needed**: Screenshot showing drag-and-drop of CSV file onto the Measurement Table, with a cursor icon over the table
-   Caption: "Drag-and-drop the measurement CSV file onto the Measurement Table panel for automatic import"
+   Dialog when uploading data matrix asking for SimulationConditionId
 
-**What you should see**: The Measurement Table should now contain 10 rows with your measurement data.
+**What you should see**: The Measurement Table should now contain 20 rows with your measurement data (10 time points for each of the two species).
 The Info panel will likely show messages about auto-generated observables and conditions.
 
-.. note::
+.. figure:: _static/upload_data_matrix_finished.png
+   :alt: Measurement Table After Data Import
+   :width: 100%
+   :align: center
 
-   **Picture needed**: Screenshot of the Measurement Table populated with the 10 rows of data
-   Caption: "Measurement Table after importing data - 10 time points with corresponding measurements for obs_species_A"
+   Measurement Table after importing data - 10 time points with measurements for both species A and B
 
-Step 4: Define the Observable Formula
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Step 4: Define the Observable Formulas
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-PEtab-GUI has automatically created an observable entry called ``obs_species_A`` in the Observable Table,
-but we need to specify how this observable relates to our model species.
+PEtab-GUI has automatically created observable entries for both species (``obs_A`` and ``obs_B``) in the Observable Table,
+but we need to specify how these observables relate to our model species.
 
 1. Locate the **Observable Table** panel (you may need to scroll or rearrange panels)
 2. Find the row with ``observableId`` = ``obs_species_A``
@@ -243,26 +263,31 @@ but we need to specify how this observable relates to our model species.
 
    This specifies that measurements have a standard deviation of 0.5 units (normally distributed noise).
 
-.. note::
+6. Now find the row with ``observableId`` = ``obs_species_B``
+7. In the ``observableFormula`` cell, enter: ``B``
+8. In the ``noiseFormula`` cell, enter: ``0.5``
+9. Click `Check PEtab` in the Toolbar.
 
-   **Picture needed**: Screenshot of the Observable Table with one row showing obs_species_A, with "A" in observableFormula column and "0.5" in noiseFormula column
-   Caption: "Observable Table with the formula 'A' linking the observable to model species A, and noise standard deviation set to 0.5"
+You should now see a complete observable table and no more errors in the Info panel.
 
-**What you should see**: The Info panel might show a validation message confirming the observable is now properly defined.
+.. figure:: _static/observable_formulas_defined.png
+   :alt: Observable Table with Formulas Defined
+   :width: 100%
+   :align: center
+
+   Observable Table with formulas for both species A and B, each with noise standard deviation set to 0.5
+
+**What you should see**: The Info panel might show validation messages confirming the observables are now properly defined.
 
 Step 5: Review Auto-Generated Conditions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Switch to the **Condition Table** panel.
 
-**What you should see**: PEtab-GUI has automatically created an entry for ``condition1`` (referenced in your measurements).
+**What you should see**: PEtab-GUI has automatically created an entry for ``cond_1`` (referenced in your measurements).
 Since our simple model doesn't require any condition-specific parameter overrides or initial value changes, this table
-can remain as-is with just the ``conditionId`` column filled.
-
-.. note::
-
-   **Picture needed**: Screenshot of Condition Table showing single row with "condition1" in the conditionId column
-   Caption: "Condition Table with auto-generated condition1 - no additional columns needed for this simple model"
+can remain as-is with just the ``conditionId`` column filled. If you want to rename it, just edit the cell in the
+**Condition Table** and when subsequently approved, the condotions in the **Measurement Table** will be updated accordingly.
 
 Step 6: Configure Parameters for Estimation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -270,45 +295,46 @@ Step 6: Configure Parameters for Estimation
 Now we specify which parameters should be estimated and their bounds.
 
 1. Switch to the **Parameter Table** panel
-2. Click the **"Add Row"** button in the toolbar (or use :menuselection:`&Edit --> Add Row`)
-3. Fill in the following values:
-
-   * ``parameterId``: ``k_decay``
-   * ``parameterScale``: ``log10`` (select from dropdown)
-   * ``lowerBound``: ``0.01``
-   * ``upperBound``: ``1.0``
-   * ``nominalValue``: ``0.1``
-   * ``estimate``: ``1`` (or check the box if it's a checkbox)
+2. Click the **"Add Row"** button in the toolbar (or use :menuselection:`&Edit --> Add Row`) or just add it directly
+by double clicking in the first empty row.
+3. Start filling in `k_`, you should automatically be prompted to select `k_conversion` from a dropdown of model parameters.
+4. The `nominalValue` will be taken from your sbml, the `parameterScale` should be set to `log10` by default and `estimate` should set to 1.
+5. You only need to fill out the lower and upper bounds now. Fill in `0.001`and `100` respectively.
 
 .. note::
 
    We use ``log10`` scale because rate constants often span several orders of magnitude, and optimization works better in log space.
+   Feel free to use linear scale for parameters as you see fit.
 
-.. note::
+.. figure:: _static/parameter_added.png
+   :alt: Parameter Table with k_conversion Configured
+   :width: 100%
+   :align: center
 
-   **Picture needed**: Screenshot of Parameter Table with one row showing all the values filled in as specified above
-   Caption: "Parameter Table configured for estimating k_decay with bounds [0.01, 1.0] on log10 scale"
+   Parameter Table configured for estimating k_conversion with bounds [0.001, 100] on log10 scale
 
-**What you should see**: One row in the Parameter Table with all columns filled. The Info panel should not show any errors.
+**What you should see**: One row in the Parameter Table with all columns filled. Noting should be colored red anymore.
 
 Step 7: Visualize Your Measurements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Let's see what our measurement data looks like.
 
-1. Make sure the **Measurement Plot** panel is visible at the bottom
-   (if not, enable it via :menuselection:`&View --> Measurement Plot`)
-2. You should see a plot with time on the x-axis and measurement values on the y-axis
-3. The plot should show about 10 data points following an exponential decay pattern
+1. Make sure the **Data Plot** panel is visible at the bottom
+   (if not, enable it via :menuselection:`&View --> Data Plot`)
+2. You should see two plot with time on the x-axis and measurement values on the y-axis, one for `obs_A` and one for `obs_B`.
+2.5. If you want to see only one plot with both species, click the cogwheel icon in the Measurement Plot panel and select `Group by condition`.
+3. The plot should show two sets of data points: one for species A (decreasing over time) and one for species B (increasing over time), with about 10 time points each
 
-.. note::
+.. figure:: _static/measurements_plot_links.png
+   :alt: Measurement Plot Panel
+   :width: 100%
+   :align: center
 
-   **Picture needed**: Screenshot of the Measurement Plot panel showing the scatter plot of measurements over time (exponential decay curve)
-   Caption: "Measurement Plot showing the experimental data - time points vs. measured values for species A"
+   Measurement Plot showing the experimental data - time points vs. measured values for both species A (decreasing) and species B (increasing)
 
-**Try this**: Click on one of the points in the plot. The corresponding row in the Measurement Table should be highlighted.
-Now click on a different row in the Measurement Table - the corresponding point in the plot should be highlighted. This
-bidirectional linking helps you explore and validate your data.
+**Try this**: In the :guilabel:`Measurement Table` select one or multiple rows. The corresponding point(s) in the
+:guilabel:`Data Plot` will be highlighted. This linking lets you explore and validate your data early on.
 
 Step 8: Run a Simulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -318,78 +344,63 @@ Now let's simulate the model with our current parameter values to see how well i
 1. In the toolbar, click the **"Simulate"** button (usually has a "play" or "gear" icon)
 2. Wait a few seconds for the simulation to complete
 3. The **Simulation Table** panel should appear (if not, enable it via :menuselection:`&View --> Simulation Table`)
-4. Switch to the **Measurement Plot** panel - you should now see both your measurements (dots) and the simulation (line)
+4. In the **Data Plot** panel - you should now see both your measurements (dots) and the simulation (lines)
 
-.. note::
+.. figure:: _static/full_problem.png
+   :alt: Measurement Plot with Simulation Overlay
+   :width: 100%
+   :align: center
 
-   **Picture needed**: Screenshot showing the Measurement Plot with both measurement data points (scatter) and simulation line overlaid, showing good agreement
-   Caption: "Measurement Plot after running simulation - measurements (dots) and model simulation (line) are shown together. The decay rate k_decay=0.1 provides a good fit to the data."
+   Measurement Plot after running simulation - measurements (dots) and model simulation (lines) are shown together for both species A and B. The conversion rate k_conversion=0.1 provides a good fit to the data.
 
-**What you should see**: A line plot overlaid on your measurement points. If you used the exact values from this tutorial,
-the simulation should match the measurements reasonably well since the data was generated with k_decay ≈ 0.1.
+**What you should see**: Two line plots overlaid on your measurement points - one for species A (decreasing) and one for species B (increasing). If you used the exact values from this tutorial,
+the simulation should match the measurements reasonably well since the data was generated with k_conversion ≈ 0.1.
 
-Step 9: Validate Your PEtab Problem
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Before saving, let's validate that everything is correct.
-
-1. Click the **"Lint"** button in the toolbar (usually has a checkmark or validation icon)
-2. Watch the **Info** panel for validation messages
-3. If successful, you should see a green message like: *"PEtab problem is valid"* or *"No errors found"*
-
-.. note::
-
-   **Picture needed**: Screenshot of the Info panel showing green success message after linting (e.g., "PEtab problem is valid")
-   Caption: "Info panel showing successful validation - your PEtab problem is ready to use!"
-
-**If you see errors**: Read the error messages in the Info panel. They typically indicate:
-
-* Missing required columns
-* Mismatched IDs between tables
-* Invalid formulas or syntax errors
-* Missing parameter definitions
-
-Click on error messages when possible - they may highlight the problematic cell or provide documentation links.
-
-Step 10: Save Your Project
+Step 9: Save Your Project
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Congratulations! Your PEtab problem is complete. Now let's save it.
 
-1. Go to :menuselection:`&File --> Save As`
-2. Choose a location and filename (e.g., ``simple_decay_problem.yaml``)
+1. Go to :menuselection:`&File --> Save As...`
+2. Choose a location and filename (e.g., ``simple_conversion``)
 3. Select the format:
 
-   * **PEtab YAML + folder**: Saves a YAML file and a folder with all table/model files
+   * **Folder**: Creates a folder with all table/model files with corresponding YAML file (recommended for local editing)
    * **COMBINE Archive (.omex)**: Saves everything in a single compressed archive (recommended for sharing)
 
 4. Click **Save**
 
-**What you should see**: A success message in the Info panel, and the window title should update to show your filename.
+**What you should see**: A success message detailing the folder path. When clicking ok, a ``Next Steps`` dialog appears with links to relevant documentation.
 
-.. note::
+.. figure:: _static/save_project.png
+   :alt: Save Project Dialog
+   :width: 100%
+   :align: center
 
-   **Picture needed**: Screenshot of the save dialog showing the file name input, format selection dropdown, and folder structure
-   Caption: "Saving your PEtab problem - choose YAML format for easy editing or COMBINE archive for sharing"
+   Saving your PEtab problem - choose folder format for easy editing or COMBINE archive for sharing
 
 Congratulations!
 ~~~~~~~~~~~~~~~~
 
 You've successfully created your first PEtab parameter estimation problem! You now have:
 
-✓ An SBML model describing exponential decay
-✓ Experimental measurements linked to the model
-✓ Observable and condition definitions
+✓ An SBML model describing the conversion of species A to species B
+
+✓ Experimental measurements for both species A and B linked to the model
+
+✓ Observable and condition definitions for both species
+
 ✓ Parameters configured for estimation with appropriate bounds
+
 ✓ A validated PEtab problem ready for parameter estimation tools
 
 **Next Steps**:
 
-* Try changing the parameter values and re-running the simulation
-* Experiment with different observable formulas (e.g., ``2*A`` to test scaling)
-* Learn about :ref:`matrix-import` for handling experimental data in matrix format
-* Explore the :ref:`visualization-table` for customizing plots
-* Read about :ref:`advanced-features` like filtering and batch editing
+* Learn more about the abilities of the GUI below on a more high level, specifically
+    * about :ref:`matrix-import` for handling experimental data in matrix format (which we used in this tutorial!)
+    * the :ref:`visualization-table` for customizing plots
+    * about :ref:`advanced-features` like filtering and batch editing
+* Try changing the parameter values and re-running the simulation or dive immediately into parameter estimation using tools like `pyPESTO`
 
 **Using your PEtab problem**: The saved YAML file can be used with parameter estimation tools like:
 
@@ -535,25 +546,18 @@ Create a CSV or TSV file with your matrix data. Requirements:
 * First row must contain column headers
 * First column should be the independent variable (typically ``time`` or ``dose``)
 * Remaining columns contain measurement values
-* Use clear, descriptive column names (they will become condition IDs)
-
-For this example, save the matrix data above as ``timeseries_matrix.csv`` (also available in the
-`examples folder <https://github.com/PEtab-dev/PEtab-GUI/tree/main/docs/source/examples>`__).
+* Use clear, descriptive column names (they will become observable IDs)
 
 **Step 2: Import the Matrix File**
 
 1. Make sure you have an SBML model already loaded (PEtab-GUI needs to know what species exist)
 2. In the **Data Tables** tab, locate the **Measurement Table** panel
-3. **Drag and drop** your ``timeseries_matrix.csv`` file onto the Measurement Table
+3. **Drag and drop** your file onto the Measurement Table
 
    OR
 
    Use :menuselection:`&File --> &Open` and select your matrix file
-
-.. note::
-
-   **Picture needed**: Screenshot showing the drag-and-drop action with the matrix CSV file hovering over the Measurement Table panel
-   Caption: "Drag-and-drop your matrix-format CSV file onto the Measurement Table for automatic conversion"
+4. When prompted, enter the name for the ``simulationConditionId`` column (e.g., ``condition``)
 
 **Step 3: Watch the Automatic Conversion**
 
@@ -568,81 +572,30 @@ PEtab-GUI will automatically:
    * Cell values become ``measurement`` values
 
 3. **Generate observables**: Create entries in the Observable Table (one per matrix column)
-4. **Generate conditions**: Create entries in the Condition Table (one per matrix column)
-
-.. note::
-
-   **Picture needed**: Screenshot of the Measurement Table after matrix import, showing the "long format" with multiple rows, each having observableId, simulationConditionId, time, and measurement columns filled
-   Caption: "Measurement Table after matrix import - the matrix has been automatically converted to PEtab long format with 40 rows (4 conditions × 10 time points)"
-
-**What you should see**:
-
-* **Measurement Table**: 40 rows (4 conditions × 10 time points), with columns:
-
-  * ``observableId``: Will have values like ``obs_control``, ``obs_low_dose``, etc. (auto-generated)
-  * ``simulationConditionId``: Will match the column names from your matrix
-  * ``time``: Values from your first column
-  * ``measurement``: Values from the matrix cells
-
-* **Observable Table**: 4 new rows, one for each condition column (``control``, ``low_dose``, etc.)
-* **Condition Table**: 4 new rows with condition IDs matching your column names
-* **Info Panel**: Messages indicating how many observables and conditions were auto-generated
-
-.. note::
-
-   **Picture needed**: Screenshot showing the Observable Table with 4 auto-generated observables (obs_control, obs_low_dose, obs_medium_dose, obs_high_dose), with empty observableFormula columns
-   Caption: "Observable Table after matrix import - one observable auto-generated per condition, formulas need to be filled in manually"
+4. **Generate conditions**: Create entries in the Condition Table (as per Prompt)
 
 **Step 4: Complete the Observable Definitions**
 
 The auto-generated observables need their formulas defined:
 
 1. Switch to the **Observable Table**
-2. For each observable (e.g., ``obs_control``, ``obs_low_dose``), fill in the ``observableFormula`` column
-
-   * If all conditions measure the same species, use the same formula (e.g., ``A``)
-   * If conditions have different scaling, use appropriate formulas (e.g., ``scale_factor * A``)
-
+2. For each observable (e.g., ``obs_A``, ``obs_B``), fill in the ``observableFormula`` column
 3. Fill in the ``noiseFormula`` column (e.g., ``0.5`` for constant noise, or ``0.1*A`` for proportional noise)
 
 .. code-block:: text
 
    Example Observable Table after completion:
-   observableId       | observableFormula | noiseFormula
-   obs_control        | A                 | 0.5
-   obs_low_dose       | A                 | 0.5
-   obs_medium_dose    | A                 | 0.5
-   obs_high_dose      | A                 | 0.5
+   observableId | observableFormula | noiseFormula
+   obs_A        | A                 | 0.5
+   obs_A        | A                 | 0.5
+   obs_A        | A                 | 0.5
+   obs_B        | B                 | 0.5
 
-**Step 5: Configure Condition-Specific Parameters**
-
-If your experimental conditions involve different parameter values (e.g., different drug concentrations), add columns to the **Condition Table**:
-
-1. Switch to the **Condition Table**
-2. You should see 4 rows: ``control``, ``low_dose``, ``medium_dose``, ``high_dose``
-3. Add a column for the parameter that varies (e.g., right-click header → "Add Column")
-4. Name it according to your model parameter (e.g., ``drug_concentration``)
-5. Fill in the values for each condition:
-
-.. code-block:: text
-
-   Example Condition Table:
-   conditionId     | drug_concentration
-   control         | 0
-   low_dose        | 10
-   medium_dose     | 50
-   high_dose       | 100
-
-.. note::
-
-   **Picture needed**: Screenshot of Condition Table with a custom column "drug_concentration" showing different values for each condition (0, 10, 50, 100)
-   Caption: "Condition Table with condition-specific parameter - drug_concentration varies across the four experimental conditions"
-
-**Step 6: Verify and Visualize**
+**Step 5: Verify and Visualize**
 
 1. Run a lint check to verify everything is correctly configured
 2. View the **Measurement Plot** to see all your data visualized
-3. Run a simulation to see how your model fits the data across all conditions
+3. Run a simulation to see how your model fits the data
 
 Common Matrix Import Scenarios
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -685,7 +638,7 @@ For dose-response experiments (rows = doses, no time column):
 
 .. code-block:: text
 
-   dose,viability_24h,viability_48h
+   dose,obsA,obsB
    0,100,100
    0.1,98,95
    1.0,85,70
@@ -694,21 +647,12 @@ For dose-response experiments (rows = doses, no time column):
 PEtab-GUI will:
 
 * Use the first column (``dose``) as the independent variable
-* Convert it to a ``time`` column in PEtab (or you can manually rename it)
+* Enter a ``time`` value when prompted
 * Create observables for each subsequent column
+* Create conditions based on the dose levels
 
 Troubleshooting Matrix Import
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-**Issue**: Matrix not detected, imported as regular PEtab file
-
-* **Cause**: File already has PEtab column headers (``observableId``, ``simulationConditionId``, etc.)
-* **Solution**: Remove PEtab headers and use simple column names
-
-**Issue**: Too many observables created
-
-* **Cause**: Matrix has many columns (e.g., 20+ samples)
-* **Solution**: Consider whether all columns represent different observables, or if some are replicates that should share the same ``observableId``
 
 **Issue**: First column not recognized as time
 
@@ -723,7 +667,7 @@ Troubleshooting Matrix Import
 Tips for Successful Matrix Import
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-1. **Use clear column names**: These become condition IDs, so make them descriptive but simple
+1. **Use clear column names**: These become observable IDs, so make them descriptive but simple
 2. **Keep matrix format simple**: Header row + data rows, no extra formatting
 3. **One independent variable**: First column should be time, dose, or similar
 4. **Consistent data types**: All measurement columns should contain numeric values
@@ -952,26 +896,13 @@ Access recently opened PEtab problems:
 * Click any entry to quickly reopen a project
 * This is useful when working on multiple PEtab problems
 
-Keyboard Shortcuts
-~~~~~~~~~~~~~~~~~~
-
-Common keyboard shortcuts to improve efficiency:
-
-* :kbd:`Ctrl+O` / :kbd:`Cmd+O`: Open file
-* :kbd:`Ctrl+S` / :kbd:`Cmd+S`: Save
-* :kbd:`Ctrl+Z` / :kbd:`Cmd+Z`: Undo
-* :kbd:`Ctrl+Shift+Z` / :kbd:`Cmd+Shift+Z`: Redo
-* :kbd:`Ctrl+F` / :kbd:`Cmd+F`: Find & Replace
-* :kbd:`Delete`: Delete selected rows
-* :kbd:`Ctrl+C` / :kbd:`Cmd+C`: Copy
-* :kbd:`Ctrl+V` / :kbd:`Cmd+V`: Paste
-
 
 Saving Your Project
 -------------------
 
 Once you've set up your parameter estimation problem, and sufficiently validated it, you can save your project. This
-can be done either as a compressed ZIP file or as a `COMBINE archive <https://combinearchive.org/>`__. You can also save each table as a separate CSV file.
+can be done either as a compressed ZIP file or as a `COMBINE archive <https://combinearchive.org/>`__.
+You can also save each table as a separate CSV file.
 
 Additional Resources
 --------------------
