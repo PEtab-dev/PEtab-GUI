@@ -224,8 +224,7 @@ Create a file named ``simple_conversion_measurements.tsv`` with the following co
    20	1.3	8.5
 
 Then drag and drop this file onto the **Measurement Table** panel. When prompted, enter ``SimulationCondition``.
-You should now see the measurements imported, the condition and observables created, but some things are marked
-<span style="color: red">red</span>.
+You should now see the measurements imported, the condition and observables created, but some things are marked red.
 This is the petab linter telling you that some required fields are missing, namely the observable formula, which the GUI
 can not set automatically. We will fix this in the next steps.
 
