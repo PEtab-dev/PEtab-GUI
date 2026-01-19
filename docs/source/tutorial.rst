@@ -67,7 +67,7 @@ When you first launch **PEtab-GUI**, you'll see the main window as shown below:
 
    **PEtab-GUI Main Window**: (1) Every Table is in its own dockable panel. Using the buttons in (2) you can get each widget as a separate window or close it entirely. To reopen it, use the :menuselection:`&View` menu in the menu bar.
    (3) The :guilabel:`Info` widget shows log messages and clickable documentation links. Here you will be informed about deleted lines, potential validation problems and more. (4) The toolbar provides quick access to common actions
-   like opening/saving files, table modification, and model simulation. (5) The filter allows you to only look at specific rows. The filterbuttons to the right let you select in which tables the filter should be applied.
+   like opening/saving files, table modification, and model simulation. (5) The filter allows you to only look at specific rows. The filter buttons to the right let you select in which tables the filter should be applied.
    (6) If you are unsure what to do, you can enter the **Tutorial Mode** by clicking the question mark icon in the toolbar. This will allow you to click different widgets or columns in the tables to get more information about their purpose.
 
 The interface is organized into several key areas:
@@ -167,7 +167,7 @@ We'll create a simple model using the Antimony editor.
 1. Click on the **SBML Model** tab at the top of the main window
 2. In the **Antimony Editor** panel (on the right), enter the following model:
 
-   .. code-block:: antimony
+   .. code-block::
 
       model *SimpleConversion
         // Reactions:
@@ -223,10 +223,10 @@ Create a file named ``simple_conversion_measurements.tsv`` with the following co
    18	1.6	8.2
    20	1.3	8.5
 
-Then drag and drop this file onto the **Measurement Table** panel. When propmted, enter `SimulationCondition.
+Then drag and drop this file onto the **Measurement Table** panel. When prompted, enter ``SimulationCondition``.
 You should now see the measurements imported, the condition and observables created, but some things are marked
 <span style="color: red">red</span>.
-This is the petablinter telling you that some required fields are missing, namely the observable formula, which the GUI
+This is the petab linter telling you that some required fields are missing, namely the observable formula, which the GUI
 can not set automatically. We will fix this in the next steps.
 
 .. figure:: _static/upload_data_matrix.png
@@ -287,7 +287,7 @@ Switch to the **Condition Table** panel.
 **What you should see**: PEtab-GUI has automatically created an entry for ``cond_1`` (referenced in your measurements).
 Since our simple model doesn't require any condition-specific parameter overrides or initial value changes, this table
 can remain as-is with just the ``conditionId`` column filled. If you want to rename it, just edit the cell in the
-**Condition Table** and when subsequently approved, the condotions in the **Measurement Table** will be updated accordingly.
+**Condition Table** and when subsequently approved, the condition IDs in the **Measurement Table** will be updated accordingly.
 
 Step 6: Configure Parameters for Estimation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -296,10 +296,10 @@ Now we specify which parameters should be estimated and their bounds.
 
 1. Switch to the **Parameter Table** panel
 2. Click the **"Add Row"** button in the toolbar (or use :menuselection:`&Edit --> Add Row`) or just add it directly
-by double clicking in the first empty row.
+   by double clicking in the first empty row.
 3. Start filling in `k_`, you should automatically be prompted to select `k_conversion` from a dropdown of model parameters.
-4. The `nominalValue` will be taken from your sbml, the `parameterScale` should be set to `log10` by default and `estimate` should set to 1.
-5. You only need to fill out the lower and upper bounds now. Fill in `0.001`and `100` respectively.
+4. The `nominalValue` will be taken from your SBML model, the `parameterScale` should be set to `log10` by default and `estimate` should set to 1.
+5. You only need to fill out the lower and upper bounds now. Fill in `0.001` and `100` respectively.
 
 .. note::
 
@@ -311,9 +311,9 @@ by double clicking in the first empty row.
    :width: 100%
    :align: center
 
-   Parameter Table configured for estimating k_conversion with bounds [0.001, 100] on log10 scale
+   Parameter Table configured for estimating `k_conversion` with bounds [0.001, 100] on log10 scale
 
-**What you should see**: One row in the Parameter Table with all columns filled. Noting should be colored red anymore.
+**What you should see**: One row in the Parameter Table with all columns filled. Nothing should be colored red anymore.
 
 Step 7: Visualize Your Measurements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -323,8 +323,8 @@ Let's see what our measurement data looks like.
 1. Make sure the **Data Plot** panel is visible at the bottom
    (if not, enable it via :menuselection:`&View --> Data Plot`)
 2. You should see two plot with time on the x-axis and measurement values on the y-axis, one for `obs_A` and one for `obs_B`.
-2.5. If you want to see only one plot with both species, click the cogwheel icon in the Measurement Plot panel and select `Group by condition`.
-3. The plot should show two sets of data points: one for species A (decreasing over time) and one for species B (increasing over time), with about 10 time points each
+3. If you want to see only one plot with both species, click the cogwheel icon in the Measurement Plot panel and select `Group by condition`.
+4. The plot should show two sets of data points: one for species A (decreasing over time) and one for species B (increasing over time), with about 10 time points each.
 
 .. figure:: _static/measurements_plot_links.png
    :alt: Measurement Plot Panel
