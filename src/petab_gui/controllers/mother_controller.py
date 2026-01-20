@@ -596,9 +596,11 @@ class MainController:
         )
 
         # Show next steps panel if not disabled
-        if not settings_manager.get_value(
+        dont_show = settings_manager.get_value(
             "next_steps/dont_show_again", False, bool
-        ):
+        )
+        if not dont_show:
+            self.next_steps_panel.set_dont_show_again(dont_show)
             self.next_steps_panel.show_panel()
 
         return True
@@ -1435,6 +1437,11 @@ class MainController:
 
     def _show_next_steps_panel(self):
         """Show the next steps panel (ignores 'don't show again' preference)."""
+        # Sync checkbox state with current settings
+        dont_show = settings_manager.get_value(
+            "next_steps/dont_show_again", False, bool
+        )
+        self.next_steps_panel.set_dont_show_again(dont_show)
         self.next_steps_panel.show_panel()
 
     def _handle_next_steps_dont_show_again(self, dont_show: bool):

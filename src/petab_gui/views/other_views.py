@@ -12,7 +12,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QTextBrowser,
     QVBoxLayout,
-    QWidget,
 )
 
 
@@ -64,21 +63,22 @@ class DoseTimeDialog(QDialog):
         btns.addWidget(ok)
         lay.addLayout(btns)
 
-    def get_result(self) -> tuple[str | None, str | None]:
+    def get_result(self) -> tuple[str | None, str | None, str]:
         dose = self._dose.currentText() or None
         time_text = (self._time.text() or "").strip() or None
         preeq = (self._preeq_edit.text() or "").strip()
         return dose, time_text, preeq
 
 
-class NextStepsPanel(QWidget):
+class NextStepsPanel(QDialog):
     """Non-modal panel showing possible next steps after saving."""
 
     dont_show_again_changed = Signal(bool)
 
     def __init__(self, parent=None):
-        super().__init__(parent, Qt.Window | Qt.WindowStaysOnTopHint)
+        super().__init__(parent)
         self.setWindowTitle("Possible next steps")
+        self.setModal(False)
         self.setMinimumWidth(450)
         self.setMaximumWidth(600)
         self.setMinimumHeight(360)
@@ -99,6 +99,36 @@ class NextStepsPanel(QWidget):
         suggestions_layout = QVBoxLayout()
         suggestions_layout.setSpacing(8)
 
+        # Benchmark Collection action
+        benchmark_frame = QFrame()
+        benchmark_frame.setStyleSheet(
+            "QFrame { background-color: rgba(255, 193, 7, 0.08); "
+            "border-radius: 4px; padding: 8px; }"
+        )
+        benchmark_layout = QVBoxLayout(benchmark_frame)
+        benchmark_layout.setContentsMargins(8, 8, 8, 8)
+        benchmark_layout.setSpacing(4)
+
+        benchmark_text = QTextBrowser()
+        benchmark_text.setOpenExternalLinks(True)
+        benchmark_text.setFrameStyle(QFrame.NoFrame)
+        benchmark_text.setStyleSheet(
+            "QTextBrowser { background: transparent; }"
+        )
+        benchmark_text.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        benchmark_text.setHtml(
+            '<p style="margin:0; line-height:1.3;">'
+            "<b>📚 Contribute to Benchmark Collection</b><br/>"
+            "Share your PEtab problem with the community to validate it, "
+            "enable reproducibility, and support benchmarking<br/>"
+            '<a href="https://github.com/Benchmarking-Initiative/'
+            'Benchmark-Models-PEtab">Benchmark Collection</a></p>'
+        )
+        benchmark_layout.addWidget(benchmark_text)
+        suggestions_layout.addWidget(benchmark_frame)
+
         # pyPESTO action
         pypesto_frame = QFrame()
         pypesto_frame.setStyleSheet(
@@ -118,9 +148,9 @@ class NextStepsPanel(QWidget):
         )
         pypesto_text.setHtml(
             '<p style="margin:0; line-height:1.3;">'
-            "<b>▶ Parameter estimation</b><br/>"
-            "Use pyPESTO for parameter estimation and uncertainty "
-            "analysis<br/>"
+            "<b>▶ Parameter Estimation with pyPESTO</b><br/>"
+            "Use pyPESTO for parameter estimation, uncertainty analysis, "
+            "and model selection<br/>"
             '<a href="https://pypesto.readthedocs.io/en/latest/example/'
             'petab_import.html">pyPESTO documentation</a></p>'
         )
@@ -146,9 +176,9 @@ class NextStepsPanel(QWidget):
         )
         copasi_text.setHtml(
             '<p style="margin:0; line-height:1.3;">'
-            "<b>⚙ Model adjustment and simulation</b><br/>"
+            "<b>⚙ Advanced Model Adaptation and Simulation</b><br/>"
             "Use COPASI for further model adjustment and advanced "
-            "simulation<br/>"
+            "simulation with a graphical interface<br/>"
             '<a href="https://copasi.org">COPASI website</a></p>'
         )
         copasi_layout.addWidget(copasi_text)
@@ -202,14 +232,15 @@ class NextStepsPanel(QWidget):
             '<li style="margin-bottom: 4px;">'
             '<a href="https://amici.readthedocs.io/en/latest/examples/'
             'example_petab/petab.html">AMICI</a> - '
-            "Advanced simulation and sensitivity analysis</li>"
+            "Efficient simulation and sensitivity analysis</li>"
+            '<li style="margin-bottom: 4px;">'
+            '<a href="https://sebapersson.github.io/PEtab.jl/stable/">'
+            "PEtab.jl</a> - "
+            "High-performance Julia parameter estimation</li>"
             '<li style="margin-bottom: 4px;">'
             '<a href="https://github.com/Data2Dynamics/d2d/wiki">'
             "Data2Dynamics</a> - "
-            "Comprehensive modeling environment</li>"
-            '<li style="margin-bottom: 4px;">'
-            '<a href="https://parpe.readthedocs.io">parPE</a> - '
-            "Parallel parameter estimation</li>"
+            "MATLAB-based comprehensive modeling framework</li>"
             '<li style="margin-bottom: 4px;">'
             '<a href="https://petab.readthedocs.io/en/latest/v1/'
             'software_support.html">PEtab documentation</a> - '
@@ -237,10 +268,8 @@ class NextStepsPanel(QWidget):
         bottom_layout.setSpacing(8)
 
         self._dont_show_checkbox = QCheckBox("Don't show after saving")
-        self._dont_show_checkbox.stateChanged.connect(
-            lambda state: self.dont_show_again_changed.emit(
-                state == Qt.CheckState.Checked
-            )
+        self._dont_show_checkbox.toggled.connect(
+            self.dont_show_again_changed.emit
         )
         bottom_layout.addWidget(self._dont_show_checkbox)
 
@@ -264,6 +293,10 @@ class NextStepsPanel(QWidget):
         )
         # Adjust window size
         self.adjustSize()
+
+    def set_dont_show_again(self, dont_show: bool):
+        """Set the 'don't show again' checkbox state."""
+        self._dont_show_checkbox.setChecked(dont_show)
 
     def show_panel(self):
         """Show the panel and center it on the parent."""
