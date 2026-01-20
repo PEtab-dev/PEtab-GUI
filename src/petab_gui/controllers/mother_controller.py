@@ -1102,7 +1102,7 @@ class MainController:
         """
         try:
             # Use importlib.resources to access packaged example files
-            from importlib.resources import files
+            from importlib.resources import as_file, files
 
             example_files = files("petab_gui.example")
 
@@ -1118,10 +1118,6 @@ class MainController:
 
             # Get the problem.yaml file path for the specified example
             yaml_file = example_files.joinpath(example_name, "problem.yaml")
-
-            # For importlib.resources, we need to handle this differently
-            # in Python 3.9+ we can use as_file context manager
-            from importlib.resources import as_file
 
             with as_file(yaml_file) as yaml_path:
                 if not yaml_path.exists():
@@ -1149,7 +1145,6 @@ class MainController:
         except Exception as e:
             error_msg = f"Failed to load example: {str(e)}"
             self.logger.log_message(error_msg, color="red")
-            logging.exception("Full traceback for load example error:")
             QMessageBox.critical(self.view, "Error Loading Example", error_msg)
 
     def check_model(self):
