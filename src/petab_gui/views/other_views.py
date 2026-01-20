@@ -75,18 +75,38 @@ class NextStepsPanel(QDialog):
 
     dont_show_again_changed = Signal(bool)
 
+    # Styling constants
+    MIN_WIDTH = 450
+    MAX_WIDTH = 600
+    MIN_HEIGHT = 360
+    FRAME_PADDING = 8
+    FRAME_BORDER_RADIUS = 4
+    LAYOUT_MARGIN = 12
+    LAYOUT_SPACING = 10
+
+    # Card background colors
+    COLOR_BENCHMARK = "rgba(255, 193, 7, 0.08)"
+    COLOR_PYPESTO = "rgba(100, 149, 237, 0.08)"
+    COLOR_COPASI = "rgba(169, 169, 169, 0.08)"
+    COLOR_OTHER_TOOLS = "rgba(144, 238, 144, 0.08)"
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Possible next steps")
         self.setModal(False)
-        self.setMinimumWidth(450)
-        self.setMaximumWidth(600)
-        self.setMinimumHeight(360)
+        self.setMinimumWidth(self.MIN_WIDTH)
+        self.setMaximumWidth(self.MAX_WIDTH)
+        self.setMinimumHeight(self.MIN_HEIGHT)
 
         # Main layout
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(12, 12, 12, 12)
-        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(
+            self.LAYOUT_MARGIN,
+            self.LAYOUT_MARGIN,
+            self.LAYOUT_MARGIN,
+            self.LAYOUT_MARGIN,
+        )
+        main_layout.setSpacing(self.LAYOUT_SPACING)
 
         # Description
         desc = QLabel(
@@ -100,88 +120,44 @@ class NextStepsPanel(QDialog):
         suggestions_layout.setSpacing(8)
 
         # Benchmark Collection action
-        benchmark_frame = QFrame()
-        benchmark_frame.setStyleSheet(
-            "QFrame { background-color: rgba(255, 193, 7, 0.08); "
-            "border-radius: 4px; padding: 8px; }"
+        benchmark_frame = self._create_tool_card(
+            bg_color=self.COLOR_BENCHMARK,
+            html_content=(
+                '<p style="margin:0; line-height:1.3;">'
+                "<b>📚 Contribute to Benchmark Collection</b><br/>"
+                "Share your PEtab problem with the community to validate it, "
+                "enable reproducibility, and support benchmarking<br/>"
+                '<a href="https://github.com/Benchmarking-Initiative/'
+                'Benchmark-Models-PEtab">Benchmark Collection</a></p>'
+            ),
         )
-        benchmark_layout = QVBoxLayout(benchmark_frame)
-        benchmark_layout.setContentsMargins(8, 8, 8, 8)
-        benchmark_layout.setSpacing(4)
-
-        benchmark_text = QTextBrowser()
-        benchmark_text.setOpenExternalLinks(True)
-        benchmark_text.setFrameStyle(QFrame.NoFrame)
-        benchmark_text.setStyleSheet(
-            "QTextBrowser { background: transparent; }"
-        )
-        benchmark_text.setVerticalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        benchmark_text.setHtml(
-            '<p style="margin:0; line-height:1.3;">'
-            "<b>📚 Contribute to Benchmark Collection</b><br/>"
-            "Share your PEtab problem with the community to validate it, "
-            "enable reproducibility, and support benchmarking<br/>"
-            '<a href="https://github.com/Benchmarking-Initiative/'
-            'Benchmark-Models-PEtab">Benchmark Collection</a></p>'
-        )
-        benchmark_layout.addWidget(benchmark_text)
         suggestions_layout.addWidget(benchmark_frame)
 
         # pyPESTO action
-        pypesto_frame = QFrame()
-        pypesto_frame.setStyleSheet(
-            "QFrame { background-color: rgba(100, 149, 237, 0.08); "
-            "border-radius: 4px; padding: 8px; }"
+        pypesto_frame = self._create_tool_card(
+            bg_color=self.COLOR_PYPESTO,
+            html_content=(
+                '<p style="margin:0; line-height:1.3;">'
+                "<b>▶ Parameter Estimation with pyPESTO</b><br/>"
+                "Use pyPESTO for parameter estimation, uncertainty analysis, "
+                "and model selection<br/>"
+                '<a href="https://pypesto.readthedocs.io/en/latest/example/'
+                'petab_import.html">pyPESTO documentation</a></p>'
+            ),
         )
-        pypesto_layout = QVBoxLayout(pypesto_frame)
-        pypesto_layout.setContentsMargins(8, 8, 8, 8)
-        pypesto_layout.setSpacing(4)
-
-        pypesto_text = QTextBrowser()
-        pypesto_text.setOpenExternalLinks(True)
-        pypesto_text.setFrameStyle(QFrame.NoFrame)
-        pypesto_text.setStyleSheet("QTextBrowser { background: transparent; }")
-        pypesto_text.setVerticalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        pypesto_text.setHtml(
-            '<p style="margin:0; line-height:1.3;">'
-            "<b>▶ Parameter Estimation with pyPESTO</b><br/>"
-            "Use pyPESTO for parameter estimation, uncertainty analysis, "
-            "and model selection<br/>"
-            '<a href="https://pypesto.readthedocs.io/en/latest/example/'
-            'petab_import.html">pyPESTO documentation</a></p>'
-        )
-        pypesto_layout.addWidget(pypesto_text)
         suggestions_layout.addWidget(pypesto_frame)
 
         # COPASI action
-        copasi_frame = QFrame()
-        copasi_frame.setStyleSheet(
-            "QFrame { background-color: rgba(169, 169, 169, 0.08); "
-            "border-radius: 4px; padding: 8px; }"
+        copasi_frame = self._create_tool_card(
+            bg_color=self.COLOR_COPASI,
+            html_content=(
+                '<p style="margin:0; line-height:1.3;">'
+                "<b>⚙ Advanced Model Adaptation and Simulation</b><br/>"
+                "Use COPASI for further model adjustment and advanced "
+                "simulation with a graphical interface<br/>"
+                '<a href="https://copasi.org">COPASI website</a></p>'
+            ),
         )
-        copasi_layout = QVBoxLayout(copasi_frame)
-        copasi_layout.setContentsMargins(8, 8, 8, 8)
-        copasi_layout.setSpacing(4)
-
-        copasi_text = QTextBrowser()
-        copasi_text.setOpenExternalLinks(True)
-        copasi_text.setFrameStyle(QFrame.NoFrame)
-        copasi_text.setStyleSheet("QTextBrowser { background: transparent; }")
-        copasi_text.setVerticalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        copasi_text.setHtml(
-            '<p style="margin:0; line-height:1.3;">'
-            "<b>⚙ Advanced Model Adaptation and Simulation</b><br/>"
-            "Use COPASI for further model adjustment and advanced "
-            "simulation with a graphical interface<br/>"
-            '<a href="https://copasi.org">COPASI website</a></p>'
-        )
-        copasi_layout.addWidget(copasi_text)
         suggestions_layout.addWidget(copasi_frame)
 
         main_layout.addLayout(suggestions_layout)
@@ -203,12 +179,18 @@ class NextStepsPanel(QDialog):
         # Other tools frame (initially hidden)
         self._other_tools_frame = QFrame()
         self._other_tools_frame.setStyleSheet(
-            "QFrame { background-color: rgba(144, 238, 144, 0.08); "
-            "border-radius: 4px; padding: 8px; }"
+            f"QFrame {{ background-color: {self.COLOR_OTHER_TOOLS}; "
+            f"border-radius: {self.FRAME_BORDER_RADIUS}px; "
+            f"padding: {self.FRAME_PADDING}px; }}"
         )
         self._other_tools_frame.setVisible(False)
         other_tools_layout = QVBoxLayout(self._other_tools_frame)
-        other_tools_layout.setContentsMargins(8, 8, 8, 8)
+        other_tools_layout.setContentsMargins(
+            self.FRAME_PADDING,
+            self.FRAME_PADDING,
+            self.FRAME_PADDING,
+            self.FRAME_PADDING,
+        )
         other_tools_layout.setSpacing(4)
 
         # Framing text
@@ -281,6 +263,46 @@ class NextStepsPanel(QDialog):
         bottom_layout.addWidget(close_btn)
 
         main_layout.addLayout(bottom_layout)
+
+    def _create_tool_card(
+        self, bg_color: str, html_content: str, scrollbar_policy=None
+    ) -> QFrame:
+        """Create a styled card for displaying tool information.
+
+        Args:
+            bg_color: Background color for the frame (rgba string)
+            html_content: HTML content to display in the text browser
+            scrollbar_policy: Optional scrollbar policy (defaults to AlwaysOff)
+
+        Returns:
+            Configured QFrame containing the tool information
+        """
+        frame = QFrame()
+        frame.setStyleSheet(
+            f"QFrame {{ background-color: {bg_color}; "
+            f"border-radius: {self.FRAME_BORDER_RADIUS}px; "
+            f"padding: {self.FRAME_PADDING}px; }}"
+        )
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(
+            self.FRAME_PADDING,
+            self.FRAME_PADDING,
+            self.FRAME_PADDING,
+            self.FRAME_PADDING,
+        )
+        layout.setSpacing(4)
+
+        text_browser = QTextBrowser()
+        text_browser.setOpenExternalLinks(True)
+        text_browser.setFrameStyle(QFrame.NoFrame)
+        text_browser.setStyleSheet("QTextBrowser { background: transparent; }")
+        if scrollbar_policy is None:
+            scrollbar_policy = Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        text_browser.setVerticalScrollBarPolicy(scrollbar_policy)
+        text_browser.setHtml(html_content)
+        layout.addWidget(text_browser)
+
+        return frame
 
     def _toggle_other_tools(self, checked):
         """Toggle visibility of other tools section."""

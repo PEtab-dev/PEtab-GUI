@@ -600,7 +600,6 @@ class MainController:
             "next_steps/dont_show_again", False, bool
         )
         if not dont_show:
-            self.next_steps_panel.set_dont_show_again(dont_show)
             self.next_steps_panel.show_panel()
 
         return True
@@ -1445,7 +1444,14 @@ class MainController:
         self.next_steps_panel.show_panel()
 
     def _handle_next_steps_dont_show_again(self, dont_show: bool):
-        """Handle the 'don't show again' checkbox in the next steps panel."""
+        """Handle the 'don't show again' checkbox state change.
+
+        Connected to the next steps panel's dont_show_again_changed signal.
+        Persists the user's preference to settings.
+
+        Args:
+            dont_show: Whether to suppress the panel on future saves
+        """
         settings_manager.set_value("next_steps/dont_show_again", dont_show)
 
     def get_current_problem(self):
