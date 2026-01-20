@@ -42,6 +42,7 @@ from ..utils import (
     process_file,
 )
 from ..views import TaskBar
+from ..views.other_views import NextStepsPanel
 from .logger_controller import LoggerController
 from .sbml_controller import SbmlController
 from .table_controllers import (
@@ -150,6 +151,11 @@ class MainController:
         }
         self.sbml_checkbox_states = {"sbml": False, "antimony": False}
         self.unsaved_changes = False
+        # Next Steps Panel
+        self.next_steps_panel = NextStepsPanel(self.view)
+        self.next_steps_panel.dont_show_again_changed.connect(
+            self._handle_next_steps_dont_show_again
+        )
         self.filter = QLineEdit()
         self.filter_active = {}  # Saves which tables the filter applies to
         self.actions = self.setup_actions()
@@ -509,6 +515,12 @@ class MainController:
             )
         )
 
+        # Show next steps panel action
+        actions["next_steps"] = QAction(
+            qta.icon("mdi6.lightbulb-on"), "Possible next steps...", self.view
+        )
+        actions["next_steps"].triggered.connect(self._show_next_steps_panel)
+
         # Undo / Redo
         actions["undo"] = QAction(qta.icon("mdi6.undo"), "&Undo", self.view)
         actions["undo"].setShortcut(QKeySequence.Undo)
@@ -612,6 +624,14 @@ class MainController:
             "Save Project",
             f"Project saved successfully to {file_name}",
         )
+
+        # Show next steps panel if not disabled
+        dont_show = settings_manager.get_value(
+            "next_steps/dont_show_again", False, bool
+        )
+        if not dont_show:
+            self.next_steps_panel.show_panel()
+
         return True
 
     def save_single_table(self):
@@ -1501,6 +1521,26 @@ class MainController:
             f"<small>Settings are stored in "
             f"<a href='file://{config_file}'>{config_file}</a></small>",
         )
+
+    def _show_next_steps_panel(self):
+        """Show the next steps panel (ignores 'don't show again' preference)."""
+        # Sync checkbox state with current settings
+        dont_show = settings_manager.get_value(
+            "next_steps/dont_show_again", False, bool
+        )
+        self.next_steps_panel.set_dont_show_again(dont_show)
+        self.next_steps_panel.show_panel()
+
+    def _handle_next_steps_dont_show_again(self, dont_show: bool):
+        """Handle the 'don't show again' checkbox state change.
+
+        Connected to the next steps panel's dont_show_again_changed signal.
+        Persists the user's preference to settings.
+
+        Args:
+            dont_show: Whether to suppress the panel on future saves
+        """
+        settings_manager.set_value("next_steps/dont_show_again", dont_show)
 
     def get_current_problem(self):
         """Get the current PEtab problem from the model."""

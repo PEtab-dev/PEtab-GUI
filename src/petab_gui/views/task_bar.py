@@ -139,6 +139,8 @@ class HelpMenu(BasicMenu):
 
         # Add actions to the menu for re-adding tables
         self.menu.addAction(actions["open_documentation"])
+        self.menu.addAction(actions["next_steps"])
+        self.menu.addSeparator()
         self.menu.addAction(actions["whats_this"])
         self.menu.addAction(actions["about"])
 
