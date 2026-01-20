@@ -184,7 +184,7 @@ Parameter Estimation with Data2Dynamics
 
 * MATLAB-based framework with PEtab support
 * Profile likelihood-based uncertainty analysis
-* Model reduction and identifiability analysis
+* Model identifiability analysis
 * PEtab import functionality
 
 **Minimal working example:**
