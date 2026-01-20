@@ -1,0 +1,2 @@
+parameterId	parameterScale	lowerBound	upperBound	nominalValue	estimate
+k_conversion	log10	0.001	100.0	0.1	1

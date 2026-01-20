@@ -314,6 +314,23 @@ class MainController:
         actions["add"].triggered.connect(
             partial(self.open_file, mode="append")
         )
+        # Load Examples
+        actions["load_example_boehm"] = QAction(
+            qta.icon("mdi6.book-open-page-variant"),
+            "Load Example: Boehm",
+            self.view,
+        )
+        actions["load_example_boehm"].triggered.connect(
+            partial(self.load_example, "Boehm")
+        )
+        actions["load_example_simple"] = QAction(
+            qta.icon("mdi6.book-open-page-variant"),
+            "Load Example: Simple Conversion",
+            self.view,
+        )
+        actions["load_example_simple"].triggered.connect(
+            partial(self.load_example, "Simple_Conversion")
+        )
         # Save
         actions["save"] = QAction(
             qta.icon("mdi6.content-save-all"), "&Save As...", self.view
@@ -450,6 +467,9 @@ class MainController:
         actions["show_plot"] = QAction("Data Plot", self.view)
         actions["show_plot"].setCheckable(True)
         actions["show_plot"].setChecked(True)
+        actions["show_sbml_editor"] = QAction("SBML Editor", self.view)
+        actions["show_sbml_editor"].setCheckable(True)
+        actions["show_sbml_editor"].setChecked(True)
 
         # What's This action
         actions["whats_this"] = QAction(
@@ -547,6 +567,16 @@ class MainController:
             # Connect QAction ↔ DockWidget syncing
             action.toggled.connect(dock.setVisible)
             dock.visibilityChanged.connect(action.setChecked)
+
+        # Connect SBML editor visibility toggle
+        sbml_action = self.actions["show_sbml_editor"]
+        sbml_widget = self.view.sbml_viewer.sbml_widget
+
+        # Store action reference in view for context menus
+        self.view.sbml_viewer.sbml_toggle_action = sbml_action
+
+        # Connect menu action to widget visibility
+        sbml_action.toggled.connect(sbml_widget.setVisible)
 
     def save_model(self):
         options = QFileDialog.Options()
@@ -1091,6 +1121,64 @@ class MainController:
             controller.clear_table()
         self.view.plot_dock.plot_it()
         self.unsaved_changes_change(False)
+
+    def load_example(self, example_name):
+        """Load an internal example PEtab problem.
+
+        Parameters
+        ----------
+        example_name : str
+            Name of the example subdirectory (e.g., "Boehm", "Simple_Conversion").
+
+        Finds and loads the example dataset from the package directory.
+        No internet connection required - the example is bundled with the package.
+        """
+        try:
+            # Use importlib.resources to access packaged example files
+            from importlib.resources import as_file, files
+
+            example_files = files("petab_gui.example")
+
+            # Check if the example package exists
+            if not example_files.is_dir():
+                error_msg = (
+                    "Could not find the example dataset. "
+                    "The example folder may not be properly installed."
+                )
+                self.logger.log_message(error_msg, color="red")
+                QMessageBox.warning(self.view, "Example Not Found", error_msg)
+                return
+
+            # Get the problem.yaml file path for the specified example
+            yaml_file = example_files.joinpath(example_name, "problem.yaml")
+
+            with as_file(yaml_file) as yaml_path:
+                if not yaml_path.exists():
+                    error_msg = f"Example '{example_name}' not found or problem.yaml file is missing."
+                    self.logger.log_message(error_msg, color="red")
+                    QMessageBox.warning(
+                        self.view, "Example Invalid", error_msg
+                    )
+                    return
+
+                # Load the example
+                self.logger.log_message(
+                    f"Loading '{example_name}' example dataset...",
+                    color="blue",
+                )
+                self.open_yaml_and_load_files(str(yaml_path))
+
+        except ModuleNotFoundError as e:
+            error_msg = (
+                "Example dataset not found. It may not be installed properly. "
+                f"Error: {str(e)}"
+            )
+            self.logger.log_message(error_msg, color="red")
+            QMessageBox.warning(self.view, "Example Not Found", error_msg)
+        except Exception as e:
+            error_msg = f"Failed to load example: {str(e)}"
+            self.logger.log_message(error_msg, color="red")
+            QMessageBox.critical(self.view, "Error Loading Example", error_msg)
 
     def check_model(self):
         """Check the consistency of the model. And log the results."""
