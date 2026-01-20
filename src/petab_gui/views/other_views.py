@@ -125,8 +125,9 @@ class NextStepsPanel(QDialog):
             html_content=(
                 '<p style="margin:0; line-height:1.3;">'
                 "<b>📚 Contribute to Benchmark Collection</b><br/>"
-                "Share your PEtab problem with the community to validate it, "
-                "enable reproducibility, and support benchmarking<br/>"
+                "Share your publsihed PEtab problem with the community to "
+                "validate it, enable reproducibility, and support "
+                "benchmarking<br/>"
                 '<a href="https://github.com/Benchmarking-Initiative/'
                 'Benchmark-Models-PEtab">Benchmark Collection</a></p>'
             ),
