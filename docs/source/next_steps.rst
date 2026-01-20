@@ -8,21 +8,6 @@ Congratulations on completing your PEtab file! Now that you have a standardized 
    :depth: 2
    :local:
 
-Contribute to the Benchmark Collection
----------------------------------------
-
-Before diving into parameter estimation, consider contributing your PEtab problem to the community! The `PEtab Benchmark Collection <https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab>`_ is a curated repository of parameter estimation problems that helps:
-
-* **Validate** your PEtab problem by ensuring it works with multiple tools
-* **Enable reproducibility** by providing a permanent reference for your model
-* **Facilitate method comparison** by allowing others to test algorithms on your problem
-* **Support the community** by expanding the available benchmark suite
-
-**How to contribute:**
-
-You basically create a new GitHub branch and open a pull request. For a complete checklist see the
-`pull request template <https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab/blob/master/.github/pull_request_template.md>`_.
-
 Parameter Estimation with pyPESTO
 ----------------------------------
 
@@ -206,6 +191,21 @@ Parameter Estimation with Data2Dynamics
    arPrint;
 
 **Documentation:** https://github.com/Data2Dynamics/d2d/wiki
+
+Contribute to the Benchmark Collection
+---------------------------------------
+
+Before diving into parameter estimation, consider contributing your PEtab problem to the community! The `PEtab Benchmark Collection <https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab>`_ is a curated repository of parameter estimation problems that helps:
+
+* **Validate** your PEtab problem by ensuring it works with multiple tools
+* **Enable reproducibility** by providing a permanent reference for your model
+* **Facilitate method comparison** by allowing others to test algorithms on your problem
+* **Support the community** by expanding the available benchmark suite
+
+**How to contribute:**
+
+See their `How to Contribute <https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab?tab=contributing-ov-file#readme>`_, and for a complete checklist see the
+`pull request template <https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab/blob/master/.github/pull_request_template.md>`_.
 
 Additional Resources
 --------------------
