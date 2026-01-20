@@ -20,7 +20,7 @@ Before diving into parameter estimation, consider contributing your PEtab proble
 
 **How to contribute:**
 
-You basically create a new github branch and open a pull request. For a complete checklist see the
+You basically create a new GitHub branch and open a pull request. For a complete checklist see the
 `pull request template <https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab/blob/master/.github/pull_request_template.md>`_.
 
 Parameter Estimation with pyPESTO
@@ -125,7 +125,7 @@ Model Simulation with COPASI
 
 * Cross-platform GUI application (Windows, macOS, Linux)
 * Advanced simulation possibilities (deterministic, stochastic, steady-state)
-* User friendly creation and adaptation of sbml models, e.g. introducing events
+* User friendly creation and adaptation of SBML models, e.g. introducing events
 * Support for parameter estimation and sensitivity analysis
 
 **Installation:**
