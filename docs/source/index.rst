@@ -49,6 +49,7 @@ To get started with PEtab GUI, check out the :doc:`installation instructions <re
 
    readme
    tutorial
+   next_steps
 
 .. toctree::
    :maxdepth: 1
