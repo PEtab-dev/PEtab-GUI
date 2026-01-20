@@ -127,7 +127,7 @@ class NextStepsPanel(QDialog):
                 "<b>📚 Contribute to Benchmark Collection</b><br/>"
                 "Share your publsihed PEtab problem with the community to "
                 "validate it, enable reproducibility, and support "
-                "benchmarking<br/>"
+                "benchmarking.<br/>"
                 '<a href="https://github.com/Benchmarking-Initiative/'
                 'Benchmark-Models-PEtab">Benchmark Collection</a></p>'
             ),
@@ -141,7 +141,7 @@ class NextStepsPanel(QDialog):
                 '<p style="margin:0; line-height:1.3;">'
                 "<b>▶ Parameter Estimation with pyPESTO</b><br/>"
                 "Use pyPESTO for parameter estimation, uncertainty analysis, "
-                "and model selection<br/>"
+                "and model selection.<br/>"
                 '<a href="https://pypesto.readthedocs.io/en/latest/example/'
                 'petab_import.html">pyPESTO documentation</a></p>'
             ),
@@ -155,7 +155,7 @@ class NextStepsPanel(QDialog):
                 '<p style="margin:0; line-height:1.3;">'
                 "<b>⚙ Advanced Model Adaptation and Simulation</b><br/>"
                 "Use COPASI for further model adjustment and advanced "
-                "simulation with a graphical interface<br/>"
+                "simulation with a graphical interface.<br/>"
                 '<a href="https://copasi.org">COPASI website</a></p>'
             ),
         )
