@@ -3,6 +3,7 @@ Next Steps
 ==========
 
 Congratulations on completing your PEtab file! Now that you have a standardized parameter estimation problem, you can use various tools to perform parameter estimation, sensitivity analysis, and model simulation. This page provides minimal working examples for the most commonly used tools in the PEtab ecosystem.
+For a complete list of tools, see the `PEtab software support <https://petab.readthedocs.io/en/latest/v1/software_support.html>`_.
 
 .. contents::
    :depth: 2
@@ -112,6 +113,25 @@ Model Simulation with COPASI
 * Advanced simulation possibilities (deterministic, stochastic, steady-state)
 * User friendly creation and adaptation of SBML models, e.g. introducing events
 * Support for parameter estimation and sensitivity analysis
+
+**Python Interface:**
+
+COPASI also provides the python interface `basiCO <https://basico.readthedocs.io/en/latest/index.html>`_, which supports the full feature set of PEtab.
+
+.. code-block:: python
+
+   from basico import *
+   import basico.petab
+   from petab import Problem
+   import petab.visualize
+
+
+   pp = Problem.from_yaml('./Elowitz_Nature2000/Elowitz_Nature2000.yaml')
+   sim = basico.petab.PetabSimulator(pp, working_dir='./temp_dir/')
+   df = sim.simulate()
+   petab.visualize.plot_problem(pp, simulations_df=df)
+
+see `here <https://basico.readthedocs.io/en/latest/notebooks/Working_with_PEtab.html>`_ for an example notebook.
 
 **Installation:**
 
