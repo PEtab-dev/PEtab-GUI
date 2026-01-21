@@ -133,11 +133,7 @@ COPASI also provides the python interface `basiCO <https://basico.readthedocs.io
 
 see `here <https://basico.readthedocs.io/en/latest/notebooks/Working_with_PEtab.html>`_ for an example notebook.
 
-**Installation:**
-
-Download COPASI for your platform from: https://copasi.org/download/
-
-**Documentation:** https://copasi.org/Support/User_Manual/
+**Documentation:** https://copasi.org/Support/User_Manual/ and https://basico.readthedocs.io/
 
 Parameter Estimation with PEtab.jl
 -----------------------------------
