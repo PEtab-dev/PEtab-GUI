@@ -341,6 +341,10 @@ class MainController:
             qta.icon("mdi6.table-arrow-down"), "Save This Table", self.view
         )
         actions["save_single_table"].triggered.connect(self.save_single_table)
+        actions["save_sbml"] = QAction(
+            qta.icon("mdi6.file-code"), "Export SBML Model", self.view
+        )
+        actions["save_sbml"].triggered.connect(self.save_sbml_model)
         # Find + Replace
         actions["find"] = QAction(qta.icon("mdi6.magnify"), "Find", self.view)
         actions["find"].setShortcut(QKeySequence.Find)
@@ -574,6 +578,7 @@ class MainController:
 
         # Store action reference in view for context menus
         self.view.sbml_viewer.sbml_toggle_action = sbml_action
+        self.view.sbml_viewer.save_sbml_action = self.actions["save_sbml"]
 
         # Connect menu action to widget visibility
         sbml_action.toggled.connect(sbml_widget.setVisible)
@@ -654,6 +659,40 @@ class MainController:
             return False
         active_controller.save_table(file_name)
         return True
+
+    def save_sbml_model(self):
+        """Export the SBML model to an XML file."""
+        if not self.model.sbml or not self.model.sbml.sbml_text:
+            QMessageBox.warning(
+                self.view,
+                "Export SBML Model",
+                "No SBML model to export.",
+            )
+            return False
+
+        file_name, _ = QFileDialog.getSaveFileName(
+            self.view,
+            "Export SBML Model",
+            f"{self.model.sbml.model_id}.xml",
+            "SBML Files (*.xml *.sbml);;All Files (*)",
+        )
+        if not file_name:
+            return False
+
+        try:
+            with open(file_name, "w") as f:
+                f.write(self.model.sbml.sbml_text)
+                self.logger.log_message(
+                    "SBML model exported successfully to file.", color="green"
+                )
+            return True
+        except Exception as e:
+            QMessageBox.critical(
+                self.view,
+                "Export SBML Model",
+                f"Failed to export SBML model: {e}",
+            )
+            return False
 
     def handle_selection_changed(self):
         """Update the plot when selection in the measurement table changes."""
@@ -736,10 +775,16 @@ class MainController:
             return
         # handle file appropriately
         actionable, sep = process_file(file_path, self.logger)
-        if actionable in ["yaml", "sbml", "omex"] and mode == "append":
+        if actionable in ["yaml", "omex"] and mode == "append":
             self.logger.log_message(
                 f"Append mode is not supported for *.{actionable} files.",
                 color="red",
+            )
+            return
+        if actionable in ["sbml"] and mode == "append":
+            self.logger.log_message(
+                "Append mode is not supported for SBML models.",
+                color="orange",
             )
             return
         if not actionable:
