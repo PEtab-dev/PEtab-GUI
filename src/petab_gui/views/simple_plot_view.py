@@ -448,7 +448,7 @@ class CustomNavigationToolbar(NavigationToolbar2QT):
         self.settings_btn.setPopupMode(QToolButton.InstantPopup)
         self.settings_menu = QMenu(self.settings_btn)
         self.groupy_by_options = {
-            grp: QAction(f"Groupy by {grp}", self)
+            grp: QAction(f"Group by {grp}", self)
             for grp in ["observable", "dataset", "condition"]
         }
         self.groupy_by_options["vis_df"] = QAction(
