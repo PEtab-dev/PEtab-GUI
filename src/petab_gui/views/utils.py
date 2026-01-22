@@ -22,7 +22,6 @@ def proxy_to_dataframe(proxy_model):
 
     headers = [proxy_model.headerData(c, Qt.Horizontal) for c in range(cols)]
 
-    # Pre-allocate list of lists (faster than dicts)
     data = []
     for r in range(rows - 1):
         row = []
