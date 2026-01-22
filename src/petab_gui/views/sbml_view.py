@@ -23,6 +23,7 @@ class SbmlViewer(QWidget):
 
         # Reference to menu action (set by controller)
         self.sbml_toggle_action = None
+        self.save_sbml_action = None
 
         # Main layout for the SBML tab
         layout = QVBoxLayout(self)
@@ -98,6 +99,11 @@ class SbmlViewer(QWidget):
         menu = self.sbml_text_edit.createStandardContextMenu()
         menu.addSeparator()
 
+        # Add export SBML option
+        if self.save_sbml_action:
+            menu.addAction(self.save_sbml_action)
+            menu.addSeparator()
+
         # Add hide SBML option
         hide_action = menu.addAction(
             qta.icon("mdi6.chevron-left"), "Hide SBML Editor"
@@ -115,6 +121,11 @@ class SbmlViewer(QWidget):
 
         menu = self.antimony_text_edit.createStandardContextMenu()
         menu.addSeparator()
+
+        # Add export SBML option
+        if self.save_sbml_action:
+            menu.addAction(self.save_sbml_action)
+            menu.addSeparator()
 
         # Add show/hide SBML option
         if self.sbml_widget.isVisible():
