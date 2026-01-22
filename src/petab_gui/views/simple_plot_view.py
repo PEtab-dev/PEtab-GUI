@@ -77,6 +77,31 @@ class MeasurementPlotter(QDockWidget):
         self.observable_to_subplot = {}
         self.no_plotting_rn = False
 
+        # DataFrame caching system for performance optimization
+        self._df_cache = {
+            "measurements": None,
+            "simulations": None,
+            "conditions": None,
+            "visualization": None,
+        }
+        self._cache_valid = {
+            "measurements": False,
+            "simulations": False,
+            "conditions": False,
+            "visualization": False,
+        }
+
+    def _invalidate_cache(self, table_name):
+        """Invalidate cache for specific table."""
+        self._cache_valid[table_name] = False
+
+    def _get_cached_df(self, table_name, proxy_model):
+        """Get cached DataFrame or convert if invalid."""
+        if not self._cache_valid[table_name]:
+            self._df_cache[table_name] = proxy_to_dataframe(proxy_model)
+            self._cache_valid[table_name] = True
+        return self._df_cache[table_name]
+
     def initialize(
         self, meas_proxy, sim_proxy, cond_proxy, vis_proxy, petab_model
     ):
@@ -86,20 +111,65 @@ class MeasurementPlotter(QDockWidget):
         self.vis_proxy = vis_proxy
         self.petab_model = petab_model
 
-        # Connect data changes
+        # Connect cache invalidation and data changes
         self.options_manager.option_changed.connect(self._debounced_plot)
+
+        # Measurements cache invalidation
+        self.meas_proxy.dataChanged.connect(
+            lambda: self._invalidate_cache("measurements")
+        )
+        self.meas_proxy.rowsInserted.connect(
+            lambda: self._invalidate_cache("measurements")
+        )
+        self.meas_proxy.rowsRemoved.connect(
+            lambda: self._invalidate_cache("measurements")
+        )
         self.meas_proxy.dataChanged.connect(self._debounced_plot)
         self.meas_proxy.rowsInserted.connect(self._debounced_plot)
         self.meas_proxy.rowsRemoved.connect(self._debounced_plot)
+
+        # Conditions cache invalidation
+        self.cond_proxy.dataChanged.connect(
+            lambda: self._invalidate_cache("conditions")
+        )
+        self.cond_proxy.rowsInserted.connect(
+            lambda: self._invalidate_cache("conditions")
+        )
+        self.cond_proxy.rowsRemoved.connect(
+            lambda: self._invalidate_cache("conditions")
+        )
         self.cond_proxy.dataChanged.connect(self._debounced_plot)
         self.cond_proxy.rowsInserted.connect(self._debounced_plot)
         self.cond_proxy.rowsRemoved.connect(self._debounced_plot)
+
+        # Simulations cache invalidation
+        self.sim_proxy.dataChanged.connect(
+            lambda: self._invalidate_cache("simulations")
+        )
+        self.sim_proxy.rowsInserted.connect(
+            lambda: self._invalidate_cache("simulations")
+        )
+        self.sim_proxy.rowsRemoved.connect(
+            lambda: self._invalidate_cache("simulations")
+        )
         self.sim_proxy.dataChanged.connect(self._debounced_plot)
         self.sim_proxy.rowsInserted.connect(self._debounced_plot)
         self.sim_proxy.rowsRemoved.connect(self._debounced_plot)
+
+        # Visualization cache invalidation
+        self.vis_proxy.dataChanged.connect(
+            lambda: self._invalidate_cache("visualization")
+        )
+        self.vis_proxy.rowsInserted.connect(
+            lambda: self._invalidate_cache("visualization")
+        )
+        self.vis_proxy.rowsRemoved.connect(
+            lambda: self._invalidate_cache("visualization")
+        )
         self.vis_proxy.dataChanged.connect(self._debounced_plot)
         self.vis_proxy.rowsInserted.connect(self._debounced_plot)
         self.vis_proxy.rowsRemoved.connect(self._debounced_plot)
+
         self.visibilityChanged.connect(self._debounced_plot)
 
         self.plot_it()
@@ -113,10 +183,11 @@ class MeasurementPlotter(QDockWidget):
             # If the dock is not visible, do not plot
             return
 
-        measurements_df = proxy_to_dataframe(self.meas_proxy)
-        simulations_df = proxy_to_dataframe(self.sim_proxy)
-        conditions_df = proxy_to_dataframe(self.cond_proxy)
-        visualisation_df = proxy_to_dataframe(self.vis_proxy)
+        # Use cached DataFrames for performance
+        measurements_df = self._get_cached_df("measurements", self.meas_proxy)
+        simulations_df = self._get_cached_df("simulations", self.sim_proxy)
+        conditions_df = self._get_cached_df("conditions", self.cond_proxy)
+        visualisation_df = self._get_cached_df("visualization", self.vis_proxy)
         group_by = self.options_manager.get_option()
         # group_by different value in petab.visualize
         if group_by == "condition":
@@ -308,7 +379,8 @@ class MeasurementPlotter(QDockWidget):
             return
 
         problem = self.petab_model.current_petab_problem
-        simulations_df = proxy_to_dataframe(self.sim_proxy)
+        # Reuse cached DataFrame instead of converting again
+        simulations_df = self._get_cached_df("simulations", self.sim_proxy)
 
         if simulations_df.empty:
             return
