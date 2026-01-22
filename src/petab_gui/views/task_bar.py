@@ -137,12 +137,28 @@ class HelpMenu(BasicMenu):
     def __init__(self, parent, actions):
         super().__init__(parent, actions)
 
-        # Add actions to the menu for re-adding tables
+        # Add actions to the menu
         self.menu.addAction(actions["open_documentation"])
         self.menu.addAction(actions["next_steps"])
         self.menu.addSeparator()
         self.menu.addAction(actions["whats_this"])
         self.menu.addAction(actions["about"])
+
+
+class ToolMenu(BasicMenu):
+    """Tool Menu of the TaskBar."""
+
+    def menu_name(self):
+        return "&Tools"
+
+    def __init__(self, parent, actions):
+        super().__init__(parent, actions)
+
+        # Add actions to the menu
+        self.menu.addAction(actions["check_petab"])
+        self.menu.addAction(actions["clear_log"])
+        self.menu.addSeparator()
+        self.menu.addAction(actions["simulate"])
 
 
 class TaskBar:
