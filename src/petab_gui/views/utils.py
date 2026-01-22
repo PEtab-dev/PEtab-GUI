@@ -1,4 +1,14 @@
 import pandas as pd
+from petab.v1.C import (
+    CONDITION_ID,
+    MEASUREMENT,
+    OBSERVABLE_ID,
+    PARAMETER_ID,
+    SIMULATION,
+    TIME,
+    X_OFFSET,
+    Y_OFFSET,
+)
 from PySide6.QtCore import Qt
 
 
@@ -34,22 +44,22 @@ def proxy_to_dataframe(proxy_model):
     table_type = proxy_model.source_model.table_type
 
     if table_type == "condition":
-        df = df.set_index("conditionId")
+        df = df.set_index(CONDITION_ID)
     elif table_type == "observable":
-        df = df.set_index("observableId")
+        df = df.set_index(OBSERVABLE_ID)
     elif table_type == "parameter":
-        df = df.set_index("parameterId")
+        df = df.set_index(PARAMETER_ID)
     elif table_type == "measurement":
         # Use pd.to_numeric with errors='coerce' for robust conversion
-        df["measurement"] = pd.to_numeric(df["measurement"], errors="coerce")
-        df["time"] = pd.to_numeric(df["time"], errors="coerce")
+        df[MEASUREMENT] = pd.to_numeric(df[MEASUREMENT], errors="coerce")
+        df[TIME] = pd.to_numeric(df[TIME], errors="coerce")
     elif table_type == "simulation":
-        df["simulation"] = pd.to_numeric(df["simulation"], errors="coerce")
-        df["time"] = pd.to_numeric(df["time"], errors="coerce")
+        df[SIMULATION] = pd.to_numeric(df[SIMULATION], errors="coerce")
+        df[TIME] = pd.to_numeric(df[TIME], errors="coerce")
     elif table_type == "visualization":
-        if "xOffset" in df.columns:
-            df["xOffset"] = pd.to_numeric(df["xOffset"], errors="coerce")
-        if "yOffset" in df.columns:
-            df["yOffset"] = pd.to_numeric(df["yOffset"], errors="coerce")
+        if X_OFFSET in df.columns:
+            df[X_OFFSET] = pd.to_numeric(df[X_OFFSET], errors="coerce")
+        if Y_OFFSET in df.columns:
+            df[Y_OFFSET] = pd.to_numeric(df[Y_OFFSET], errors="coerce")
 
     return df

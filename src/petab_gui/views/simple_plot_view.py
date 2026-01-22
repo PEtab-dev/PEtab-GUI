@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+import petab.v1.C as PETAB_C
 import qtawesome as qta
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
@@ -102,6 +103,18 @@ class MeasurementPlotter(QDockWidget):
             self._cache_valid[table_name] = True
         return self._df_cache[table_name]
 
+    def _connect_proxy_signals(self, proxy, cache_key):
+        """Connect proxy signals for cache invalidation and plotting."""
+        for signal in [
+            proxy.dataChanged,
+            proxy.rowsInserted,
+            proxy.rowsRemoved,
+        ]:
+            signal.connect(
+                lambda *, key=cache_key: self._invalidate_cache(key)
+            )
+            signal.connect(self._debounced_plot)
+
     def initialize(
         self, meas_proxy, sim_proxy, cond_proxy, vis_proxy, petab_model
     ):
@@ -114,61 +127,11 @@ class MeasurementPlotter(QDockWidget):
         # Connect cache invalidation and data changes
         self.options_manager.option_changed.connect(self._debounced_plot)
 
-        # Measurements cache invalidation
-        self.meas_proxy.dataChanged.connect(
-            lambda: self._invalidate_cache("measurements")
-        )
-        self.meas_proxy.rowsInserted.connect(
-            lambda: self._invalidate_cache("measurements")
-        )
-        self.meas_proxy.rowsRemoved.connect(
-            lambda: self._invalidate_cache("measurements")
-        )
-        self.meas_proxy.dataChanged.connect(self._debounced_plot)
-        self.meas_proxy.rowsInserted.connect(self._debounced_plot)
-        self.meas_proxy.rowsRemoved.connect(self._debounced_plot)
-
-        # Conditions cache invalidation
-        self.cond_proxy.dataChanged.connect(
-            lambda: self._invalidate_cache("conditions")
-        )
-        self.cond_proxy.rowsInserted.connect(
-            lambda: self._invalidate_cache("conditions")
-        )
-        self.cond_proxy.rowsRemoved.connect(
-            lambda: self._invalidate_cache("conditions")
-        )
-        self.cond_proxy.dataChanged.connect(self._debounced_plot)
-        self.cond_proxy.rowsInserted.connect(self._debounced_plot)
-        self.cond_proxy.rowsRemoved.connect(self._debounced_plot)
-
-        # Simulations cache invalidation
-        self.sim_proxy.dataChanged.connect(
-            lambda: self._invalidate_cache("simulations")
-        )
-        self.sim_proxy.rowsInserted.connect(
-            lambda: self._invalidate_cache("simulations")
-        )
-        self.sim_proxy.rowsRemoved.connect(
-            lambda: self._invalidate_cache("simulations")
-        )
-        self.sim_proxy.dataChanged.connect(self._debounced_plot)
-        self.sim_proxy.rowsInserted.connect(self._debounced_plot)
-        self.sim_proxy.rowsRemoved.connect(self._debounced_plot)
-
-        # Visualization cache invalidation
-        self.vis_proxy.dataChanged.connect(
-            lambda: self._invalidate_cache("visualization")
-        )
-        self.vis_proxy.rowsInserted.connect(
-            lambda: self._invalidate_cache("visualization")
-        )
-        self.vis_proxy.rowsRemoved.connect(
-            lambda: self._invalidate_cache("visualization")
-        )
-        self.vis_proxy.dataChanged.connect(self._debounced_plot)
-        self.vis_proxy.rowsInserted.connect(self._debounced_plot)
-        self.vis_proxy.rowsRemoved.connect(self._debounced_plot)
+        # Connect proxy signals for all tables
+        self._connect_proxy_signals(self.meas_proxy, "measurements")
+        self._connect_proxy_signals(self.cond_proxy, "conditions")
+        self._connect_proxy_signals(self.sim_proxy, "simulations")
+        self._connect_proxy_signals(self.vis_proxy, "visualization")
 
         self.visibilityChanged.connect(self._debounced_plot)
 
@@ -336,8 +299,8 @@ class MeasurementPlotter(QDockWidget):
         if not proxy:
             return
 
-        x_axis_col = "time"
-        observable_col = "observableId"
+        x_axis_col = PETAB_C.TIME
+        observable_col = PETAB_C.OBSERVABLE_ID
 
         def column_index(name):
             for col in range(proxy.columnCount()):
