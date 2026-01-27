@@ -124,6 +124,11 @@ Quick Start: Your First PEtab Problem
 
 This section provides a complete, hands-on walkthrough to create your first PEtab parameter estimation problem from scratch.
 You will create a simple conversion model where species A converts to species B, import measurement data for both species in matrix format, and validate the complete problem.
+You can also watch a tutorial video covering similar steps and create your first PEtab problem alongside it.
+
+.. youtube:: n4EJFuZt9eU
+   :align: center
+
 
 **What we'll build**: A model describing first-order conversion of species A to species B, with experimental measurements for both species at different time points.
 
