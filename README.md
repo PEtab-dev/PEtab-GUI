@@ -59,7 +59,10 @@ After loading a PEtab problem, PEtab-GUI will look something like this:
 
 ### Examples
 
-A set of real-world PEtab problems is available in the
+PEtab-GUI comes with two examples of its own, which can be immediately loaded from
+the `File` menu.
+
+A more extensive set of real-world PEtab problems is available in the
 [PEtab benchmark collection](https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab).
 
 Download and unpack the [archive](https://github.com/Benchmarking-Initiative/Benchmark-Models-PEtab/archive/refs/heads/master.zip),

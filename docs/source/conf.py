@@ -24,6 +24,7 @@ extensions = [
     "myst_parser",  # For Markdown support
     "sphinx_copybutton",  # To allow copying code snippets
     "sphinx_design",  # For better design elements
+    "sphinxcontrib.youtube",  # For embedding YouTube videos
 ]
 
 templates_path = ["_templates"]
