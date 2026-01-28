@@ -151,6 +151,9 @@ class MainController:
         }
         self.sbml_checkbox_states = {"sbml": False, "antimony": False}
         self.unsaved_changes = False
+        # Selection synchronization flags to prevent redundant updates
+        self._updating_from_plot = False
+        self._updating_from_table = False
         # Next Steps Panel
         self.next_steps_panel = NextStepsPanel(self.view)
         self.next_steps_panel.dont_show_again_changed.connect(
@@ -1412,7 +1415,23 @@ class MainController:
         self.plotter.highlighter.click_callback = self._on_plot_point_clicked
 
     def _on_plot_point_clicked(self, x, y, label, data_type):
-        # Extract observable ID from label, if formatted like 'obsId (label)'
+        """Handle plot point clicks and select corresponding table row.
+
+        Uses epsilon tolerance for floating-point comparison to avoid
+        precision issues.
+        """
+        # Epsilon for floating-point comparison
+        EPSILON = 1e-9
+
+        # Check for None label
+        if label is None:
+            self.logger.log_message(
+                "Cannot select table row: plot point has no label.",
+                color="orange",
+            )
+            return
+
+        # Extract observable ID from label
         proxy = self.measurement_controller.proxy_model
         view = self.measurement_controller.view.table_view
         if data_type == "simulation":
@@ -1424,16 +1443,26 @@ class MainController:
         y_axis_col = data_type
         observable_col = "observableId"
 
+        # Get column indices with error handling
         def column_index(name):
             for col in range(proxy.columnCount()):
                 if proxy.headerData(col, Qt.Horizontal) == name:
                     return col
             raise ValueError(f"Column '{name}' not found.")
 
-        x_col = column_index(x_axis_col)
-        y_col = column_index(y_axis_col)
-        obs_col = column_index(observable_col)
+        try:
+            x_col = column_index(x_axis_col)
+            y_col = column_index(y_axis_col)
+            obs_col = column_index(observable_col)
+        except ValueError as e:
+            self.logger.log_message(
+                f"Table selection failed: {e}",
+                color="red",
+            )
+            return
 
+        # Search for matching row using epsilon tolerance for floats
+        matched = False
         for row in range(proxy.rowCount()):
             row_obs = proxy.index(row, obs_col).data()
             row_x = proxy.index(row, x_col).data()
@@ -1442,26 +1471,83 @@ class MainController:
                 row_x, row_y = float(row_x), float(row_y)
             except ValueError:
                 continue
-            if row_obs == obs and row_x == x and row_y == y:
-                view.selectRow(row)
+
+            # Use epsilon tolerance for float comparison
+            if (
+                row_obs == obs
+                and abs(row_x - x) < EPSILON
+                and abs(row_y - y) < EPSILON
+            ):
+                # Manually update highlight BEFORE selecting row
+                # This ensures the circle appears even though we skip the signal handler
+                if data_type == "measurement":
+                    self.plotter.highlight_from_selection([row])
+                else:
+                    self.plotter.highlight_from_selection(
+                        [row],
+                        proxy=self.simulation_controller.proxy_model,
+                        y_axis_col="simulation",
+                    )
+
+                # Set flag to prevent redundant highlight update from signal
+                self._updating_from_plot = True
+                try:
+                    view.selectRow(row)
+                    matched = True
+                finally:
+                    self._updating_from_plot = False
                 break
 
+        # Provide feedback if no match found
+        if not matched:
+            self.logger.log_message(
+                f"No matching row found for plot point (obs={obs}, x={x:.4g}, y={y:.4g})",
+                color="orange",
+            )
+
     def _on_table_selection_changed(self, selected, deselected):
-        """Highlight the cells selected in measurement table."""
-        selected_rows = get_selected(
-            self.measurement_controller.view.table_view
-        )
-        self.plotter.highlight_from_selection(selected_rows)
+        """Highlight the cells selected in measurement table.
+
+        Skips update if selection was triggered by plot click to prevent
+        redundant highlight updates.
+        """
+        # Skip if selection was triggered by plot point click
+        if self._updating_from_plot:
+            return
+
+        # Set flag to prevent infinite loop if highlight triggers selection
+        self._updating_from_table = True
+        try:
+            selected_rows = get_selected(
+                self.measurement_controller.view.table_view
+            )
+            self.plotter.highlight_from_selection(selected_rows)
+        finally:
+            self._updating_from_table = False
 
     def _on_simulation_selection_changed(self, selected, deselected):
-        selected_rows = get_selected(
-            self.simulation_controller.view.table_view
-        )
-        self.plotter.highlight_from_selection(
-            selected_rows,
-            proxy=self.simulation_controller.proxy_model,
-            y_axis_col="simulation",
-        )
+        """Highlight the cells selected in simulation table.
+
+        Skips update if selection was triggered by plot click to prevent
+        redundant highlight updates.
+        """
+        # Skip if selection was triggered by plot point click
+        if self._updating_from_plot:
+            return
+
+        # Set flag to prevent infinite loop if highlight triggers selection
+        self._updating_from_table = True
+        try:
+            selected_rows = get_selected(
+                self.simulation_controller.view.table_view
+            )
+            self.plotter.highlight_from_selection(
+                selected_rows,
+                proxy=self.simulation_controller.proxy_model,
+                y_axis_col="simulation",
+            )
+        finally:
+            self._updating_from_table = False
 
     def simulate(self):
         """Simulate the model."""
