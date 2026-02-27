@@ -2,7 +2,7 @@
 
 import copy
 
-from PySide6.QtCore import QSettings, Qt
+from PySide6.QtCore import QEvent, QSettings, Qt, QTimer
 from PySide6.QtWidgets import (
     QDockWidget,
     QMainWindow,
@@ -35,6 +35,8 @@ from .whats_this import WHATS_THIS
 
 
 class MainWindow(QMainWindow):
+    DATA_TAB_INDEX = 0  # Index of the Data Tables tab
+
     def __init__(self):
         super().__init__()
 
@@ -131,13 +133,16 @@ class MainWindow(QMainWindow):
 
         self.find_replace_bar = None
 
+        # Track if we're in a minimize/restore cycle
+        self._was_minimized = False
+
     def default_view(self):
         """Reset the view to a fixed 3x2 grid using manual geometry."""
         if hasattr(self, "dock_visibility"):
             for dock in self.dock_visibility:
                 dock.setParent(None)  # fully remove from layout
 
-        self.tab_widget.setCurrentIndex(0)
+        self.tab_widget.setCurrentIndex(self.DATA_TAB_INDEX)
         self.data_tab.updateGeometry()
         self.data_tab.repaint()
 
@@ -228,17 +233,41 @@ class MainWindow(QMainWindow):
 
     def save_dock_visibility(self, visible):
         """Save the visibility status of a QDockWidget when it changes."""
+        # Don't save visibility when window is minimized - Qt hides docks automatically
+        if self.isMinimized():
+            return
         # if current tab is not the data tab return
-        if self.tab_widget.currentIndex() != 0:
+        if self.tab_widget.currentIndex() != self.DATA_TAB_INDEX:
             return
         dock = self.sender()  # Get the QDockWidget that emitted the signal
         self.dock_visibility[dock] = dock.isVisible()
 
     def set_docks_visible(self, index):
         """Set all QDockWidgets to their previous visibility on tab-change."""
-        if index != 0:  # Another tab is selected
-            for dock, visible in self.dock_visibility.items():
-                dock.setVisible(visible)
+        if index != self.DATA_TAB_INDEX:  # Another tab is selected
+            self._apply_dock_visibility()
+
+    def _apply_dock_visibility(self):
+        """Apply saved visibility state to all docks."""
+        for dock, visible in self.dock_visibility.items():
+            dock.setVisible(visible)
+
+    def changeEvent(self, event):
+        """Handle window state changes, including minimize/restore."""
+        super().changeEvent(event)
+
+        if event.type() != QEvent.Type.WindowStateChange:
+            return
+
+        if self.isMinimized():
+            self._was_minimized = True
+        elif (
+            self._was_minimized
+            and self.tab_widget.currentIndex() == self.DATA_TAB_INDEX
+        ):
+            # Short delay to not create a segmentation fault.
+            QTimer.singleShot(50, self._apply_dock_visibility)
+            self._was_minimized = False
 
     def closeEvent(self, event):
         """Override the closeEvent to emit additional signal."""

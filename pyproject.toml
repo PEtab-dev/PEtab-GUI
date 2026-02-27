@@ -39,6 +39,7 @@ doc = [
     "myst-parser",
     "sphinx_copybutton",
     "sphinx-design",
+    "sphinxcontrib-youtube",
 ]
 
 [project.urls]
