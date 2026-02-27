@@ -1414,15 +1414,16 @@ class MainController:
         self.plotter = self.view.plot_dock
         self.plotter.highlighter.click_callback = self._on_plot_point_clicked
 
+    def _floats_match(self, a, b, epsilon=1e-9):
+        """Check if two floats match within epsilon tolerance."""
+        return abs(a - b) < epsilon
+
     def _on_plot_point_clicked(self, x, y, label, data_type):
         """Handle plot point clicks and select corresponding table row.
 
         Uses epsilon tolerance for floating-point comparison to avoid
         precision issues.
         """
-        # Epsilon for floating-point comparison
-        EPSILON = 1e-9
-
         # Check for None label
         if label is None:
             self.logger.log_message(
@@ -1475,8 +1476,8 @@ class MainController:
             # Use epsilon tolerance for float comparison
             if (
                 row_obs == obs
-                and abs(row_x - x) < EPSILON
-                and abs(row_y - y) < EPSILON
+                and self._floats_match(row_x, x)
+                and self._floats_match(row_y, y)
             ):
                 # Manually update highlight BEFORE selecting row
                 # This ensures the circle appears even though we skip the signal handler
@@ -1505,11 +1506,18 @@ class MainController:
                 color="orange",
             )
 
-    def _on_table_selection_changed(self, selected, deselected):
-        """Highlight the cells selected in measurement table.
+    def _handle_table_selection_changed(
+        self, table_view, proxy=None, y_axis_col="measurement"
+    ):
+        """Common handler for table selection changes.
 
         Skips update if selection was triggered by plot click to prevent
         redundant highlight updates.
+
+        Args:
+            table_view: The table view with selection to highlight
+            proxy: Optional proxy model for simulation data
+            y_axis_col: Column name for y-axis data (default: "measurement")
         """
         # Skip if selection was triggered by plot point click
         if self._updating_from_plot:
@@ -1518,36 +1526,29 @@ class MainController:
         # Set flag to prevent infinite loop if highlight triggers selection
         self._updating_from_table = True
         try:
-            selected_rows = get_selected(
-                self.measurement_controller.view.table_view
-            )
-            self.plotter.highlight_from_selection(selected_rows)
+            selected_rows = get_selected(table_view)
+            if proxy:
+                self.plotter.highlight_from_selection(
+                    selected_rows, proxy=proxy, y_axis_col=y_axis_col
+                )
+            else:
+                self.plotter.highlight_from_selection(selected_rows)
         finally:
             self._updating_from_table = False
+
+    def _on_table_selection_changed(self, selected, deselected):
+        """Highlight the cells selected in measurement table."""
+        self._handle_table_selection_changed(
+            self.measurement_controller.view.table_view
+        )
 
     def _on_simulation_selection_changed(self, selected, deselected):
-        """Highlight the cells selected in simulation table.
-
-        Skips update if selection was triggered by plot click to prevent
-        redundant highlight updates.
-        """
-        # Skip if selection was triggered by plot point click
-        if self._updating_from_plot:
-            return
-
-        # Set flag to prevent infinite loop if highlight triggers selection
-        self._updating_from_table = True
-        try:
-            selected_rows = get_selected(
-                self.simulation_controller.view.table_view
-            )
-            self.plotter.highlight_from_selection(
-                selected_rows,
-                proxy=self.simulation_controller.proxy_model,
-                y_axis_col="simulation",
-            )
-        finally:
-            self._updating_from_table = False
+        """Highlight the cells selected in simulation table."""
+        self._handle_table_selection_changed(
+            self.simulation_controller.view.table_view,
+            proxy=self.simulation_controller.proxy_model,
+            y_axis_col="simulation",
+        )
 
     def simulate(self):
         """Simulate the model."""
