@@ -204,8 +204,25 @@ class MeasurementPlotter(QDockWidget):
             self.tab_widget.addTab(tab, "All Plots")
             return
 
-        # Full figure tab
-        create_plot_tab(fig, self, plot_title="All Plots")
+        # Full figure tab - capture canvas and connect picking for all axes
+        main_canvas = create_plot_tab(fig, self, plot_title="All Plots")
+
+        # Enable picker on all lines and containers in the original figure
+        for ax in fig.axes:
+            # Handle regular lines (simulations, etc.)
+            for line in ax.get_lines():
+                line.set_picker(True)
+                line.set_pickradius(5)  # 5 pixels tolerance for clicking
+
+            # Handle error bar containers (measurements, etc.)
+            for container in ax.containers:
+                if isinstance(container, ErrorbarContainer) and (
+                    len(container.lines) > 0 and container.lines[0] is not None
+                ):
+                    container.lines[0].set_picker(True)
+                    container.lines[0].set_pickradius(5)
+
+        self.highlighter.connect_picking(main_canvas)
 
         # One tab per Axes
         for idx, ax in enumerate(fig.axes):
@@ -219,7 +236,7 @@ class MeasurementPlotter(QDockWidget):
                     line = handle
                 else:
                     continue
-                sub_ax.plot(
+                new_line = sub_ax.plot(
                     line.get_xdata(),
                     line.get_ydata(),
                     label=label,
@@ -228,7 +245,8 @@ class MeasurementPlotter(QDockWidget):
                     color=line.get_color(),
                     alpha=line.get_alpha(),
                     picker=True,
-                )
+                )[0]
+                new_line.set_pickradius(5)  # 5 pixels tolerance for clicking
             sub_ax.set_title(ax.get_title())
             sub_ax.set_xlabel(ax.get_xlabel())
             sub_ax.set_ylabel(ax.get_ylabel())
@@ -241,15 +259,34 @@ class MeasurementPlotter(QDockWidget):
                 plot_title=f"Subplot {idx + 1}",
             )
 
-            if ax.get_title():
-                obs_id = ax.get_title()
-            elif ax.get_legend_handles_labels()[1]:
-                obs_id = ax.get_legend_handles_labels()[1][0]
-                obs_id = obs_id.split(" ")[-1]
-            else:
-                obs_id = f"subplot_{idx}"
+            # Map subplot to observable IDs
+            # When grouped by condition/dataset, one subplot can have multiple observables
+            # Extract all observable IDs from legend labels
+            subplot_title = (
+                ax.get_title() if ax.get_title() else f"subplot_{idx}"
+            )
+            _, legend_labels = ax.get_legend_handles_labels()
 
-            self.observable_to_subplot[obs_id] = idx
+            if legend_labels:
+                # Extract observable ID from each legend label
+                for legend_label in legend_labels:
+                    label_parts = legend_label.split()
+                    if len(label_parts) == 0:
+                        continue
+                    # Extract observable ID (last part before "simulation" if present)
+                    if label_parts[-1] == "simulation":
+                        obs_id = (
+                            label_parts[-2]
+                            if len(label_parts) >= 2
+                            else label_parts[0]
+                        )
+                    else:
+                        obs_id = label_parts[-1]
+                    # Map this observable to this subplot index
+                    self.observable_to_subplot[obs_id] = idx
+            else:
+                # No legend, use title as fallback
+                self.observable_to_subplot[subplot_title] = idx
             self.highlighter.register_subplot(ax, idx)
             # Register subplot canvas
             self.highlighter.register_subplot(sub_ax, idx)
@@ -393,16 +430,33 @@ class MeasurementHighlighter:
         # Try to recover the label from the legend (handle → label mapping)
         handles, labels = ax.get_legend_handles_labels()
         label = None
+        data_type = "measurement"  # Default to measurement
+
         for h, l in zip(handles, labels, strict=False):
             if h is artist:
+                # Extract observable ID and data type from legend label
+                # Format can be: "observableId", "datasetId observableId", or "datasetId observableId simulation"
                 label_parts = l.split()
+                if len(label_parts) == 0:
+                    continue
+
                 if label_parts[-1] == "simulation":
                     data_type = "simulation"
-                    label = label_parts[-2]
+                    # Label is second-to-last: "cond obs simulation" -> "obs"
+                    label = (
+                        label_parts[-2]
+                        if len(label_parts) >= 2
+                        else label_parts[0]
+                    )
                 else:
                     data_type = "measurement"
+                    # Label is last: "dataset obs" -> "obs" or just "obs" -> "obs"
                     label = label_parts[-1]
                 break
+
+        # If no label found, skip this click
+        if label is None:
+            return
 
         for i in ind:
             x = xdata[i]
