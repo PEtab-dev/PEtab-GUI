@@ -105,15 +105,14 @@ class MeasurementPlotter(QDockWidget):
 
     def _connect_proxy_signals(self, proxy, cache_key):
         """Connect proxy signals for cache invalidation and plotting."""
-        for signal in [
-            proxy.dataChanged,
-            proxy.rowsInserted,
-            proxy.rowsRemoved,
-        ]:
-            signal.connect(
-                lambda *, key=cache_key: self._invalidate_cache(key)
-            )
-            signal.connect(self._debounced_plot)
+
+        def on_data_change(*args, **kwargs):
+            self._invalidate_cache(cache_key)
+            self._debounced_plot()
+
+        proxy.dataChanged.connect(on_data_change)
+        proxy.rowsInserted.connect(on_data_change)
+        proxy.rowsRemoved.connect(on_data_change)
 
     def initialize(
         self, meas_proxy, sim_proxy, cond_proxy, vis_proxy, petab_model
@@ -123,6 +122,10 @@ class MeasurementPlotter(QDockWidget):
         self.sim_proxy = sim_proxy
         self.vis_proxy = vis_proxy
         self.petab_model = petab_model
+
+        # Clear all cache when reinitializing
+        for key in self._cache_valid:
+            self._cache_valid[key] = False
 
         # Connect cache invalidation and data changes
         self.options_manager.option_changed.connect(self._debounced_plot)
@@ -218,6 +221,9 @@ class MeasurementPlotter(QDockWidget):
         self._update_tabs(fig)
 
     def _update_tabs(self, fig: plt.Figure):
+        # Save current tab index before clearing
+        current_tab_index = self.tab_widget.currentIndex()
+
         # Clean previous tabs
         self.tab_widget.clear()
         # Clear Highlighter
@@ -328,6 +334,10 @@ class MeasurementPlotter(QDockWidget):
             self.highlighter.connect_picking(sub_canvas)
         # Plot residuals if necessary
         self.plot_residuals()
+
+        # Restore the previously selected tab (if valid)
+        if 0 <= current_tab_index < self.tab_widget.count():
+            self.tab_widget.setCurrentIndex(current_tab_index)
 
     def highlight_from_selection(
         self, selected_rows: list[int], proxy=None, y_axis_col="measurement"
@@ -556,8 +566,13 @@ class CustomNavigationToolbar(NavigationToolbar2QT):
         self.addWidget(self.settings_btn)
 
     def update_checked_state(self, selected_option):
-        for action in self.groupy_by_options.values():
-            action.setChecked(action.text() == f"Groupy by {selected_option}")
+        for grp, action in self.groupy_by_options.items():
+            if grp == "vis_df":
+                action.setChecked(selected_option == "vis_df")
+            else:
+                action.setChecked(
+                    action.text() == f"Group by {selected_option}"
+                )
 
 
 def create_plot_tab(

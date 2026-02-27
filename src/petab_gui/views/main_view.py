@@ -126,15 +126,15 @@ class MainWindow(QMainWindow):
 
         self.tab_widget.currentChanged.connect(self.set_docks_visible)
 
+        # Track if we're in a minimize/restore cycle (must be set before load_ui_settings)
+        self._was_minimized = False
+
         settings_manager.load_ui_settings(self)
 
         # drag drop
         self.setAcceptDrops(True)
 
         self.find_replace_bar = None
-
-        # Track if we're in a minimize/restore cycle
-        self._was_minimized = False
 
     def default_view(self):
         """Reset the view to a fixed 3x2 grid using manual geometry."""
