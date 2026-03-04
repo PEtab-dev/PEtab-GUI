@@ -304,6 +304,18 @@ class ModifyDataFrameCommand(QUndoCommand):
                 df[col] = df[col].astype(dtype)
             elif np.issubdtype(dtype, np.number):
                 df[col] = pd.to_numeric(df[col], errors="coerce")
+                # If original dtype was integer and column has NaN, use nullable Int type
+                if np.issubdtype(dtype, np.integer) and df[col].isna().any():
+                    if dtype == np.int64:
+                        df[col] = df[col].astype("Int64")
+                    elif dtype == np.int32:
+                        df[col] = df[col].astype("Int32")
+                    elif dtype == np.int16:
+                        df[col] = df[col].astype("Int16")
+                    elif dtype == np.int8:
+                        df[col] = df[col].astype("Int8")
+                    else:
+                        df[col] = df[col].astype("Int64")
             else:
                 df[col] = df[col].astype(dtype)
 
