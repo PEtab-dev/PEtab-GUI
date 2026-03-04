@@ -155,7 +155,38 @@ class ModifyRowCommand(QUndoCommand):
             if np.any(dtypes != df.dtypes):
                 for col, dtype in dtypes.items():
                     if dtype != df.dtypes[col]:
-                        df[col] = df[col].astype(dtype)
+                        is_pandas_nullable_int = isinstance(
+                            dtype,
+                            (
+                                pd.Int64Dtype,
+                                pd.Int32Dtype,
+                                pd.Int16Dtype,
+                                pd.Int8Dtype,
+                            ),
+                        )
+
+                        if is_pandas_nullable_int:
+                            # Keep pandas nullable integer types as is
+                            df[col] = df[col].astype(dtype)
+                        # If column has NaN and dtype is integer, use nullable Int type
+                        elif (
+                            np.issubdtype(dtype, np.integer)
+                            and df[col].isna().any()
+                        ):
+                            # Convert numpy int types to pandas nullable Int types
+                            if dtype == np.int64:
+                                df[col] = df[col].astype("Int64")
+                            elif dtype == np.int32:
+                                df[col] = df[col].astype("Int32")
+                            elif dtype == np.int16:
+                                df[col] = df[col].astype("Int16")
+                            elif dtype == np.int8:
+                                df[col] = df[col].astype("Int8")
+                            else:
+                                # Fallback for other integer types
+                                df[col] = df[col].astype("Int64")
+                        else:
+                            df[col] = df[col].astype(dtype)
             self.model.endInsertRows()
         else:
             self.model.beginRemoveRows(
@@ -261,7 +292,17 @@ class ModifyDataFrameCommand(QUndoCommand):
         for col, dtype in original_dtypes.items():
             if col not in update_df.columns:
                 continue
-            if np.issubdtype(dtype, np.number):
+            # Check if it's a pandas extension dtype (like Int64)
+            is_pandas_nullable_int = isinstance(
+                dtype,
+                (pd.Int64Dtype, pd.Int32Dtype, pd.Int16Dtype, pd.Int8Dtype),
+            )
+
+            if is_pandas_nullable_int:
+                # Keep pandas nullable integer types as is
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+                df[col] = df[col].astype(dtype)
+            elif np.issubdtype(dtype, np.number):
                 df[col] = pd.to_numeric(df[col], errors="coerce")
             else:
                 df[col] = df[col].astype(dtype)
