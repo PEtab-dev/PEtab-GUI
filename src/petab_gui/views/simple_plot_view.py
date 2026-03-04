@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+import petab.v1.C as PETAB_C
 import qtawesome as qta
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
@@ -77,6 +78,42 @@ class MeasurementPlotter(QDockWidget):
         self.observable_to_subplot = {}
         self.no_plotting_rn = False
 
+        # DataFrame caching system for performance optimization
+        self._df_cache = {
+            "measurements": None,
+            "simulations": None,
+            "conditions": None,
+            "visualization": None,
+        }
+        self._cache_valid = {
+            "measurements": False,
+            "simulations": False,
+            "conditions": False,
+            "visualization": False,
+        }
+
+    def _invalidate_cache(self, table_name):
+        """Invalidate cache for specific table."""
+        self._cache_valid[table_name] = False
+
+    def _get_cached_df(self, table_name, proxy_model):
+        """Get cached DataFrame or convert if invalid."""
+        if not self._cache_valid[table_name]:
+            self._df_cache[table_name] = proxy_to_dataframe(proxy_model)
+            self._cache_valid[table_name] = True
+        return self._df_cache[table_name]
+
+    def _connect_proxy_signals(self, proxy, cache_key):
+        """Connect proxy signals for cache invalidation and plotting."""
+
+        def on_data_change(*args, **kwargs):
+            self._invalidate_cache(cache_key)
+            self._debounced_plot()
+
+        proxy.dataChanged.connect(on_data_change)
+        proxy.rowsInserted.connect(on_data_change)
+        proxy.rowsRemoved.connect(on_data_change)
+
     def initialize(
         self, meas_proxy, sim_proxy, cond_proxy, vis_proxy, petab_model
     ):
@@ -86,20 +123,19 @@ class MeasurementPlotter(QDockWidget):
         self.vis_proxy = vis_proxy
         self.petab_model = petab_model
 
-        # Connect data changes
+        # Clear all cache when reinitializing
+        for key in self._cache_valid:
+            self._cache_valid[key] = False
+
+        # Connect cache invalidation and data changes
         self.options_manager.option_changed.connect(self._debounced_plot)
-        self.meas_proxy.dataChanged.connect(self._debounced_plot)
-        self.meas_proxy.rowsInserted.connect(self._debounced_plot)
-        self.meas_proxy.rowsRemoved.connect(self._debounced_plot)
-        self.cond_proxy.dataChanged.connect(self._debounced_plot)
-        self.cond_proxy.rowsInserted.connect(self._debounced_plot)
-        self.cond_proxy.rowsRemoved.connect(self._debounced_plot)
-        self.sim_proxy.dataChanged.connect(self._debounced_plot)
-        self.sim_proxy.rowsInserted.connect(self._debounced_plot)
-        self.sim_proxy.rowsRemoved.connect(self._debounced_plot)
-        self.vis_proxy.dataChanged.connect(self._debounced_plot)
-        self.vis_proxy.rowsInserted.connect(self._debounced_plot)
-        self.vis_proxy.rowsRemoved.connect(self._debounced_plot)
+
+        # Connect proxy signals for all tables
+        self._connect_proxy_signals(self.meas_proxy, "measurements")
+        self._connect_proxy_signals(self.cond_proxy, "conditions")
+        self._connect_proxy_signals(self.sim_proxy, "simulations")
+        self._connect_proxy_signals(self.vis_proxy, "visualization")
+
         self.visibilityChanged.connect(self._debounced_plot)
 
         self.plot_it()
@@ -113,10 +149,11 @@ class MeasurementPlotter(QDockWidget):
             # If the dock is not visible, do not plot
             return
 
-        measurements_df = proxy_to_dataframe(self.meas_proxy)
-        simulations_df = proxy_to_dataframe(self.sim_proxy)
-        conditions_df = proxy_to_dataframe(self.cond_proxy)
-        visualisation_df = proxy_to_dataframe(self.vis_proxy)
+        # Use cached DataFrames for performance
+        measurements_df = self._get_cached_df("measurements", self.meas_proxy)
+        simulations_df = self._get_cached_df("simulations", self.sim_proxy)
+        conditions_df = self._get_cached_df("conditions", self.cond_proxy)
+        visualisation_df = self._get_cached_df("visualization", self.vis_proxy)
         group_by = self.options_manager.get_option()
         # group_by different value in petab.visualize
         if group_by == "condition":
@@ -184,6 +221,9 @@ class MeasurementPlotter(QDockWidget):
         self._update_tabs(fig)
 
     def _update_tabs(self, fig: plt.Figure):
+        # Save current tab index before clearing
+        current_tab_index = self.tab_widget.currentIndex()
+
         # Clean previous tabs
         self.tab_widget.clear()
         # Clear Highlighter
@@ -295,6 +335,10 @@ class MeasurementPlotter(QDockWidget):
         # Plot residuals if necessary
         self.plot_residuals()
 
+        # Restore the previously selected tab (if valid)
+        if 0 <= current_tab_index < self.tab_widget.count():
+            self.tab_widget.setCurrentIndex(current_tab_index)
+
     def highlight_from_selection(
         self, selected_rows: list[int], proxy=None, y_axis_col="measurement"
     ):
@@ -302,8 +346,8 @@ class MeasurementPlotter(QDockWidget):
         if not proxy:
             return
 
-        x_axis_col = "time"
-        observable_col = "observableId"
+        x_axis_col = PETAB_C.TIME
+        observable_col = PETAB_C.OBSERVABLE_ID
 
         def column_index(name):
             for col in range(proxy.columnCount()):
@@ -345,7 +389,8 @@ class MeasurementPlotter(QDockWidget):
             return
 
         problem = self.petab_model.current_petab_problem
-        simulations_df = proxy_to_dataframe(self.sim_proxy)
+        # Reuse cached DataFrame instead of converting again
+        simulations_df = self._get_cached_df("simulations", self.sim_proxy)
 
         if simulations_df.empty:
             return
@@ -521,8 +566,13 @@ class CustomNavigationToolbar(NavigationToolbar2QT):
         self.addWidget(self.settings_btn)
 
     def update_checked_state(self, selected_option):
-        for action in self.groupy_by_options.values():
-            action.setChecked(action.text() == f"Groupy by {selected_option}")
+        for grp, action in self.groupy_by_options.items():
+            if grp == "vis_df":
+                action.setChecked(selected_option == "vis_df")
+            else:
+                action.setChecked(
+                    action.text() == f"Group by {selected_option}"
+                )
 
 
 def create_plot_tab(
