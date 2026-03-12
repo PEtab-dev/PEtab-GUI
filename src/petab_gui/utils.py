@@ -1,10 +1,16 @@
+"""Shared utilities for the PEtab GUI.
+
+NOTE: This module is being deprecated in favor of layer-specific modules:
+- models/sbml_utils.py - SBML conversion functions
+- models/validators.py - Validation functions
+- views/dialogs.py - UI dialog widgets
+"""
+
 import logging
-import math
 import os
 import re
 from typing import Any
 
-import antimony
 import numpy as np
 import pandas as pd
 import petab.v1 as petab
@@ -18,7 +24,6 @@ from PySide6.QtGui import QAction, QColor, QSyntaxHighlighter, QTextCharFormat
 from PySide6.QtWidgets import (
     QCheckBox,
     QCompleter,
-    QDialog,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -32,180 +37,6 @@ from PySide6.QtWidgets import (
 )
 
 from .C import COLUMN, INDEX, ROW
-
-
-def _checkAntimonyReturnCode(code):
-    """Helper for checking the antimony response code.
-
-    Raises Exception if error in antimony.
-
-    :param code: antimony response
-    :type code: int
-    """
-    if code < 0:
-        raise Exception(f"Antimony: {antimony.getLastError()}")
-
-
-def sbmlToAntimony(sbml):
-    """Convert SBML to antimony string.
-
-    :param sbml: SBML string or file
-    :type sbml: str | file
-    :return: Antimony
-    :rtype: str
-    """
-    antimony.clearPreviousLoads()
-    antimony.freeAll()
-    isfile = False
-    try:
-        isfile = os.path.isfile(sbml)
-    except Exception as e:
-        logging.warning(f"Error checking if {sbml} is a file: {str(e)}")
-        isfile = False
-    if isfile:
-        code = antimony.loadSBMLFile(sbml)
-    else:
-        code = antimony.loadSBMLString(str(sbml))
-    _checkAntimonyReturnCode(code)
-    return antimony.getAntimonyString(None)
-
-
-def antimonyToSBML(ant):
-    """Convert Antimony to SBML string.
-
-    :param ant: Antimony string or file
-    :type ant: str | file
-    :return: SBML
-    :rtype: str
-    """
-    antimony.clearPreviousLoads()
-    antimony.freeAll()
-    try:
-        isfile = os.path.isfile(ant)
-    except ValueError:
-        isfile = False
-    if isfile:
-        code = antimony.loadAntimonyFile(ant)
-    else:
-        code = antimony.loadAntimonyString(ant)
-    _checkAntimonyReturnCode(code)
-    mid = antimony.getMainModuleName()
-    return antimony.getSBMLString(mid)
-
-
-class ConditionInputDialog(QDialog):
-    """Dialog for adding or editing experimental conditions.
-
-    Provides input fields for simulation condition ID and optional
-    preequilibration condition ID.
-    """
-
-    def __init__(self, condition_id=None, parent=None):
-        """Initialize the condition input dialog.
-
-        Args:
-        condition_id:
-            Optional initial value for the simulation condition ID
-        parent:
-            The parent widget
-        """
-        super().__init__(parent)
-        self.setWindowTitle("Add Condition")
-
-        self.layout = QVBoxLayout(self)
-        self.notification_label = QLabel("", self)
-        self.notification_label.setStyleSheet("color: red;")
-        self.notification_label.setVisible(False)
-        self.layout.addWidget(self.notification_label)
-
-        # Simulation Condition
-        sim_layout = QHBoxLayout()
-        sim_label = QLabel("Simulation Condition:", self)
-        self.sim_input = QLineEdit(self)
-        if condition_id:
-            self.sim_input.setText(condition_id)
-        sim_layout.addWidget(sim_label)
-        sim_layout.addWidget(self.sim_input)
-        self.layout.addLayout(sim_layout)
-
-        # Preequilibration Condition
-        preeq_layout = QHBoxLayout()
-        preeq_label = QLabel("Preequilibration Condition:", self)
-        self.preeq_input = QLineEdit(self)
-        self.preeq_input.setToolTip(
-            "This field is only needed when your experiment started in steady "
-            "state. In this case add here the experimental condition id for "
-            "the steady state."
-        )
-        preeq_layout.addWidget(preeq_label)
-        preeq_layout.addWidget(self.preeq_input)
-        self.layout.addLayout(preeq_layout)
-
-        # Buttons
-        self.buttons_layout = QHBoxLayout()
-        self.ok_button = QPushButton("OK", self)
-        self.cancel_button = QPushButton("Cancel", self)
-        self.buttons_layout.addWidget(self.ok_button)
-        self.buttons_layout.addWidget(self.cancel_button)
-        self.layout.addLayout(self.buttons_layout)
-
-        self.ok_button.clicked.connect(self.accept)
-        self.cancel_button.clicked.connect(self.reject)
-
-    def accept(self):
-        """Override the accept method to validate inputs before accepting.
-
-        Checks if the simulation condition ID is provided.
-        If not, shows an error message and prevents the dialog from closing.
-        """
-        if not self.sim_input.text().strip():
-            self.sim_input.setStyleSheet("background-color: red;")
-            self.notification_label.setText(
-                "Simulation Condition is required."
-            )
-            self.notification_label.setVisible(True)
-            return
-        self.notification_label.setVisible(False)
-        self.sim_input.setStyleSheet("")
-        super().accept()
-
-    def get_inputs(self):
-        """Get the user inputs as a dictionary.
-
-        Returns:
-        A dictionary containing:
-            - 'simulationConditionId': The simulation condition ID
-            - 'preequilibrationConditionId': The preequilibration condition ID
-              (only included if provided)
-        """
-        inputs = {}
-        inputs["simulationConditionId"] = self.sim_input.text()
-        preeq = self.preeq_input.text()
-        if preeq:
-            inputs["preequilibrationConditionId"] = preeq
-        return inputs
-
-
-def validate_value(value, expected_type):
-    """Validate and convert a value to the expected type.
-
-    Args:
-        value: The value to validate and convert
-        expected_type: The numpy type to convert the value to
-
-    Returns:
-        tuple: A tuple containing:
-            - The converted value, or None if conversion failed
-            - An error message if conversion failed, or None if successful
-    """
-    try:
-        if expected_type == np.object_:
-            value = str(value)
-        elif expected_type == np.float64:
-            value = float(value)
-    except ValueError as e:
-        return None, str(e)
-    return value, None
 
 
 class PlotWidget(FigureCanvas):
@@ -445,15 +276,3 @@ def process_file(filepath, logger):
         f"Unrecognized file type for file: {filepath}.", color="red"
     )
     return None, None
-
-
-def is_invalid(value):
-    """Check if a value is invalid."""
-    if value is None:  # None values are invalid
-        return True
-    if isinstance(value, str):  # Strings can always be displayed
-        return False
-    try:
-        return not math.isfinite(value)
-    except TypeError:
-        return True

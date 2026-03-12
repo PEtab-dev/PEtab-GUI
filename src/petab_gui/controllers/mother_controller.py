@@ -42,7 +42,7 @@ from ..utils import (
     process_file,
 )
 from ..views import TaskBar
-from ..views.other_views import NextStepsPanel
+from ..views.dialogs import NextStepsPanel
 from .logger_controller import LoggerController
 from .sbml_controller import SbmlController
 from .table_controllers import (

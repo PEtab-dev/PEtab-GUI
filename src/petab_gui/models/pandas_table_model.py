@@ -10,7 +10,6 @@ from PySide6.QtCore import (
     Signal,
 )
 from PySide6.QtGui import QBrush, QColor, QPalette
-from PySide6.QtWidgets import QApplication
 
 from ..C import COLUMNS
 from ..commands import (
@@ -19,16 +18,42 @@ from ..commands import (
     ModifyRowCommand,
     RenameIndexCommand,
 )
-from ..controllers.default_handler import DefaultHandlerModel
+from ..resources.whats_this import column_whats_this
 from ..settings_manager import settings_manager
 from ..utils import (
     create_empty_dataframe,
     get_selected,
-    is_invalid,
-    validate_value,
 )
-from ..views.whats_this import column_whats_this
+from .default_handler import DefaultHandlerModel
 from .tooltips import cell_tip, header_tip
+from .validators import is_invalid, validate_value
+
+
+def _get_system_palette_color(role):
+    """Get system palette color, with fallback if Qt is not available.
+
+    Args:
+        role: QPalette color role (e.g., QPalette.Highlight)
+
+    Returns:
+        QColor: The system color or a fallback color
+    """
+    try:
+        # Try to get system palette from QApplication
+        from PySide6.QtWidgets import QApplication
+
+        app = QApplication.instance()
+        if app:
+            return app.palette().color(role)
+    except (ImportError, RuntimeError):
+        pass
+
+    # Fallback colors when Qt is not available or no QApplication
+    fallback_colors = {
+        QPalette.Highlight: QColor(51, 153, 255, 100),  # Light blue
+        QPalette.HighlightedText: QColor(255, 255, 255),  # White
+    }
+    return fallback_colors.get(role, QColor(0, 0, 0))
 
 
 class PandasTableModel(QAbstractTableModel):
@@ -88,6 +113,13 @@ class PandasTableModel(QAbstractTableModel):
         self.config = settings_manager.get_table_defaults(table_type)
         self.default_handler = DefaultHandlerModel(self, self.config)
         self.undo_stack = undo_stack
+        # Cache colors to avoid runtime dependency on QApplication
+        self._highlight_bg_color = _get_system_palette_color(
+            QPalette.Highlight
+        )
+        self._highlight_fg_color = _get_system_palette_color(
+            QPalette.HighlightedText
+        )
 
     def rowCount(self, parent=None):
         """Return the number of rows in the model.
@@ -159,9 +191,9 @@ class PandasTableModel(QAbstractTableModel):
         if role == Qt.BackgroundRole:
             return self.determine_background_color(row, column)
         if role == Qt.ForegroundRole:
-            # Return yellow text if this cell is a match
+            # Return highlighted text color if this cell is a match
             if (row, column) in self.highlighted_cells:
-                return QApplication.palette().color(QPalette.HighlightedText)
+                return self._highlight_fg_color
             return QBrush(QColor(0, 0, 0))  # Default black text
         if role == Qt.ToolTipRole:
             if row == self._data_frame.shape[0]:
@@ -880,7 +912,7 @@ class PandasTableModel(QAbstractTableModel):
         if (row, column) == (self._data_frame.shape[0], 0):
             return QColor(144, 238, 144, 150)
         if (row, column) in self.highlighted_cells:
-            return QApplication.palette().color(QPalette.Highlight)
+            return self._highlight_bg_color
         if (row, column) in self._invalid_cells:
             return QColor(255, 100, 100, 150)
         if row % 2 == 0:

@@ -25,13 +25,13 @@ from ..models.tooltips import (
     SIM_TABLE_TOOLTIP,
     VIS_TABLE_TOOLTIP,
 )
+from ..resources.whats_this import WHATS_THIS
 from ..settings_manager import settings_manager
 from .find_replace_bar import FindReplaceBar
 from .logger import Logger
 from .sbml_view import SbmlViewer
 from .simple_plot_view import MeasurementPlotter
 from .table_view import TableViewer
-from .whats_this import WHATS_THIS
 
 
 class MainWindow(QMainWindow):
