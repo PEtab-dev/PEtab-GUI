@@ -1555,6 +1555,49 @@ class MainController:
         # obtain petab problem
         petab_problem = self.model.current_petab_problem
 
+        # Check if nominalValue column exists, if not add it from SBML model
+        parameter_df = petab_problem.parameter_df.copy()
+        if (
+            parameter_df is not None
+            and not parameter_df.empty
+            and petab.C.NOMINAL_VALUE not in parameter_df.columns
+        ):
+            self.logger.log_message(
+                "nominalValue column missing in parameter table. "
+                "Extracting nominal values from SBML model...",
+                color="orange",
+            )
+            # Extract parameter values from SBML model
+            sbml_model = self.model.sbml.get_current_sbml_model()
+            if sbml_model is not None:
+                nominal_values = []
+                for param_id in parameter_df.index:
+                    try:
+                        value = sbml_model.get_parameter_value(param_id)
+                        nominal_values.append(value)
+                    except Exception:
+                        # If parameter not found in SBML, use default value of 1
+                        nominal_values.append(1.0)
+
+                # Add nominalValue column to parameter_df
+                parameter_df[petab.C.NOMINAL_VALUE] = nominal_values
+                self.logger.log_message(
+                    f"Successfully extracted {len(nominal_values)} "
+                    f"nominal values from SBML model. Add nominalValue "
+                    f"column to parameter table to set values manually.",
+                    color="green",
+                )
+
+                # Update the petab problem with the modified parameter_df
+                petab_problem = petab.Problem(
+                    condition_df=petab_problem.condition_df,
+                    measurement_df=petab_problem.measurement_df,
+                    observable_df=petab_problem.observable_df,
+                    parameter_df=parameter_df,
+                    visualization_df=petab_problem.visualization_df,
+                    model=petab_problem.model,
+                )
+
         # import petabsimualtor
         import basico
         from basico.petab import PetabSimulator
