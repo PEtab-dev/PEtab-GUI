@@ -8,6 +8,45 @@ from PySide6.QtGui import QUndoCommand
 pd.set_option("future.no_silent_downcasting", True)
 
 
+def _convert_dtype_with_nullable_int(series, dtype):
+    """Convert a series to the specified dtype, handling nullable integers.
+
+    When converting to integer types and the series contains NaN values,
+    this function automatically uses pandas nullable integer types (Int64, Int32, etc.)
+    instead of numpy integer types which don't support NaN.
+
+    Args:
+        series: The pandas Series to convert
+        dtype: The target dtype
+
+    Returns:
+        The series with the appropriate dtype applied
+    """
+    # Check if it's already a pandas nullable int type
+    is_pandas_nullable_int = isinstance(
+        dtype,
+        (pd.Int64Dtype, pd.Int32Dtype, pd.Int16Dtype, pd.Int8Dtype),
+    )
+
+    if is_pandas_nullable_int:
+        # Keep pandas nullable integer types as is
+        return series.astype(dtype)
+    # If column has NaN and dtype is integer, use nullable Int type
+    if np.issubdtype(dtype, np.integer) and series.isna().any():
+        # Convert numpy int types to pandas nullable Int types
+        if dtype == np.int64:
+            return series.astype("Int64")
+        if dtype == np.int32:
+            return series.astype("Int32")
+        if dtype == np.int16:
+            return series.astype("Int16")
+        if dtype == np.int8:
+            return series.astype("Int8")
+        # Fallback for other integer types
+        return series.astype("Int64")
+    return series.astype(dtype)
+
+
 class ModifyColumnCommand(QUndoCommand):
     """Command to add or remove a column in the table.
 
@@ -155,7 +194,9 @@ class ModifyRowCommand(QUndoCommand):
             if np.any(dtypes != df.dtypes):
                 for col, dtype in dtypes.items():
                     if dtype != df.dtypes[col]:
-                        df[col] = df[col].astype(dtype)
+                        df[col] = _convert_dtype_with_nullable_int(
+                            df[col], dtype
+                        )
             self.model.endInsertRows()
         else:
             self.model.beginRemoveRows(
@@ -261,10 +302,17 @@ class ModifyDataFrameCommand(QUndoCommand):
         for col, dtype in original_dtypes.items():
             if col not in update_df.columns:
                 continue
-            if np.issubdtype(dtype, np.number):
+
+            # For numeric types, convert string inputs to numbers first
+            is_pandas_nullable_int = isinstance(
+                dtype,
+                (pd.Int64Dtype, pd.Int32Dtype, pd.Int16Dtype, pd.Int8Dtype),
+            )
+            if is_pandas_nullable_int or np.issubdtype(dtype, np.number):
                 df[col] = pd.to_numeric(df[col], errors="coerce")
-            else:
-                df[col] = df[col].astype(dtype)
+
+            # Convert to appropriate dtype, handling nullable integers
+            df[col] = _convert_dtype_with_nullable_int(df[col], dtype)
 
         rows = [df.index.get_loc(row_key) for (row_key, _) in self.changes]
         cols = [
