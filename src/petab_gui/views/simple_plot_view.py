@@ -180,7 +180,7 @@ class MeasurementPlotter(QDockWidget):
             meas_df is None
             or meas_df.empty
             or cond_df is None
-            or cond_df.empty
+            or not len(cond_df) > 0
         ):
             self._update_tabs(None)
             return
