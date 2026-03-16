@@ -408,6 +408,9 @@ def process_file(filepath, logger):
             )
             return None, None
 
+        # if separator is None:
+        #     separator = "\t"
+
         # Case 3.2: Identify the table type based on header content
         if {petab.C.OBSERVABLE_ID, petab.C.MEASUREMENT, petab.C.TIME}.issubset(
             header
@@ -427,7 +430,7 @@ def process_file(filepath, logger):
             petab.C.CONDITION_ID in header
             or f"\ufeff{petab.C.CONDITION_ID}" in header
         ):
-            return "condition", separator
+            return "condition", separator if separator is not None else "\t"
         if petab.C.PLOT_ID in header:
             return "visualization", separator
         logger.log_message(

@@ -14,7 +14,7 @@ maintainers = [
 description = "Graphical user interface for the PEtab format"
 dependencies = [
     "pyside6",
-    "pandas",
+    "pandas<3.0.0",
     "antimony",
     "python-libsbml",
     "matplotlib",
