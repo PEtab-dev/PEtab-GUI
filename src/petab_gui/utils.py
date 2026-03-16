@@ -258,7 +258,8 @@ def process_file(filepath, logger):
             petab.C.CONDITION_ID in header
             or f"\ufeff{petab.C.CONDITION_ID}" in header
         ):
-            return "condition", separator
+            # For condition files with single column, use tab as default separator
+            return "condition", separator if separator is not None else "\t"
         if petab.C.PLOT_ID in header:
             return "visualization", separator
         logger.log_message(
