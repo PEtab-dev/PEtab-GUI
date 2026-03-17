@@ -1,6 +1,30 @@
 Changelog
 =========
 
+0.3.0 (2026-03-17)
+------------------
+
+Optimization
+............
+- Introduced cache for dataframes, reducing proxy calls by up to 66% (#224)
+
+Bugfixes
+........
+- Fixed simulation support despite missing nominal value by pulling from SBML (#238)
+- Fixed error checking for empty condition table (#237)
+- Fixed error in condition file when there is only one column (#236)
+- Fixed issue with assigning np.nan values to all columns in a new row (#233)
+- Fixed issue where second or third observables could not be highlighted in the same plot (#232)
+- Fixed issue where minimization made data tables vanish (#228)
+
+Documentation
+.............
+- Added YouTube video and mentioned examples (#227)
+
+Installation / Packaging
+.........................
+- Limited pandas version to before 3.0.0 (#236) (Temporary)
+
 0.2.0 (2026-01-26)
 ------------------
 
