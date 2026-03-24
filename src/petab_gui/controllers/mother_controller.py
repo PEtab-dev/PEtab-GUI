@@ -728,7 +728,8 @@ class MainController:
         self.view.toggle_replace()
 
     def _toggle_whats_this_mode(self, on: bool):
-        """Enable/disable click-to-help mode by installing/removing the global filter.
+        """
+        Enable/disable click-to-help mode.
 
         On enter: show a short instruction bubble.
         """
@@ -754,7 +755,7 @@ class MainController:
         self._show_help_welcome()
 
     def _show_help_welcome(self):
-        """Centered welcome with a 'Don't show again' option persisted in QSettings."""
+        """Welcome with a 'Don't show again' option persisted in QSettings."""
         settings = settings_manager.settings
         if settings.value("help_mode/welcome_disabled", False, type=bool):
             return
@@ -765,9 +766,12 @@ class MainController:
         msg.setText(
             "<b>Welcome to help mode</b><br>"
             "<ul>"
-            "<li>Click any widget, tab, or column header to see its help.</li>"
-            "<li>Click the same item again or press <b>Esc</b> to close the bubble.</li>"
-            "<li>Press <b>Esc</b> with no bubble, or toggle the <i>?</i> button, to exit.</li>"
+            "<li>Click any widget, tab, or column header to see its "
+            "help.</li>"
+            "<li>Click the same item again or press <b>Esc</b> to close "
+            "the bubble.</li>"
+            "<li>Press <b>Esc</b> with no bubble, or toggle the <i>?</i> "
+            "button, to exit.</li>"
             "</ul>"
         )
         dont = QCheckBox("Don't show again")
@@ -795,7 +799,7 @@ class MainController:
         )
 
     def _show_next_steps_panel(self):
-        """Show the next steps panel (ignores 'don't show again' preference)."""
+        """Show the next steps panel."""
         # Sync checkbox state with current settings
         dont_show = settings_manager.get_value(
             "next_steps/dont_show_again", False, bool

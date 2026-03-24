@@ -23,7 +23,8 @@ class ValidationController:
     Attributes
     ----------
     main : MainController
-        Reference to the main controller for access to models, views, and other controllers.
+        Reference to the main controller for access to models, views, and
+        other controllers.
     model : PEtabModel
         The PEtab model being validated.
     logger : LoggerController

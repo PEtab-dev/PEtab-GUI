@@ -23,7 +23,8 @@ class SettingsModel(QObject):
     settings_changed : Signal
         Emitted when a setting is updated (passes the key as string).
     new_log_message : Signal
-        Emitted when a log message should be displayed (passes message and color).
+        Emitted when a log message should be displayed (passes message
+        and color).
     """
 
     settings_changed = Signal(str)  # Signal emitted when a setting is updated

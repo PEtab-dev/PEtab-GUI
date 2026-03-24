@@ -448,7 +448,7 @@ class TestMultiFileYAMLLoading(unittest.TestCase):
             self.view.deleteLater()
 
     def test_single_file_yaml_backward_compatibility(self):
-        """Test that single-file YAML loading still works (backward compatibility)."""
+        """Test that single-file YAML loading still works."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
@@ -501,6 +501,7 @@ class TestMultiFileYAMLLoading(unittest.TestCase):
 
     def test_multi_file_yaml_loading(self):
         """Test loading YAML with multiple files per category."""
+        contr = self.controller.measurement_controller
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
@@ -558,21 +559,15 @@ class TestMultiFileYAMLLoading(unittest.TestCase):
                 # Call the method
                 self.controller.open_yaml_and_load_files(str(yaml_file))
 
-            # Verify measurement files were loaded (once in overwrite, once in append)
-            self.assertEqual(
-                self.controller.measurement_controller.open_table.call_count, 2
-            )
+            # Verify measurement files loading (once in overwrite/append)
+            self.assertEqual(contr.open_table.call_count, 2)
 
             # Check that first call was with mode='overwrite'
-            first_call = self.controller.measurement_controller.open_table.call_args_list[
-                0
-            ]
+            first_call = contr.open_table.call_args_list[0]
             self.assertEqual(first_call[1].get("mode"), "overwrite")
 
             # Check that second call was with mode='append'
-            second_call = self.controller.measurement_controller.open_table.call_args_list[
-                1
-            ]
+            second_call = contr.open_table.call_args_list[1]
             self.assertEqual(second_call[1].get("mode"), "append")
 
             # Verify observable files were loaded
