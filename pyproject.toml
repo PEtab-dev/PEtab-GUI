@@ -94,7 +94,6 @@ lint.ignore = [
     "T201",  # `print` found"
     "SIM105",  # Use `contextlib.suppress`
     "S110",  # `try`-`except`-`pass` detected, consider logging the exception
-    "A002",  # Function argument shadowing a Python builtin
     "E701",  # Multiple statements on one line (colon)
     "E741",  # Ambiguous variable name
 ]

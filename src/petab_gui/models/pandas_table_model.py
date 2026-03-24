@@ -1127,12 +1127,12 @@ class MeasurementModel(PandasTableModel):
     possibly_new_condition = Signal(str)  # Signal for new condition
     possibly_new_observable = Signal(str)  # Signal for new observable
 
-    def __init__(self, data_frame, type: str = "measurement", parent=None):
-        allowed_columns = COLUMNS[type].copy()
+    def __init__(self, data_frame, parent=None):
+        allowed_columns = COLUMNS["measurement"].copy()
         super().__init__(
             data_frame=data_frame,
             allowed_columns=allowed_columns,
-            table_type=type,
+            table_type="measurement",
             parent=parent,
         )
 
