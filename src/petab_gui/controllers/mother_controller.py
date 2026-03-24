@@ -42,9 +42,12 @@ from ..utils import (
     process_file,
 )
 from ..views import TaskBar
-from ..views.other_views import NextStepsPanel
+from ..views.dialogs import NextStepsPanel
+from .file_io_controller import FileIOController
 from .logger_controller import LoggerController
+from .plot_coordinator import PlotCoordinator
 from .sbml_controller import SbmlController
+from .simulation_controller import SimulationController
 from .table_controllers import (
     ConditionController,
     MeasurementController,
@@ -56,8 +59,8 @@ from .utils import (
     RecentFilesManager,
     _WhatsThisClickHelp,
     filtered_error,
-    prompt_overwrite_or_append,
 )
+from .validation_controller import ValidationController
 
 
 class MainController:
@@ -119,7 +122,7 @@ class MainController:
             self.undo_stack,
             self,
         )
-        self.simulation_controller = MeasurementController(
+        self.simulation_table_controller = MeasurementController(
             self.view.simulation_dock,
             self.model.simulation,
             self.logger,
@@ -136,8 +139,16 @@ class MainController:
             self.condition_controller,
             self.sbml_controller,
             self.visualization_controller,
-            self.simulation_controller,
+            self.simulation_table_controller,
         ]
+        # File I/O Controller
+        self.file_io = FileIOController(self)
+        # Plot Coordinator
+        self.plot_coordinator = PlotCoordinator(self)
+        # Validation Controller
+        self.validation = ValidationController(self)
+        # Simulation Controller
+        self.simulation = SimulationController(self)
         # Recent Files
         self.recent_files_manager = RecentFilesManager(max_files=10)
         # Checkbox states for Find + Replace
@@ -151,9 +162,6 @@ class MainController:
         }
         self.sbml_checkbox_states = {"sbml": False, "antimony": False}
         self.unsaved_changes = False
-        # Selection synchronization flags to prevent redundant updates
-        self._updating_from_plot = False
-        self._updating_from_table = False
         # Next Steps Panel
         self.next_steps_panel = NextStepsPanel(self.view)
         self.next_steps_panel.dont_show_again_changed.connect(
@@ -164,8 +172,9 @@ class MainController:
         self.actions = self.setup_actions()
         self.view.setup_toolbar(self.actions)
 
-        self.plotter = None
-        self.init_plotter()
+        # Initialize plotter through plot coordinator
+        self.plot_coordinator.init_plotter()
+        self.plotter = self.plot_coordinator.plotter
         self.setup_connections()
         self.setup_task_bar()
         self.setup_context_menu()
@@ -237,12 +246,12 @@ class MainController:
             if z == "condition"
             else None
         )
-        # Maybe Move to a Plot Model
+        # Plot selection synchronization
         self.view.measurement_dock.table_view.selectionModel().selectionChanged.connect(
-            self._on_table_selection_changed
+            self.plot_coordinator._on_table_selection_changed
         )
         self.view.simulation_dock.table_view.selectionModel().selectionChanged.connect(
-            self._on_simulation_selection_changed
+            self.plot_coordinator._on_simulation_selection_changed
         )
         # Unsaved Changes
         self.model.measurement.something_changed.connect(
@@ -268,7 +277,7 @@ class MainController:
         self.sync_visibility_with_actions()
         # Recent Files
         self.recent_files_manager.open_file.connect(
-            partial(self.open_file, mode="overwrite")
+            partial(self.file_io.open_file, mode="overwrite")
         )
         # Settings logging
         settings_manager.new_log_message.connect(self.logger.log_message)
@@ -276,18 +285,16 @@ class MainController:
         self.sbml_controller.overwritten_model.connect(
             self.parameter_controller.update_handler_sbml
         )
-        # Plotting update. Regulated through a Timer
-        self._plot_update_timer = QTimer()
-        self._plot_update_timer.setSingleShot(True)
-        self._plot_update_timer.setInterval(0)
-        self._plot_update_timer.timeout.connect(self.init_plotter)
+        # Plotting update connections
         for controller in [
             self.measurement_controller,
             self.condition_controller,
             self.visualization_controller,
-            self.simulation_controller,
+            self.simulation_table_controller,
         ]:
-            controller.overwritten_df.connect(self._schedule_plot_update)
+            controller.overwritten_df.connect(
+                self.plot_coordinator._schedule_plot_update
+            )
 
     def setup_actions(self):
         """Setup actions for the main controller."""
@@ -302,20 +309,20 @@ class MainController:
             qta.icon("mdi6.file-document"), "&New", self.view
         )
         actions["new"].setShortcut(QKeySequence.New)
-        actions["new"].triggered.connect(self.new_file)
+        actions["new"].triggered.connect(self.file_io.new_file)
         # Open File
         actions["open"] = QAction(
             qta.icon("mdi6.folder-open"), "&Open...", self.view
         )
         actions["open"].setShortcut(QKeySequence.Open)
         actions["open"].triggered.connect(
-            partial(self.open_file, mode="overwrite")
+            partial(self.file_io.open_file, mode="overwrite")
         )
         # Add File
         actions["add"] = QAction(qta.icon("mdi6.table-plus"), "Add", self.view)
         actions["add"].setShortcut("Ctrl+Shift+O")
         actions["add"].triggered.connect(
-            partial(self.open_file, mode="append")
+            partial(self.file_io.open_file, mode="append")
         )
         # Load Examples
         actions["load_example_boehm"] = QAction(
@@ -324,7 +331,7 @@ class MainController:
             self.view,
         )
         actions["load_example_boehm"].triggered.connect(
-            partial(self.load_example, "Boehm")
+            partial(self.file_io.load_example, "Boehm")
         )
         actions["load_example_simple"] = QAction(
             qta.icon("mdi6.book-open-page-variant"),
@@ -332,22 +339,24 @@ class MainController:
             self.view,
         )
         actions["load_example_simple"].triggered.connect(
-            partial(self.load_example, "Simple_Conversion")
+            partial(self.file_io.load_example, "Simple_Conversion")
         )
         # Save
         actions["save"] = QAction(
             qta.icon("mdi6.content-save-all"), "&Save As...", self.view
         )
         actions["save"].setShortcut(QKeySequence.Save)
-        actions["save"].triggered.connect(self.save_model)
+        actions["save"].triggered.connect(self.file_io.save_model)
         actions["save_single_table"] = QAction(
             qta.icon("mdi6.table-arrow-down"), "Save This Table", self.view
         )
-        actions["save_single_table"].triggered.connect(self.save_single_table)
+        actions["save_single_table"].triggered.connect(
+            self.file_io.save_single_table
+        )
         actions["save_sbml"] = QAction(
             qta.icon("mdi6.file-code"), "Export SBML Model", self.view
         )
-        actions["save_sbml"].triggered.connect(self.save_sbml_model)
+        actions["save_sbml"].triggered.connect(self.file_io.save_sbml_model)
         # Find + Replace
         actions["find"] = QAction(qta.icon("mdi6.magnify"), "Find", self.view)
         actions["find"].setShortcut(QKeySequence.Find)
@@ -399,7 +408,7 @@ class MainController:
             "Check PEtab",
             self.view,
         )
-        actions["check_petab"].triggered.connect(self.check_model)
+        actions["check_petab"].triggered.connect(self.validation.check_model)
         actions["reset_model"] = QAction(
             qta.icon("mdi6.restore"), "Reset SBML Model", self.view
         )
@@ -413,7 +422,7 @@ class MainController:
         actions["simulate"] = QAction(
             qta.icon("mdi6.play"), "Simulate", self.view
         )
-        actions["simulate"].triggered.connect(self.simulate)
+        actions["simulate"].triggered.connect(self.simulation.simulate)
 
         # Filter widget
         filter_widget = QWidget()
@@ -586,690 +595,6 @@ class MainController:
         # Connect menu action to widget visibility
         sbml_action.toggled.connect(sbml_widget.setVisible)
 
-    def save_model(self):
-        options = QFileDialog.Options()
-        file_name, filtering = QFileDialog.getSaveFileName(
-            self.view,
-            "Save Project",
-            "",
-            "COMBINE Archive (*.omex);;Zip Files (*.zip);;Folder",
-            options=options,
-        )
-        if not file_name:
-            return False
-
-        if filtering == "COMBINE Archive (*.omex)":
-            self.model.save_as_omex(file_name)
-        elif filtering == "Folder":
-            if file_name.endswith("."):
-                file_name = file_name[:-1]
-            target = Path(file_name)
-            target.mkdir(parents=True, exist_ok=True)
-            self.model.save(str(target))
-            file_name = str(target)
-        else:
-            if not file_name.endswith(".zip"):
-                file_name += ".zip"
-
-            # Create a temporary directory to save the model's files
-            with tempfile.TemporaryDirectory() as temp_dir:
-                self.model.save(temp_dir)
-
-                # Create a bytes buffer to hold the zip file in memory
-                buffer = BytesIO()
-                with zipfile.ZipFile(buffer, "w") as zip_file:
-                    # Add files to zip archive
-                    for root, _, files in os.walk(temp_dir):
-                        for file in files:
-                            file_path = os.path.join(root, file)
-                            with open(file_path, "rb") as f:
-                                zip_file.writestr(file, f.read())
-                with open(file_name, "wb") as f:
-                    f.write(buffer.getvalue())
-
-        QMessageBox.information(
-            self.view,
-            "Save Project",
-            f"Project saved successfully to {file_name}",
-        )
-
-        # Show next steps panel if not disabled
-        dont_show = settings_manager.get_value(
-            "next_steps/dont_show_again", False, bool
-        )
-        if not dont_show:
-            self.next_steps_panel.show_panel()
-
-        return True
-
-    def save_single_table(self):
-        """Save the currently active table to a tsv-file."""
-        active_controller = self.active_controller()
-        if not active_controller:
-            QMessageBox.warning(
-                self.view,
-                "Save Table",
-                "No active table to save.",
-            )
-            return None
-        file_name, _ = QFileDialog.getSaveFileName(
-            self.view,
-            "Save Table (as *.tsv)",
-            f"{active_controller.model.table_type}.tsv",
-            "TSV Files (*.tsv)",
-        )
-        if not file_name:
-            return False
-        active_controller.save_table(file_name)
-        return True
-
-    def save_sbml_model(self):
-        """Export the SBML model to an XML file."""
-        if not self.model.sbml or not self.model.sbml.sbml_text:
-            QMessageBox.warning(
-                self.view,
-                "Export SBML Model",
-                "No SBML model to export.",
-            )
-            return False
-
-        file_name, _ = QFileDialog.getSaveFileName(
-            self.view,
-            "Export SBML Model",
-            f"{self.model.sbml.model_id}.xml",
-            "SBML Files (*.xml *.sbml);;All Files (*)",
-        )
-        if not file_name:
-            return False
-
-        try:
-            with open(file_name, "w") as f:
-                f.write(self.model.sbml.sbml_text)
-                self.logger.log_message(
-                    "SBML model exported successfully to file.", color="green"
-                )
-            return True
-        except Exception as e:
-            QMessageBox.critical(
-                self.view,
-                "Export SBML Model",
-                f"Failed to export SBML model: {e}",
-            )
-            return False
-
-    def handle_selection_changed(self):
-        """Update the plot when selection in the measurement table changes."""
-        self.update_plot()
-
-    def handle_data_changed(self, top_left, bottom_right, roles):
-        """Update the plot when the data in the measurement table changes."""
-        if not roles or Qt.DisplayRole in roles:
-            self.update_plot()
-
-    def update_plot(self):
-        """Update the plot with the selected measurement data.
-
-        Extracts the selected data points from the measurement table and
-        updates the plot visualization with this data.
-        """
-        selection_model = (
-            self.view.measurement_dock.table_view.selectionModel()
-        )
-        indexes = selection_model.selectedIndexes()
-        if not indexes:
-            return
-
-        selected_points = {}
-        for index in indexes:
-            if index.row() == self.model.measurement.get_df().shape[0]:
-                continue
-            row = index.row()
-            observable_id = self.model.measurement._data_frame.iloc[row][
-                "observableId"
-            ]
-            if observable_id not in selected_points:
-                selected_points[observable_id] = []
-            selected_points[observable_id].append(
-                {
-                    "x": self.model.measurement._data_frame.iloc[row]["time"],
-                    "y": self.model.measurement._data_frame.iloc[row][
-                        "measurement"
-                    ],
-                }
-            )
-        if selected_points == {}:
-            return
-
-        measurement_data = self.model.measurement._data_frame
-        plot_data = {"all_data": [], "selected_points": selected_points}
-        for observable_id in selected_points:
-            observable_data = measurement_data[
-                measurement_data["observableId"] == observable_id
-            ]
-            plot_data["all_data"].append(
-                {
-                    "observable_id": observable_id,
-                    "x": observable_data["time"].tolist(),
-                    "y": observable_data["measurement"].tolist(),
-                }
-            )
-
-        self.view.plot_dock.update_visualization(plot_data)
-
-    def open_file(self, file_path=None, mode=None):
-        """Determines appropriate course of action for a given file.
-
-        Course of action depends on file extension, separator and header
-        structure. Opens the file in the appropriate controller.
-        """
-        if not file_path:
-            file_path, _ = QFileDialog.getOpenFileName(
-                self.view,
-                "Open File",
-                "",
-                "All supported (*.yaml *.yml *.xml *.sbml *.tsv *.csv *.txt "
-                "*.omex);;"
-                "PEtab Problems (*.yaml *.yml);;SBML Files (*.xml *.sbml);;"
-                "PEtab Tables or Data Matrix (*.tsv *.csv *.txt);;"
-                "COMBINE Archive (*.omex);;"
-                "All files (*)",
-            )
-        if not file_path:
-            return
-        # handle file appropriately
-        actionable, sep = process_file(file_path, self.logger)
-        if actionable in ["yaml", "omex"] and mode == "append":
-            self.logger.log_message(
-                f"Append mode is not supported for *.{actionable} files.",
-                color="red",
-            )
-            return
-        if actionable in ["sbml"] and mode == "append":
-            self.logger.log_message(
-                "Append mode is not supported for SBML models.",
-                color="orange",
-            )
-            return
-        if not actionable:
-            return
-        if mode is None:
-            if actionable in ["yaml", "sbml", "omex"]:
-                mode = "overwrite"
-            else:
-                mode = prompt_overwrite_or_append(self)
-        if mode is None:
-            return
-        self.recent_files_manager.add_file(file_path)
-        self._open_file(actionable, file_path, sep, mode)
-
-    def _open_file(self, actionable, file_path, sep, mode):
-        """Overwrites the File in the appropriate controller.
-
-        Actionable dictates which controller to use.
-        """
-        if actionable == "yaml":
-            self.open_yaml_and_load_files(file_path)
-        elif actionable == "omex":
-            self.open_omex_and_load_files(file_path)
-        elif actionable == "sbml":
-            self.sbml_controller.overwrite_sbml(file_path)
-        elif actionable == "measurement":
-            self.measurement_controller.open_table(file_path, sep, mode)
-        elif actionable == "observable":
-            self.observable_controller.open_table(file_path, sep, mode)
-        elif actionable == "parameter":
-            self.parameter_controller.open_table(file_path, sep, mode)
-        elif actionable == "condition":
-            self.condition_controller.open_table(file_path, sep, mode)
-        elif actionable == "visualization":
-            self.visualization_controller.open_table(file_path, sep, mode)
-        elif actionable == "simulation":
-            self.simulation_controller.open_table(file_path, sep, mode)
-        elif actionable == "data_matrix":
-            self.measurement_controller.process_data_matrix_file(
-                file_path, mode, sep
-            )
-
-    def _validate_yaml_structure(self, yaml_content):
-        """Validate PEtab YAML structure before attempting to load files.
-
-        Parameters
-        ----------
-        yaml_content : dict
-            The parsed YAML content.
-
-        Returns
-        -------
-        tuple
-            (is_valid: bool, errors: list[str])
-        """
-        errors = []
-
-        # Check format version
-        if "format_version" not in yaml_content:
-            errors.append("Missing 'format_version' field")
-
-        # Check problems array
-        if "problems" not in yaml_content:
-            errors.append("Missing 'problems' field")
-            return False, errors
-
-        if (
-            not isinstance(yaml_content["problems"], list)
-            or not yaml_content["problems"]
-        ):
-            errors.append("'problems' must be a non-empty list")
-            return False, errors
-
-        problem = yaml_content["problems"][0]
-
-        # Optional but recommended fields
-        if (
-            "visualization_files" not in problem
-            or not problem["visualization_files"]
-        ):
-            errors.append("Warning: No visualization_files specified")
-
-        # Required fields in problem
-        for field in [
-            "sbml_files",
-            "measurement_files",
-            "observable_files",
-            "condition_files",
-        ]:
-            if field not in problem or not problem[field]:
-                errors.append("Problem must contain at least one SBML file")
-
-        # Check parameter_file (at root level)
-        if "parameter_file" not in yaml_content:
-            errors.append("Missing 'parameter_file' at root level")
-
-        return len([e for e in errors if "Warning" not in e]) == 0, errors
-
-    def _validate_files_exist(self, yaml_dir, yaml_content):
-        """Validate that all files referenced in YAML exist.
-
-        Parameters
-        ----------
-        yaml_dir : Path
-            The directory containing the YAML file.
-        yaml_content : dict
-            The parsed YAML content.
-
-        Returns
-        -------
-        tuple
-            (all_exist: bool, missing_files: list[str])
-        """
-        missing_files = []
-        problem = yaml_content["problems"][0]
-
-        # Check SBML files
-        for sbml_file in problem.get("sbml_files", []):
-            if not (yaml_dir / sbml_file).exists():
-                missing_files.append(str(sbml_file))
-
-        # Check measurement files
-        for meas_file in problem.get("measurement_files", []):
-            if not (yaml_dir / meas_file).exists():
-                missing_files.append(str(meas_file))
-
-        # Check observable files
-        for obs_file in problem.get("observable_files", []):
-            if not (yaml_dir / obs_file).exists():
-                missing_files.append(str(obs_file))
-
-        # Check condition files
-        for cond_file in problem.get("condition_files", []):
-            if not (yaml_dir / cond_file).exists():
-                missing_files.append(str(cond_file))
-
-        # Check parameter file
-        if "parameter_file" in yaml_content:
-            param_file = yaml_content["parameter_file"]
-            if not (yaml_dir / param_file).exists():
-                missing_files.append(str(param_file))
-
-        # Check visualization files (optional)
-        for vis_file in problem.get("visualization_files", []):
-            if not (yaml_dir / vis_file).exists():
-                missing_files.append(str(vis_file))
-
-        return len(missing_files) == 0, missing_files
-
-    def _load_file_list(self, controller, file_list, file_type, yaml_dir):
-        """Load multiple files for a given controller.
-
-        Parameters
-        ----------
-        controller : object
-            The controller to load files into (e.g., measurement_controller).
-        file_list : list[str]
-            List of file names to load.
-        file_type : str
-            Human-readable file type for logging (e.g., "measurement").
-        yaml_dir : Path
-            The directory containing the YAML and data files.
-        """
-        for i, file_name in enumerate(file_list):
-            file_mode = "overwrite" if i == 0 else "append"
-            controller.open_table(yaml_dir / file_name, mode=file_mode)
-            self.logger.log_message(
-                f"Loaded {file_type} file ({i + 1}/{len(file_list)}): {file_name}",
-                color="blue",
-            )
-
-    def open_yaml_and_load_files(self, yaml_path=None, mode="overwrite"):
-        """Open files from a YAML configuration.
-
-        Opens a dialog to upload yaml file. Creates a PEtab problem and
-        overwrites the current PEtab model with the new problem.
-        """
-        if not yaml_path:
-            yaml_path, _ = QFileDialog.getOpenFileName(
-                self.view, "Open YAML File", "", "YAML Files (*.yaml *.yml)"
-            )
-        if not yaml_path:
-            return
-        try:
-            for controller in self.controllers:
-                if controller == self.sbml_controller:
-                    continue
-                controller.release_completers()
-
-            # Load the YAML content
-            with open(yaml_path, encoding="utf-8") as file:
-                yaml_content = yaml.safe_load(file)
-
-            # Validate PEtab version
-            if (major := get_major_version(yaml_content)) != 1:
-                raise ValueError(
-                    f"Only PEtab v1 problems are currently supported. "
-                    f"Detected version: {major}.x."
-                )
-
-            # Validate YAML structure
-            is_valid, errors = self._validate_yaml_structure(yaml_content)
-            if not is_valid:
-                error_msg = "Invalid YAML structure:\n  - " + "\n  - ".join(
-                    [e for e in errors if "Warning" not in e]
-                )
-                self.logger.log_message(error_msg, color="red")
-                QMessageBox.critical(
-                    self.view, "Invalid PEtab YAML", error_msg
-                )
-                return
-
-            # Log warnings but continue
-            warnings = [e for e in errors if "Warning" in e]
-            for warning in warnings:
-                self.logger.log_message(warning, color="orange")
-
-            # Resolve the directory of the YAML file to handle relative paths
-            yaml_dir = Path(yaml_path).parent
-
-            # Validate file existence
-            all_exist, missing_files = self._validate_files_exist(
-                yaml_dir, yaml_content
-            )
-            if not all_exist:
-                error_msg = (
-                    "The following files referenced in the YAML are missing:\n  - "
-                    + "\n  - ".join(missing_files)
-                )
-                self.logger.log_message(error_msg, color="red")
-                QMessageBox.critical(self.view, "Missing Files", error_msg)
-                return
-
-            problem = yaml_content["problems"][0]
-
-            # Load SBML model (required, single file)
-            sbml_files = problem.get("sbml_files", [])
-            if sbml_files:
-                sbml_file_path = yaml_dir / sbml_files[0]
-                self.sbml_controller.overwrite_sbml(sbml_file_path)
-                self.logger.log_message(
-                    f"Loaded SBML file: {sbml_files[0]}", color="blue"
-                )
-
-            # Load measurement files (multiple allowed)
-            measurement_files = problem.get("measurement_files", [])
-            if measurement_files:
-                self._load_file_list(
-                    self.measurement_controller,
-                    measurement_files,
-                    "measurement",
-                    yaml_dir,
-                )
-
-            # Load observable files (multiple allowed)
-            observable_files = problem.get("observable_files", [])
-            if observable_files:
-                self._load_file_list(
-                    self.observable_controller,
-                    observable_files,
-                    "observable",
-                    yaml_dir,
-                )
-
-            # Load condition files (multiple allowed)
-            condition_files = problem.get("condition_files", [])
-            if condition_files:
-                self._load_file_list(
-                    self.condition_controller,
-                    condition_files,
-                    "condition",
-                    yaml_dir,
-                )
-
-            # Load parameter file (required, single file at root level)
-            if "parameter_file" in yaml_content:
-                param_file = yaml_content["parameter_file"]
-                self.parameter_controller.open_table(yaml_dir / param_file)
-                self.logger.log_message(
-                    f"Loaded parameter file: {param_file}", color="blue"
-                )
-
-            # Load visualization files (optional, multiple allowed)
-            visualization_files = problem.get("visualization_files", [])
-            if visualization_files:
-                self._load_file_list(
-                    self.visualization_controller,
-                    visualization_files,
-                    "visualization",
-                    yaml_dir,
-                )
-            else:
-                self.visualization_controller.clear_table()
-
-            # Simulation should be cleared
-            self.simulation_controller.clear_table()
-
-            self.logger.log_message(
-                "All files opened successfully from the YAML configuration.",
-                color="green",
-            )
-            self.check_model()
-
-            # Rerun the completers
-            for controller in self.controllers:
-                if controller == self.sbml_controller:
-                    continue
-                controller.setup_completers()
-            self.unsaved_changes_change(False)
-
-        except FileNotFoundError as e:
-            error_msg = f"File not found: {e.filename if hasattr(e, 'filename') else str(e)}"
-            self.logger.log_message(error_msg, color="red")
-            QMessageBox.warning(self.view, "File Not Found", error_msg)
-        except KeyError as e:
-            error_msg = f"Missing required field in YAML: {str(e)}"
-            self.logger.log_message(error_msg, color="red")
-            QMessageBox.warning(self.view, "Invalid YAML", error_msg)
-        except ValueError as e:
-            error_msg = f"Invalid YAML structure: {str(e)}"
-            self.logger.log_message(error_msg, color="red")
-            QMessageBox.warning(self.view, "Invalid YAML", error_msg)
-        except yaml.YAMLError as e:
-            error_msg = f"YAML parsing error: {str(e)}"
-            self.logger.log_message(error_msg, color="red")
-            QMessageBox.warning(self.view, "YAML Parsing Error", error_msg)
-        except Exception as e:
-            error_msg = f"Unexpected error loading YAML: {str(e)}"
-            self.logger.log_message(error_msg, color="red")
-            logging.exception("Full traceback for YAML loading error:")
-            QMessageBox.critical(self.view, "Error", error_msg)
-
-    def open_omex_and_load_files(self, omex_path=None):
-        """Opens a petab problem from a COMBINE Archive."""
-        if not omex_path:
-            omex_path, _ = QFileDialog.getOpenFileName(
-                self.view,
-                "Open COMBINE Archive",
-                "",
-                "COMBINE Archive (*.omex);;All files (*)",
-            )
-        if not omex_path:
-            return
-        try:
-            combine_archive = petab.problem.Problem.from_combine(omex_path)
-        except Exception as e:
-            self.logger.log_message(
-                f"Failed to open files from OMEX: {str(e)}", color="red"
-            )
-            return
-        # overwrite current model
-        self.measurement_controller.overwrite_df(
-            combine_archive.measurement_df
-        )
-        self.observable_controller.overwrite_df(combine_archive.observable_df)
-        self.condition_controller.overwrite_df(combine_archive.condition_df)
-        self.parameter_controller.overwrite_df(combine_archive.parameter_df)
-        self.visualization_controller.overwrite_df(
-            combine_archive.visualization_df
-        )
-        self.sbml_controller.overwrite_sbml(sbml_model=combine_archive.model)
-
-    def new_file(self):
-        """Empty all tables. In case of unsaved changes, ask to save."""
-        if self.unsaved_changes:
-            reply = QMessageBox.question(
-                self.view,
-                "Unsaved Changes",
-                "You have unsaved changes. Do you want to save them?",
-                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
-                QMessageBox.Save,
-            )
-            if reply == QMessageBox.Save:
-                self.save_model()
-        for controller in self.controllers:
-            if controller == self.sbml_controller:
-                controller.clear_model()
-                continue
-            controller.clear_table()
-        self.view.plot_dock.plot_it()
-        self.unsaved_changes_change(False)
-
-    def load_example(self, example_name):
-        """Load an internal example PEtab problem.
-
-        Parameters
-        ----------
-        example_name : str
-            Name of the example subdirectory (e.g., "Boehm", "Simple_Conversion").
-
-        Finds and loads the example dataset from the package directory.
-        No internet connection required - the example is bundled with the package.
-        """
-        try:
-            # Use importlib.resources to access packaged example files
-            from importlib.resources import as_file, files
-
-            example_files = files("petab_gui.example")
-
-            # Check if the example package exists
-            if not example_files.is_dir():
-                error_msg = (
-                    "Could not find the example dataset. "
-                    "The example folder may not be properly installed."
-                )
-                self.logger.log_message(error_msg, color="red")
-                QMessageBox.warning(self.view, "Example Not Found", error_msg)
-                return
-
-            # Get the problem.yaml file path for the specified example
-            yaml_file = example_files.joinpath(example_name, "problem.yaml")
-
-            with as_file(yaml_file) as yaml_path:
-                if not yaml_path.exists():
-                    error_msg = f"Example '{example_name}' not found or problem.yaml file is missing."
-                    self.logger.log_message(error_msg, color="red")
-                    QMessageBox.warning(
-                        self.view, "Example Invalid", error_msg
-                    )
-                    return
-
-                # Load the example
-                self.logger.log_message(
-                    f"Loading '{example_name}' example dataset...",
-                    color="blue",
-                )
-                self.open_yaml_and_load_files(str(yaml_path))
-
-        except ModuleNotFoundError as e:
-            error_msg = (
-                "Example dataset not found. It may not be installed properly. "
-                f"Error: {str(e)}"
-            )
-            self.logger.log_message(error_msg, color="red")
-            QMessageBox.warning(self.view, "Example Not Found", error_msg)
-        except Exception as e:
-            error_msg = f"Failed to load example: {str(e)}"
-            self.logger.log_message(error_msg, color="red")
-            QMessageBox.critical(self.view, "Error Loading Example", error_msg)
-
-    def check_model(self):
-        """Check the consistency of the model. And log the results."""
-        capture_handler = CaptureLogHandler()
-        logger_lint = logging.getLogger("petab.v1.lint")
-        logger_vis = logging.getLogger("petab.v1.visualize.lint")
-        logger_lint.addHandler(capture_handler)
-        logger_vis.addHandler(capture_handler)
-
-        try:
-            # Run the consistency check
-            failed = self.model.test_consistency()
-
-            # Process captured logs
-            if capture_handler.records:
-                captured_output = "<br>&nbsp;&nbsp;&nbsp;&nbsp;".join(
-                    capture_handler.get_formatted_messages()
-                )
-                self.logger.log_message(
-                    f"Captured petab lint logs:<br>"
-                    f"&nbsp;&nbsp;&nbsp;&nbsp;{captured_output}",
-                    color="purple",
-                )
-
-            # Log the consistency check result
-            if not failed:
-                self.logger.log_message(
-                    "PEtab problem has no errors.", color="green"
-                )
-                for model in self.model.pandas_models.values():
-                    model.reset_invalid_cells()
-            else:
-                self.logger.log_message(
-                    "PEtab problem has errors.", color="red"
-                )
-        except Exception as e:
-            msg = f"PEtab linter failed at some point: {filtered_error(e)}"
-            self.logger.log_message(msg, color="red")
-        finally:
-            # Always remove the capture handler
-            logger_lint.removeHandler(capture_handler)
-            logger_vis.removeHandler(capture_handler)
-
     def unsaved_changes_change(self, unsaved_changes: bool):
         self.unsaved_changes = unsaved_changes
         if unsaved_changes:
@@ -1289,7 +614,7 @@ class MainController:
             QMessageBox.Save,
         )
         if reply == QMessageBox.Save:
-            saved = self.save_model()
+            saved = self.file_io.save_model()
             self.view.allow_close = saved
         elif reply == QMessageBox.Discard:
             self.view.allow_close = True
@@ -1321,7 +646,7 @@ class MainController:
         if active_widget == self.view.visualization_dock.table_view:
             return self.visualization_controller
         if active_widget == self.view.simulation_dock.table_view:
-            return self.simulation_controller
+            return self.simulation_table_controller
         return None
 
     def delete_rows(self):
@@ -1385,7 +710,7 @@ class MainController:
             "measurement": self.measurement_controller.get_columns(),
             "condition": self.condition_controller.get_columns(),
             "visualization": self.visualization_controller.get_columns(),
-            "simulation": self.simulation_controller.get_columns(),
+            "simulation": self.simulation_table_controller.get_columns(),
         }
         settings_dialog = SettingsDialog(table_columns, self.view)
         settings_dialog.exec()
@@ -1401,234 +726,6 @@ class MainController:
         if self.view.find_replace_bar is None:
             self.view.create_find_replace_bar()
         self.view.toggle_replace()
-
-    def init_plotter(self):
-        """(Re-)initialize the plotter."""
-        self.view.plot_dock.initialize(
-            self.measurement_controller.proxy_model,
-            self.simulation_controller.proxy_model,
-            self.condition_controller.proxy_model,
-            self.visualization_controller.proxy_model,
-            self.model,
-        )
-        self.plotter = self.view.plot_dock
-        self.plotter.highlighter.click_callback = self._on_plot_point_clicked
-
-    def _floats_match(self, a, b, epsilon=1e-9):
-        """Check if two floats match within epsilon tolerance."""
-        return abs(a - b) < epsilon
-
-    def _on_plot_point_clicked(self, x, y, label, data_type):
-        """Handle plot point clicks and select corresponding table row.
-
-        Uses epsilon tolerance for floating-point comparison to avoid
-        precision issues.
-        """
-        # Check for None label
-        if label is None:
-            self.logger.log_message(
-                "Cannot select table row: plot point has no label.",
-                color="orange",
-            )
-            return
-
-        # Extract observable ID from label
-        proxy = self.measurement_controller.proxy_model
-        view = self.measurement_controller.view.table_view
-        if data_type == "simulation":
-            proxy = self.simulation_controller.proxy_model
-            view = self.simulation_controller.view.table_view
-        obs = label
-
-        x_axis_col = "time"
-        y_axis_col = data_type
-        observable_col = "observableId"
-
-        # Get column indices with error handling
-        def column_index(name):
-            for col in range(proxy.columnCount()):
-                if proxy.headerData(col, Qt.Horizontal) == name:
-                    return col
-            raise ValueError(f"Column '{name}' not found.")
-
-        try:
-            x_col = column_index(x_axis_col)
-            y_col = column_index(y_axis_col)
-            obs_col = column_index(observable_col)
-        except ValueError as e:
-            self.logger.log_message(
-                f"Table selection failed: {e}",
-                color="red",
-            )
-            return
-
-        # Search for matching row using epsilon tolerance for floats
-        matched = False
-        for row in range(proxy.rowCount()):
-            row_obs = proxy.index(row, obs_col).data()
-            row_x = proxy.index(row, x_col).data()
-            row_y = proxy.index(row, y_col).data()
-            try:
-                row_x, row_y = float(row_x), float(row_y)
-            except ValueError:
-                continue
-
-            # Use epsilon tolerance for float comparison
-            if (
-                row_obs == obs
-                and self._floats_match(row_x, x)
-                and self._floats_match(row_y, y)
-            ):
-                # Manually update highlight BEFORE selecting row
-                # This ensures the circle appears even though we skip the signal handler
-                if data_type == "measurement":
-                    self.plotter.highlight_from_selection([row])
-                else:
-                    self.plotter.highlight_from_selection(
-                        [row],
-                        proxy=self.simulation_controller.proxy_model,
-                        y_axis_col="simulation",
-                    )
-
-                # Set flag to prevent redundant highlight update from signal
-                self._updating_from_plot = True
-                try:
-                    view.selectRow(row)
-                    matched = True
-                finally:
-                    self._updating_from_plot = False
-                break
-
-        # Provide feedback if no match found
-        if not matched:
-            self.logger.log_message(
-                f"No matching row found for plot point (obs={obs}, x={x:.4g}, y={y:.4g})",
-                color="orange",
-            )
-
-    def _handle_table_selection_changed(
-        self, table_view, proxy=None, y_axis_col="measurement"
-    ):
-        """Common handler for table selection changes.
-
-        Skips update if selection was triggered by plot click to prevent
-        redundant highlight updates.
-
-        Args:
-            table_view: The table view with selection to highlight
-            proxy: Optional proxy model for simulation data
-            y_axis_col: Column name for y-axis data (default: "measurement")
-        """
-        # Skip if selection was triggered by plot point click
-        if self._updating_from_plot:
-            return
-
-        # Set flag to prevent infinite loop if highlight triggers selection
-        self._updating_from_table = True
-        try:
-            selected_rows = get_selected(table_view)
-            if proxy:
-                self.plotter.highlight_from_selection(
-                    selected_rows, proxy=proxy, y_axis_col=y_axis_col
-                )
-            else:
-                self.plotter.highlight_from_selection(selected_rows)
-        finally:
-            self._updating_from_table = False
-
-    def _on_table_selection_changed(self, selected, deselected):
-        """Highlight the cells selected in measurement table."""
-        self._handle_table_selection_changed(
-            self.measurement_controller.view.table_view
-        )
-
-    def _on_simulation_selection_changed(self, selected, deselected):
-        """Highlight the cells selected in simulation table."""
-        self._handle_table_selection_changed(
-            self.simulation_controller.view.table_view,
-            proxy=self.simulation_controller.proxy_model,
-            y_axis_col="simulation",
-        )
-
-    def simulate(self):
-        """Simulate the model."""
-        # obtain petab problem
-        petab_problem = self.model.current_petab_problem
-
-        # Check if nominalValue column exists, if not add it from SBML model
-        parameter_df = petab_problem.parameter_df.copy()
-        if (
-            parameter_df is not None
-            and not parameter_df.empty
-            and petab.C.NOMINAL_VALUE not in parameter_df.columns
-        ):
-            self.logger.log_message(
-                "nominalValue column missing in parameter table. "
-                "Extracting nominal values from SBML model...",
-                color="orange",
-            )
-            # Extract parameter values from SBML model
-            sbml_model = self.model.sbml.get_current_sbml_model()
-            if sbml_model is not None:
-                nominal_values = []
-                for param_id in parameter_df.index:
-                    try:
-                        value = sbml_model.get_parameter_value(param_id)
-                        nominal_values.append(value)
-                    except Exception:
-                        # If parameter not found in SBML, use default value of 1
-                        nominal_values.append(1.0)
-
-                # Add nominalValue column to parameter_df
-                parameter_df[petab.C.NOMINAL_VALUE] = nominal_values
-                self.logger.log_message(
-                    f"Successfully extracted {len(nominal_values)} "
-                    f"nominal values from SBML model. Add nominalValue "
-                    f"column to parameter table to set values manually.",
-                    color="green",
-                )
-
-                # Update the petab problem with the modified parameter_df
-                petab_problem = petab.Problem(
-                    condition_df=petab_problem.condition_df,
-                    measurement_df=petab_problem.measurement_df,
-                    observable_df=petab_problem.observable_df,
-                    parameter_df=parameter_df,
-                    visualization_df=petab_problem.visualization_df,
-                    model=petab_problem.model,
-                )
-
-        # import petabsimualtor
-        import basico
-        from basico.petab import PetabSimulator
-
-        # report current basico / COPASI version
-        self.logger.log_message(
-            f"Simulate with basico: {basico.__version__}, COPASI: {basico.COPASI.__version__}",
-            color="green",
-        )
-
-        import tempfile
-
-        # create temp directory in temp folder:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # settings is only current solution statistic for now:
-            settings = {"method": {"name": basico.PE.CURRENT_SOLUTION}}
-            # create simulator
-            simulator = PetabSimulator(
-                petab_problem, settings=settings, working_dir=temp_dir
-            )
-
-            # simulate
-            sim_df = simulator.simulate()
-
-        # assign to simulation table
-        self.simulation_controller.overwrite_df(sim_df)
-        self.simulation_controller.model.reset_invalid_cells()
-
-    def _schedule_plot_update(self):
-        """Start the plot schedule timer."""
-        self._plot_update_timer.start()
 
     def _toggle_whats_this_mode(self, on: bool):
         """Enable/disable click-to-help mode by installing/removing the global filter.
@@ -1716,7 +813,3 @@ class MainController:
             dont_show: Whether to suppress the panel on future saves
         """
         settings_manager.set_value("next_steps/dont_show_again", dont_show)
-
-    def get_current_problem(self):
-        """Get the current PEtab problem from the model."""
-        return self.model.current_petab_problem

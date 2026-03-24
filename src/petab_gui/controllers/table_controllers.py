@@ -23,14 +23,14 @@ from ..models.pandas_table_model import (
     PandasTableFilterProxy,
     PandasTableModel,
 )
+from ..resources.whats_this import WHATS_THIS
 from ..settings_manager import settings_manager
 from ..utils import (
     CaptureLogHandler,
-    ConditionInputDialog,
     get_selected,
     process_file,
 )
-from ..views.other_views import DoseTimeDialog
+from ..views.dialogs import ConditionInputDialog, DoseTimeDialog
 from ..views.table_view import (
     ColumnSuggestionDelegate,
     ComboBoxDelegate,
@@ -38,7 +38,6 @@ from ..views.table_view import (
     SingleSuggestionDelegate,
     TableViewer,
 )
-from ..views.whats_this import WHATS_THIS
 from .utils import linter_wrapper, prompt_overwrite_or_append, save_petab_table
 
 
@@ -181,7 +180,7 @@ class TableController(QObject):
             else:
                 new_df = pd.read_csv(file_path, sep=separator, index_col=0)
         except Exception as e:
-            self.view.log_message(
+            self.logger.log_message(
                 f"Failed to read file: {str(e)}", color="red"
             )
             return

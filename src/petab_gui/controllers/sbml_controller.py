@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QFileDialog
 
 from ..C import DEFAULT_ANTIMONY_TEXT
 from ..models.sbml_model import SbmlViewerModel
-from ..utils import sbmlToAntimony
+from ..models.sbml_utils import sbml_to_antimony
 from ..views.sbml_view import SbmlViewer
 
 
@@ -67,7 +67,7 @@ class SbmlController(QObject):
         self.model.sbml_text = libsbml.writeSBMLToString(
             self.model._sbml_model_original.sbml_model.getSBMLDocument()
         )
-        self.model.antimony_text = sbmlToAntimony(self.model.sbml_text)
+        self.model.antimony_text = sbml_to_antimony(self.model.sbml_text)
         self.view.sbml_text_edit.setPlainText(self.model.sbml_text)
         self.view.antimony_text_edit.setPlainText(self.model.antimony_text)
 

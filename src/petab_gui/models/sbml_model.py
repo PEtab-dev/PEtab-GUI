@@ -7,7 +7,7 @@ from petab.v1.sbml import load_sbml_from_string
 from PySide6.QtCore import QObject, QSignalBlocker, Signal
 
 from ..C import DEFAULT_ANTIMONY_TEXT
-from ..utils import antimonyToSBML, sbmlToAntimony
+from .sbml_utils import antimony_to_sbml, sbml_to_antimony
 
 
 class SbmlViewerModel(QObject):
@@ -30,7 +30,7 @@ class SbmlViewerModel(QObject):
             self.sbml_text = libsbml.writeSBMLToString(
                 self._sbml_model_original.sbml_model.getSBMLDocument()
             )
-            self.antimony_text = sbmlToAntimony(self.sbml_text)
+            self.antimony_text = sbml_to_antimony(self.sbml_text)
         else:
             self.antimony_text = DEFAULT_ANTIMONY_TEXT
             with QSignalBlocker(self):
@@ -38,12 +38,12 @@ class SbmlViewerModel(QObject):
         self.model_id = self._get_model_id()
 
     def convert_sbml_to_antimony(self):
-        self.antimony_text = sbmlToAntimony(self.sbml_text)
+        self.antimony_text = sbml_to_antimony(self.sbml_text)
         self.model_id = self._get_model_id()
         self.something_changed.emit(True)
 
     def convert_antimony_to_sbml(self):
-        self.sbml_text = antimonyToSBML(self.antimony_text)
+        self.sbml_text = antimony_to_sbml(self.antimony_text)
         self.model_id = self._get_model_id()
         self.something_changed.emit(True)
 

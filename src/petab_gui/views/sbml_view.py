@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..models.tooltips import ANTIMONY_VIEW_TOOLTIP, SBML_VIEW_TOOLTIP
-from .whats_this import WHATS_THIS
+from ..resources.whats_this import WHATS_THIS
 
 
 class SbmlViewer(QWidget):
