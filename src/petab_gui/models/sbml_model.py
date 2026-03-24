@@ -69,5 +69,4 @@ class SbmlViewerModel(QObject):
         """Extract the model ID from the SBML text."""
         document = libsbml.readSBMLFromString(self.sbml_text)
         model = document.getModel()
-        model_id = model.getIdAttribute() or "New_File"
-        return model_id
+        return model.getIdAttribute() or "New_File"

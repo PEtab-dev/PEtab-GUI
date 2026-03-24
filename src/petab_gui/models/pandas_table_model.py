@@ -245,8 +245,7 @@ class PandasTableModel(QAbstractTableModel):
                     section - self.column_offset
                 ]
             if role == Qt.ToolTipRole:
-                tooltip_header = header_tip(self.table_type, col_label)
-                return tooltip_header
+                return header_tip(self.table_type, col_label)
             if role == Qt.WhatsThisRole:
                 return column_whats_this(self.table_type, col_label)
             return col_label
