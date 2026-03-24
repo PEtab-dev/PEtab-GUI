@@ -25,7 +25,7 @@ def _convert_dtype_with_nullable_int(series, dtype):
     # Check if it's already a pandas nullable int type
     is_pandas_nullable_int = isinstance(
         dtype,
-        (pd.Int64Dtype, pd.Int32Dtype, pd.Int16Dtype, pd.Int8Dtype),
+        pd.Int64Dtype | pd.Int32Dtype | pd.Int16Dtype | pd.Int8Dtype,
     )
 
     if is_pandas_nullable_int:
@@ -306,7 +306,7 @@ class ModifyDataFrameCommand(QUndoCommand):
             # For numeric types, convert string inputs to numbers first
             is_pandas_nullable_int = isinstance(
                 dtype,
-                (pd.Int64Dtype, pd.Int32Dtype, pd.Int16Dtype, pd.Int8Dtype),
+                pd.Int64Dtype | pd.Int32Dtype | pd.Int16Dtype | pd.Int8Dtype,
             )
             if is_pandas_nullable_int or np.issubdtype(dtype, np.number):
                 df[col] = pd.to_numeric(df[col], errors="coerce")
