@@ -421,7 +421,6 @@ class MeasurementPlotter(QDockWidget):
             simulations_df,
             ax=axes_fit,
         )
-        # fig_fit.tight_layout()
         create_plot_tab(fig_fit, self, "Goodness of Fit")
 
     def disable_plotting(self, disable: bool):
