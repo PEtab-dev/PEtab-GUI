@@ -90,7 +90,6 @@ lint.ignore = [
     # FIXME: those are ignored for now, should be fixed eventually
     "E501",  # Ignore line too long
     "ERA001", # Found commented-out code
-    "RET504",  # Unnecessary assignment before `return`
     "T201",  # `print` found"
     "SIM105",  # Use `contextlib.suppress`
     "S110",  # `try`-`except`-`pass` detected, consider logging the exception
