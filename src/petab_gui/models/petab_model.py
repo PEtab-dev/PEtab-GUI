@@ -62,11 +62,11 @@ class PEtabModel:
         )
         self.measurement = MeasurementModel(
             data_frame=self.problem.measurement_df,
-            type="measurement",
+            table_type="measurement",
         )
         self.simulation = MeasurementModel(
             data_frame=None,
-            type="simulation",
+            table_type="simulation",
         )
         self.observable = ObservableModel(
             data_frame=self.problem.observable_df,
