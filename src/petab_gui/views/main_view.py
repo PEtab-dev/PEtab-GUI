@@ -126,7 +126,8 @@ class MainWindow(QMainWindow):
 
         self.tab_widget.currentChanged.connect(self.set_docks_visible)
 
-        # Track if we're in a minimize/restore cycle (must be set before load_ui_settings)
+        # Track if we're in a minimize/restore cycle (must be set before
+        # load_ui_settings)
         self._was_minimized = False
 
         settings_manager.load_ui_settings(self)
@@ -233,7 +234,7 @@ class MainWindow(QMainWindow):
 
     def save_dock_visibility(self, visible):
         """Save the visibility status of a QDockWidget when it changes."""
-        # Don't save visibility when window is minimized - Qt hides docks automatically
+        # Don't save visibility when window is minimized - Qt hides docks
         if self.isMinimized():
             return
         # if current tab is not the data tab return

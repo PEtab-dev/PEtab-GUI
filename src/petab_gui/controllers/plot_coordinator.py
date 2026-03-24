@@ -23,7 +23,8 @@ class PlotCoordinator:
     Attributes
     ----------
     main : MainController
-        Reference to the main controller for access to models, views, and other controllers.
+        Reference to the main controller for access to models, views, and
+        other controllers.
     model : PEtabModel
         The PEtab model being visualized.
     view : MainWindow
@@ -188,7 +189,8 @@ class PlotCoordinator:
         x : float
             X-coordinate of the clicked point (time).
         y : float
-            Y-coordinate of the clicked point (measurement or simulation value).
+            Y-coordinate of the clicked point (measurement or simulation
+            value).
         label : str
             Label of the clicked point (observable ID).
         data_type : str
@@ -250,7 +252,8 @@ class PlotCoordinator:
                 and self._floats_match(row_y, y)
             ):
                 # Manually update highlight BEFORE selecting row
-                # This ensures the circle appears even though we skip the signal handler
+                # This ensures the circle appears even though we skip
+                # the signal handler
                 if data_type == "measurement":
                     self.plotter.highlight_from_selection([row])
                 else:
@@ -272,7 +275,8 @@ class PlotCoordinator:
         # Provide feedback if no match found
         if not matched:
             self.logger.log_message(
-                f"No matching row found for plot point (obs={obs}, x={x:.4g}, y={y:.4g})",
+                f"No matching row found for plot point "
+                f"(obs={obs}, x={x:.4g}, y={y:.4g})",
                 color="orange",
             )
 

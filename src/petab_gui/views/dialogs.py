@@ -97,8 +97,8 @@ class ConditionInputDialog(QDialog):
         Returns:
             dict: A dictionary containing:
                 - 'simulationConditionId': The simulation condition ID
-                - 'preequilibrationConditionId': The preequilibration condition ID
-                  (only included if provided)
+                - 'preequilibrationConditionId': The preequilibration
+                  condition ID (only included if provided)
         """
         inputs = {}
         inputs["simulationConditionId"] = self.sim_input.text()
@@ -203,7 +203,8 @@ class NextStepsPanel(QDialog):
 
         # Description
         desc = QLabel(
-            "This parameter estimation problem can now be used in the following tools:"
+            "This parameter estimation problem can now be used in the "
+            "following tools:"
         )
         desc.setWordWrap(True)
         main_layout.addWidget(desc)

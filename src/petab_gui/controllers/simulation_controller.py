@@ -22,7 +22,8 @@ class SimulationController:
     Attributes
     ----------
     main : MainController
-        Reference to the main controller for access to models, views, and other controllers.
+        Reference to the main controller for access to models, views, and
+        other controllers.
     model : PEtabModel
         The PEtab model being simulated.
     logger : LoggerController
@@ -80,7 +81,7 @@ class SimulationController:
                         value = sbml_model.get_parameter_value(param_id)
                         nominal_values.append(value)
                     except Exception:
-                        # If parameter not found in SBML, use default value of 1
+                        # If parameter not found in SBML, use default value
                         nominal_values.append(1.0)
 
                 # Add nominalValue column to parameter_df
@@ -108,7 +109,8 @@ class SimulationController:
 
         # report current basico / COPASI version
         self.logger.log_message(
-            f"Simulate with basico: {basico.__version__}, COPASI: {basico.COPASI.__version__}",
+            f"Simulate with basico: {basico.__version__}, "
+            f"COPASI: {basico.COPASI.__version__}",
             color="green",
         )
 

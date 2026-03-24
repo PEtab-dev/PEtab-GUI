@@ -29,9 +29,12 @@ class _WhatsThisClickHelp(QObject):
 
     While the action is checked:
       • Left-click shows a What's This bubble for the target under cursor.
-      • Clicking the SAME target again closes the bubble (stays in help mode).
-      • ESC closes the bubble if one is open; if none is open, exits help mode.
-      • Special cases: QTabBar tabs and QHeaderView sections handled explicitly.
+      • Clicking the SAME target again closes the bubble (stays in help
+        mode).
+      • ESC closes the bubble if one is open; if none is open, exits help
+        mode.
+      • Special cases: QTabBar tabs and QHeaderView sections handled
+        explicitly.
     """
 
     def __init__(self, action):
@@ -81,7 +84,8 @@ class _WhatsThisClickHelp(QObject):
             if isinstance(w, QScrollBar):
                 return False
 
-            # If click landed outside app widgets (e.g., on the bubble), just close it
+            # If click landed outside app widgets (e.g., on the bubble),
+            # just close it
             if not w:
                 self._has_bubble = False
                 return True

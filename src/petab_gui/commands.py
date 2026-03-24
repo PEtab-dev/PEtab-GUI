@@ -12,8 +12,8 @@ def _convert_dtype_with_nullable_int(series, dtype):
     """Convert a series to the specified dtype, handling nullable integers.
 
     When converting to integer types and the series contains NaN values,
-    this function automatically uses pandas nullable integer types (Int64, Int32, etc.)
-    instead of numpy integer types which don't support NaN.
+    this function automatically uses pandas nullable integer types (Int64,
+    Int32, etc.) instead of numpy integer types which don't support NaN.
 
     Args:
         series: The pandas Series to convert

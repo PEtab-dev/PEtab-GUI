@@ -35,7 +35,7 @@ class PlotWorker(QRunnable):
         self.signals = PlotWorkerSignals()
 
     def run(self):
-        # Move all Matplotlib plotting to the GUI thread. Only prepare payload here.
+        # Move all Matplotlib plotting to the GUI thread. Only prepare payload.
         sim_df = self.sim_df if not self.sim_df.empty else None
         payload = {
             "vis_df": self.vis_df,
@@ -300,8 +300,9 @@ class MeasurementPlotter(QDockWidget):
             )
 
             # Map subplot to observable IDs
-            # When grouped by condition/dataset, one subplot can have multiple observables
-            # Extract all observable IDs from legend labels
+            # When grouped by condition/dataset, one subplot can have
+            # multiple observables. Extract all observable IDs from legend
+            # labels
             subplot_title = (
                 ax.get_title() if ax.get_title() else f"subplot_{idx}"
             )
@@ -313,7 +314,8 @@ class MeasurementPlotter(QDockWidget):
                     label_parts = legend_label.split()
                     if len(label_parts) == 0:
                         continue
-                    # Extract observable ID (last part before "simulation" if present)
+                    # Extract observable ID (last part before "simulation"
+                    # if present)
                     if label_parts[-1] == "simulation":
                         obs_id = (
                             label_parts[-2]
@@ -434,7 +436,8 @@ class MeasurementHighlighter:
         self.highlight_scatters = defaultdict(
             list
         )  # (subplot index) → scatter artist
-        self.point_index_map = {}  # (subplot index, observableId, x, y) → row index
+        # (subplot index, observableId, x, y) → row index
+        self.point_index_map = {}
         self.click_callback = None
 
     def clear_highlight(self):
@@ -480,7 +483,8 @@ class MeasurementHighlighter:
         for handle, lbl in zip(handles, labels, strict=False):
             if handle is artist:
                 # Extract observable ID and data type from legend label
-                # Format can be: "observableId", "datasetId observableId", or "datasetId observableId simulation"
+                # Format can be: "observableId", "datasetId observableId",
+                # or "datasetId observableId simulation"
                 label_parts = lbl.split()
                 if len(label_parts) == 0:
                     continue
@@ -495,7 +499,8 @@ class MeasurementHighlighter:
                     )
                 else:
                     data_type = "measurement"
-                    # Label is last: "dataset obs" -> "obs" or just "obs" -> "obs"
+                    # Label is last: "dataset obs" -> "obs" or just
+                    # "obs" -> "obs"
                     label = label_parts[-1]
                 break
 

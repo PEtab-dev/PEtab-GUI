@@ -227,8 +227,9 @@ class TableController(QObject):
         self.model.beginResetModel()
         current_df = self.model.get_df()
 
-        # For tables without a named index (measurement, visualization, simulation),
-        # ignore the index to avoid removing appended data due to index conflicts
+        # For tables without a named index (measurement, visualization,
+        # simulation), ignore the index to avoid removing appended data due
+        # to index conflicts
         if self.model.table_type in [
             "measurement",
             "visualization",
@@ -238,7 +239,8 @@ class TableController(QObject):
                 [current_df, new_df], axis=0, ignore_index=True
             )
         else:
-            # For tables with named indices, concatenate and remove duplicate indices
+            # For tables with named indices, concatenate and remove
+            # duplicate indices
             combined_df = pd.concat([current_df, new_df], axis=0)
             combined_df = combined_df[
                 ~combined_df.index.duplicated(keep="first")
@@ -784,12 +786,14 @@ class MeasurementController(TableController):
         return None
 
     def _rank_dose_candidates(self, df: pd.DataFrame) -> list[str]:
-        """Rank DataFrame columns by likelihood of containing dose/concentration data.
+        """Rank columns by likelihood of containing dose/concentration data.
 
-        This method implements a lightweight scoring system to identify and rank
-        columns that are most likely to contain dose, concentration, or drug-related
-        data. The ranking is based on multiple heuristics including column naming
-        patterns, data types, value ranges, and statistical properties.
+        This method implements a lightweight scoring system to identify
+        and rank columns that are most likely to contain dose,
+        concentration, or drug-related
+        data. The ranking is based on multiple heuristics including column
+        naming patterns, data types, value ranges, and statistical
+        properties.
 
         Parameters
         ----------
@@ -800,29 +804,32 @@ class MeasurementController(TableController):
         Returns
         -------
         list[str]
-            Column names sorted by descending likelihood of containing dose data.
-            Columns with higher scores appear first. In case of tied scores,
-            columns with fewer unique values are ranked higher.
+            Column names sorted by descending likelihood of containing
+            dose data. Columns with higher scores appear first. In case of
+            tied scores, columns with fewer unique values are ranked higher.
 
         Notes
         -----
         The scoring algorithm considers the following criteria:
 
-        - **Name matching** (+2.0 points): Column names containing keywords like
-          'dose', 'conc', 'concentration', 'drug', 'compound', 'stim', 'input',
-          or patterns like 'u<digit>' (case-insensitive).
+        - **Name matching** (+2.0 points): Column names containing keywords
+          like 'dose', 'conc', 'concentration', 'drug', 'compound', 'stim',
+          'input', or patterns like 'u<digit>' (case-insensitive).
 
-        - **Numeric data type** (+1.0 points): Columns with integer or float dtype.
+        - **Numeric data type** (+1.0 points): Columns with integer or float
+          dtype.
 
-        - **Reasonable cardinality** (+0.8 points): Columns with 2-30 unique
-          non-null values, which is typical for dose series.
+        - **Reasonable cardinality** (+0.8 points): Columns with 2-30
+          unique non-null values, which is typical for dose series.
 
-        - **Non-negative values** (+0.3 points): All values are >= 0 when converted
-          to numeric (dose/concentration values are typically non-negative).
+        - **Non-negative values** (+0.3 points): All values are >= 0 when
+          converted to numeric (dose/concentration values are typically
+          non-negative).
 
-        - **Monotonic tendency** (+0.2 points): At least 70% of consecutive numeric
-          differences are non-decreasing, indicating potential dose escalation
-          patterns. Requires at least 5 non-null numeric values.
+        - **Monotonic tendency** (+0.2 points): At least 70% of
+          consecutive numeric differences are non-decreasing, indicating
+          potential dose escalation patterns. Requires at least 5 non-null
+          numeric values.
 
         Raises
         ------

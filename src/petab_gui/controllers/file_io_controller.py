@@ -1,7 +1,7 @@
 """File I/O Controller for PEtab GUI.
 
-This module contains the FileIOController class, which handles all file input/output
-operations for PEtab models, including:
+This module contains the FileIOController class, which handles all
+file input/output operations for PEtab models, including:
 - Opening and saving PEtab YAML files
 - Opening and saving COMBINE archives (OMEX)
 - Opening and saving individual tables
@@ -35,7 +35,8 @@ class FileIOController:
     Attributes
     ----------
     main : MainController
-        Reference to the main controller for access to models, views, and other controllers.
+        Reference to the main controller for access to models, views, and
+        other controllers.
     model : PEtabModel
         The PEtab model being managed.
     view : MainWindow
@@ -60,8 +61,9 @@ class FileIOController:
     def save_model(self):
         """Save the entire PEtab model.
 
-        Opens a dialog to select the save format and location, then saves the model
-        as either a COMBINE archive (OMEX), ZIP file, or folder structure.
+        Opens a dialog to select the save format and location, then saves
+        the model as either a COMBINE archive (OMEX), ZIP file, or folder
+        structure.
 
         Returns
         -------
@@ -129,7 +131,8 @@ class FileIOController:
         Returns
         -------
         bool or None
-            True if saved successfully, False if cancelled, None if no active table.
+            True if saved successfully, False if cancelled, None if no
+            active table.
         """
         active_controller = self.main.active_controller()
         if not active_controller:
@@ -253,8 +256,9 @@ class FileIOController:
         Parameters
         ----------
         actionable : str
-            Type of file: "yaml", "omex", "sbml", "measurement", "observable",
-            "parameter", "condition", "visualization", "simulation", "data_matrix".
+            Type of file: "yaml", "omex", "sbml", "measurement",
+            "observable", "parameter", "condition", "visualization",
+            "simulation", "data_matrix".
         file_path : str
             Path to the file.
         sep : str
@@ -412,7 +416,8 @@ class FileIOController:
             file_mode = "overwrite" if i == 0 else "append"
             controller.open_table(yaml_dir / file_name, mode=file_mode)
             self.logger.log_message(
-                f"Loaded {file_type} file ({i + 1}/{len(file_list)}): {file_name}",
+                f"Loaded {file_type} file ({i + 1}/{len(file_list)}): "
+                f"{file_name}",
                 color="blue",
             )
 
@@ -478,8 +483,8 @@ class FileIOController:
             )
             if not all_exist:
                 error_msg = (
-                    "The following files referenced in the YAML are missing:\n  - "
-                    + "\n  - ".join(missing_files)
+                    "The following files referenced in the YAML are "
+                    "missing:\n  - " + "\n  - ".join(missing_files)
                 )
                 self.logger.log_message(error_msg, color="red")
                 QMessageBox.critical(self.view, "Missing Files", error_msg)
@@ -565,7 +570,10 @@ class FileIOController:
             self.main.unsaved_changes_change(False)
 
         except FileNotFoundError as e:
-            error_msg = f"File not found: {e.filename if hasattr(e, 'filename') else str(e)}"
+            error_msg = (
+                f"File not found: "
+                f"{e.filename if hasattr(e, 'filename') else str(e)}"
+            )
             self.logger.log_message(error_msg, color="red")
             QMessageBox.warning(self.view, "File Not Found", error_msg)
         except KeyError as e:
@@ -659,12 +667,14 @@ class FileIOController:
         Parameters
         ----------
         example_name : str
-            Name of the example subdirectory (e.g., "Boehm", "Simple_Conversion").
+            Name of the example subdirectory (e.g., "Boehm",
+            "Simple_Conversion").
 
         Notes
         -----
         Finds and loads the example dataset from the package directory.
-        No internet connection required - the example is bundled with the package.
+        No internet connection required - the example is bundled with the
+        package.
         """
         try:
             # Use importlib.resources to access packaged example files
@@ -687,7 +697,10 @@ class FileIOController:
 
             with as_file(yaml_file) as yaml_path:
                 if not yaml_path.exists():
-                    error_msg = f"Example '{example_name}' not found or problem.yaml file is missing."
+                    error_msg = (
+                        f"Example '{example_name}' not found or "
+                        f"problem.yaml file is missing."
+                    )
                     self.logger.log_message(error_msg, color="red")
                     QMessageBox.warning(
                         self.view, "Example Invalid", error_msg
