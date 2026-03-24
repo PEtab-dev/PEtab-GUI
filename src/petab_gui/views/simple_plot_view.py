@@ -477,11 +477,11 @@ class MeasurementHighlighter:
         label = None
         data_type = "measurement"  # Default to measurement
 
-        for h, l in zip(handles, labels, strict=False):
-            if h is artist:
+        for handle, lbl in zip(handles, labels, strict=False):
+            if handle is artist:
                 # Extract observable ID and data type from legend label
                 # Format can be: "observableId", "datasetId observableId", or "datasetId observableId simulation"
-                label_parts = l.split()
+                label_parts = lbl.split()
                 if len(label_parts) == 0:
                     continue
 
