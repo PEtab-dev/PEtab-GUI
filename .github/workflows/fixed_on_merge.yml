@@ -1,0 +1,54 @@
+# .github/workflows/fixed-on-merge.yml
+name: Mark linked issues as fixed but not released
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  label-fixed:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Swap WIP → fixed but not released
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const issuePattern = /refs?\s+#(\d+)/gi;
+            const matches = [...body.matchAll(issuePattern)];
+
+            if (matches.length === 0) {
+              console.log('No linked issues found.');
+              return;
+            }
+
+            for (const match of matches) {
+              const issueNumber = parseInt(match[1]);
+
+              // Remove WIP label (ignore error if it wasn't there)
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  name: 'WIP'
+                });
+              } catch (e) {
+                console.log(`WIP label not present on #${issueNumber}, skipping removal.`);
+              }
+
+              // Add "fixed but not released" label
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                labels: ['fixed but not released']
+              });
+
+              console.log(`Updated issue #${issueNumber}: WIP → fixed but not released`);
+            }
