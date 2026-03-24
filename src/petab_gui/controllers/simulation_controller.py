@@ -103,7 +103,6 @@ class SimulationController:
                     model=petab_problem.model,
                 )
 
-        # import petabsimualtor
         import basico
         from basico.petab import PetabSimulator
 
