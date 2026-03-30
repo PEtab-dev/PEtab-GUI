@@ -28,7 +28,7 @@ class SimulationController:
         The PEtab model being simulated.
     logger : LoggerController
         The logger for user feedback.
-    simulation_table_controller : MeasurementController
+    simulation_controller : MeasurementController
         The controller for the simulation results table.
     """
 
@@ -126,5 +126,5 @@ class SimulationController:
             sim_df = simulator.simulate()
 
         # assign to simulation table
-        self.main.simulation_table_controller.overwrite_df(sim_df)
-        self.main.simulation_table_controller.model.reset_invalid_cells()
+        self.main.simulation_controller.overwrite_df(sim_df)
+        self.main.simulation_controller.model.reset_invalid_cells()
