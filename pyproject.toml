@@ -88,7 +88,6 @@ lint.ignore = [
     "D101",  # Ignore missing docstring in public classes
     "F401",
     # FIXME: those are ignored for now, should be fixed eventually
-    "T201",  # `print` found"
     "SIM105",  # Use `contextlib.suppress`
     "S110",  # `try`-`except`-`pass` detected, consider logging the exception
 ]

@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 
 import petab.v1.C as PETAB_C
@@ -18,6 +19,8 @@ from PySide6.QtWidgets import (
 )
 
 from .utils import proxy_to_dataframe
+
+logger = logging.getLogger(__name__)
 
 
 class PlotWorkerSignals(QObject):
@@ -196,8 +199,8 @@ class MeasurementPlotter(QDockWidget):
                     fig = plt.gcf()
                     self._update_tabs(fig)
                     return
-                except Exception as e:
-                    print(f"Invalid Visualisation DF: {e}")
+                except Exception:
+                    logger.exception("Invalid Visualisation DF")
             # fallback to observable grouping
             plt.close("all")
             petab_vis.plot_without_vis_spec(
@@ -412,8 +415,8 @@ class MeasurementPlotter(QDockWidget):
                 axes=axes,
             )
             create_plot_tab(fig_res, self, "Residuals vs Simulation")
-        except ValueError as e:
-            print(f"Error plotting residuals: {e}")
+        except ValueError:
+            logger.exception("Error plotting residuals")
         fig_fit, axes_fit = plt.subplots(constrained_layout=False)
         fig_fit.subplots_adjust(left=0.05, right=0.98, bottom=0.05, top=0.98)
         plot_goodness_of_fit(
