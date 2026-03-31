@@ -2,7 +2,7 @@
 
 import copy
 
-from PySide6.QtCore import QEvent, QSettings, Qt, QTimer
+from PySide6.QtCore import QEvent, QSettings, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QDockWidget,
     QMainWindow,
@@ -35,6 +35,17 @@ from .table_view import TableViewer
 
 
 class MainWindow(QMainWindow):
+    """Main application window.
+
+    Signals:
+        file_open_requested(str): Emitted on user request to open a file (path)
+        close_requested(): Emitted on user request to close the window
+    """
+
+    # Signals for user actions
+    file_open_requested = Signal(str)  # file_path
+    close_requested = Signal()
+
     DATA_TAB_INDEX = 0  # Index of the Data Tables tab
 
     def __init__(self):
@@ -189,10 +200,11 @@ class MainWindow(QMainWindow):
         event.ignore()
 
     def dropEvent(self, event):
+        """Handle file drop."""
         for url in event.mimeData().urls():
             event.setDropAction(Qt.CopyAction)
             event.accept()
-            self.controller.open_file(url.toLocalFile())
+            self.file_open_requested.emit(url.toLocalFile())
             return
 
         event.ignore()
@@ -271,8 +283,9 @@ class MainWindow(QMainWindow):
             self._was_minimized = False
 
     def closeEvent(self, event):
-        """Override the closeEvent to emit additional signal."""
-        self.controller.maybe_close()
+        """Override the closeEvent to check safe closing."""
+        # Emit signal for controller to handle - sets allow_close or if safe
+        self.close_requested.emit()
 
         if self.allow_close:
             settings_manager.save_ui_settings(self)
@@ -318,12 +331,16 @@ class MainWindow(QMainWindow):
         settings.setValue("data_tab/geometry", self.data_tab.saveGeometry())
         settings.setValue("data_tab/state", self.data_tab.saveState())
 
-    def create_find_replace_bar(self):
+    def create_find_replace_bar(self, find_replace_controller):
         """Create the find/replace bar.
 
         Add it without replacing the tab widget.
+
+        Args:
+            find_replace_controller: FindReplaceController instance to
+            coordinate search operations across tables
         """
-        self.find_replace_bar = FindReplaceBar(self.controller, self)
+        self.find_replace_bar = FindReplaceBar(find_replace_controller, self)
         # manually create a copy of the dock visibility
         dock_visibility_values = copy.deepcopy(
             list(self.dock_visibility.values())

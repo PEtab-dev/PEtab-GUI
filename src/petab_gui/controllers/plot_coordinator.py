@@ -69,7 +69,7 @@ class PlotCoordinator:
         """
         self.view.plot_dock.initialize(
             self.main.measurement_controller.proxy_model,
-            self.main.simulation_table_controller.proxy_model,
+            self.main.simulation_controller.proxy_model,
             self.main.condition_controller.proxy_model,
             self.main.visualization_controller.proxy_model,
             self.model,
@@ -208,8 +208,8 @@ class PlotCoordinator:
         proxy = self.main.measurement_controller.proxy_model
         view = self.main.measurement_controller.view.table_view
         if data_type == "simulation":
-            proxy = self.main.simulation_table_controller.proxy_model
-            view = self.main.simulation_table_controller.view.table_view
+            proxy = self.main.simulation_controller.proxy_model
+            view = self.main.simulation_controller.view.table_view
         obs = label
 
         x_axis_col = "time"
@@ -259,7 +259,7 @@ class PlotCoordinator:
                 else:
                     self.plotter.highlight_from_selection(
                         [row],
-                        proxy=self.main.simulation_table_controller.proxy_model,
+                        proxy=self.main.simulation_controller.proxy_model,
                         y_axis_col="simulation",
                     )
 
@@ -340,7 +340,7 @@ class PlotCoordinator:
             The newly deselected items.
         """
         self._handle_table_selection_changed(
-            self.main.simulation_table_controller.view.table_view,
-            proxy=self.main.simulation_table_controller.proxy_model,
+            self.main.simulation_controller.view.table_view,
+            proxy=self.main.simulation_controller.proxy_model,
             y_axis_col="simulation",
         )

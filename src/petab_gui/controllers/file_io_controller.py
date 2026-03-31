@@ -283,9 +283,7 @@ class FileIOController:
         elif actionable == "visualization":
             self.main.visualization_controller.open_table(file_path, sep, mode)
         elif actionable == "simulation":
-            self.main.simulation_table_controller.open_table(
-                file_path, sep, mode
-            )
+            self.main.simulation_controller.open_table(file_path, sep, mode)
         elif actionable == "data_matrix":
             self.main.measurement_controller.process_data_matrix_file(
                 file_path, mode, sep
@@ -554,7 +552,7 @@ class FileIOController:
                 self.main.visualization_controller.clear_table()
 
             # Simulation should be cleared
-            self.main.simulation_table_controller.clear_table()
+            self.main.simulation_controller.clear_table()
 
             self.logger.log_message(
                 "All files opened successfully from the YAML configuration.",

@@ -44,6 +44,7 @@ from ..utils import (
 from ..views import TaskBar
 from ..views.dialogs import NextStepsPanel
 from .file_io_controller import FileIOController
+from .find_replace_controller import FindReplaceController
 from .logger_controller import LoggerController
 from .plot_coordinator import PlotCoordinator
 from .sbml_controller import SbmlController
@@ -122,7 +123,7 @@ class MainController:
             self.undo_stack,
             self,
         )
-        self.simulation_table_controller = MeasurementController(
+        self.simulation_controller = MeasurementController(
             self.view.simulation_dock,
             self.model.simulation,
             self.logger,
@@ -139,7 +140,7 @@ class MainController:
             self.condition_controller,
             self.sbml_controller,
             self.visualization_controller,
-            self.simulation_table_controller,
+            self.simulation_controller,
         ]
         # File I/O Controller
         self.file_io = FileIOController(self)
@@ -149,6 +150,17 @@ class MainController:
         self.validation = ValidationController(self)
         # Simulation Controller
         self.simulation = SimulationController(self)
+        # Find/Replace Controller
+        self.find_replace_controller = FindReplaceController(
+            {
+                "Observable Table": self.observable_controller,
+                "Condition Table": self.condition_controller,
+                "Parameter Table": self.parameter_controller,
+                "Measurement Table": self.measurement_controller,
+                "Visualization Table": self.visualization_controller,
+                "Simulation Table": self.simulation_controller,
+            }
+        )
         # Recent Files
         self.recent_files_manager = RecentFilesManager(max_files=10)
         # Checkbox states for Find + Replace
@@ -290,11 +302,15 @@ class MainController:
             self.measurement_controller,
             self.condition_controller,
             self.visualization_controller,
-            self.simulation_table_controller,
+            self.simulation_controller,
         ]:
             controller.overwritten_df.connect(
                 self.plot_coordinator._schedule_plot_update
             )
+        self.view.file_open_requested.connect(
+            partial(self.file_io.open_file, mode="overwrite")
+        )
+        self.view.close_requested.connect(self.maybe_close)
 
     def setup_actions(self):
         """Setup actions for the main controller."""
@@ -646,7 +662,7 @@ class MainController:
         if active_widget == self.view.visualization_dock.table_view:
             return self.visualization_controller
         if active_widget == self.view.simulation_dock.table_view:
-            return self.simulation_table_controller
+            return self.simulation_controller
         return None
 
     def delete_rows(self):
@@ -710,7 +726,7 @@ class MainController:
             "measurement": self.measurement_controller.get_columns(),
             "condition": self.condition_controller.get_columns(),
             "visualization": self.visualization_controller.get_columns(),
-            "simulation": self.simulation_table_controller.get_columns(),
+            "simulation": self.simulation_controller.get_columns(),
         }
         settings_dialog = SettingsDialog(table_columns, self.view)
         settings_dialog.exec()
@@ -718,13 +734,13 @@ class MainController:
     def find(self):
         """Create a find replace bar if it is non existent."""
         if self.view.find_replace_bar is None:
-            self.view.create_find_replace_bar()
+            self.view.create_find_replace_bar(self.find_replace_controller)
         self.view.toggle_find()
 
     def replace(self):
         """Create a find replace bar if it is non existent."""
         if self.view.find_replace_bar is None:
-            self.view.create_find_replace_bar()
+            self.view.create_find_replace_bar(self.find_replace_controller)
         self.view.toggle_replace()
 
     def _toggle_whats_this_mode(self, on: bool):
